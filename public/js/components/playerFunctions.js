@@ -2,7 +2,7 @@
 function addPlayer(self, playerInfo) {
     self.ship = self.physics.add.sprite(playerInfo.x, playerInfo.y, 'ship').setOrigin(0.5, 0.5).setDisplaySize(20, 44);
     // game.camera.follow(self.ship);
-    self.cameras.main.startFollow(self.ship, 0.2, 0.2);
+    self.cameras.main.startFollow(self.ship, 1, 1);
     // console.log("ADD PLAYER TEXTURE KEY ", self.ship.texture.key)
     playerInfo.sprite = self.ship.texture.key;
 
