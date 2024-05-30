@@ -1,0 +1,1 @@
+tile-extruder --tileWidth 16 --tileHeight 16 --input public/tileset/spritesheet.png --output public/tileset/spritesheet_extruded.png
