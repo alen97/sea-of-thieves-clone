@@ -138,8 +138,6 @@ const friction = 0.99; // Factor de fricción para simular pérdida gradual de v
 let isDrifting = false;  // Variable para rastrear si el jugador está realizando un drift
 const driftFactor = 0.8;  // Factor de deriva para reducir la velocidad durante el drift
 
-let monturaActivada = false;
-
 // Variables de control
 let steeringDirection = 0; // Rango de -100 a 100
 const maxSteeringDirection = 100;
@@ -150,11 +148,23 @@ let maxRightSteering = 0;
 // Nivel de navegación
 let navigationLevel = 2; // 1: frenado, 2: nivel medio, 3: máxima velocidad
 
+// Variable para el estado del ancla
+let isAnchored = false;
+let targetSpeed = 0;
+
 function update() {
   let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
   let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+  let keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-  console.log("steeringDirection ", steeringDirection)
+  if (Phaser.Input.Keyboard.JustDown(keySpace)) {
+    isAnchored = !isAnchored;  // Alternar el estado del ancla
+    if (!isAnchored) {
+      // Cuando se suelta el ancla, establecer targetSpeed a la velocidad actual
+      const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
+      targetSpeed = currentSpeed;
+    }
+  }
 
   if (this.ship) {
     // Control de la dirección del timón
@@ -184,11 +194,20 @@ function update() {
 
     // Aplicar la velocidad calculada
     const maxSpeed = isDrifting ? maxSpeedForward * driftFactor : maxSpeedForward;
-    const newSpeed = isDrifting ? 1 * maxSpeed * driftFactor : 1 * maxSpeed;
     const angle = this.ship.rotation - Math.PI / 2;
-    const velocityX = Math.cos(angle) * newSpeed;
-    const velocityY = Math.sin(angle) * newSpeed;
-    this.ship.setVelocity(velocityX, velocityY);
+    let velocityX, velocityY;
+
+    if (isAnchored) {
+      // Reducir la velocidad gradualmente
+      this.ship.setVelocity(this.ship.body.velocity.x * 0.99, this.ship.body.velocity.y * 0.99);
+    } else {
+      // Acelerar gradualmente hasta la velocidad objetivo
+      targetSpeed = Math.min(targetSpeed + 1, maxSpeed);
+      const newSpeed = isDrifting ? targetSpeed * driftFactor : targetSpeed;
+      velocityX = Math.cos(angle) * newSpeed;
+      velocityY = Math.sin(angle) * newSpeed;
+      this.ship.setVelocity(velocityX, velocityY);
+    }
 
     this.physics.world.wrap(this.ship, 0);
 
@@ -209,6 +228,9 @@ function update() {
     };
   }
 }
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
