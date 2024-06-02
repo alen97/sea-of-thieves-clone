@@ -165,6 +165,11 @@ let targetSpeed = 0;
 let triggerShootLeft = false;
 let triggerShootRight = false;
 
+// Definir variables de cooldown
+let canShootLeft = true;
+let canShootRight = true;
+const cooldownTime = 3000;  // 1000 ms = 1 segundo
+
 function update() {
   // Dirección
   let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -177,31 +182,42 @@ function update() {
 
   // Disparar cañones
   if (Phaser.Input.Keyboard.JustDown(keyLeft)) {
-    // if (!triggerShootLeft) {
+    if (canShootLeft) {
       // SHOOT
+      this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left" });
+      this.cameras.main.shake(100, 0.003);
 
-      this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left"});
-
-      this.cameras.main.shake(100, 0.003)
+      // Iniciar cooldown
+      canShootLeft = false;
+      this.time.addEvent({
+        delay: cooldownTime,
+        callback: () => { canShootLeft = true; },
+        callbackScope: this
+      });
 
       this.readyToShoot = false;
-
       this.activatedKey = undefined;
-    // }
+    }
   }
   if (Phaser.Input.Keyboard.JustDown(keyRight)) {
-    // if (!triggerShootLeft) {
+    if (canShootRight) {
       // SHOOT
-
       this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "right" });
+      this.cameras.main.shake(100, 0.003);
 
-      this.cameras.main.shake(100, 0.003)
+      // Iniciar cooldown
+      canShootRight = false;
+      this.time.addEvent({
+        delay: cooldownTime,
+        callback: () => { canShootRight = true; },
+        callbackScope: this
+      });
 
       this.readyToShoot = false;
-
       this.activatedKey = undefined;
-    // }  
+    }
   }
+
 
   if (Phaser.Input.Keyboard.JustDown(keySpace)) {
     isAnchored = !isAnchored;  // Alternar el estado del ancla
@@ -293,17 +309,32 @@ class UIScene extends Phaser.Scene {
 
     // Obtén las coordenadas de la cámara del jugador
     const cameraX = this.mainScene.cameras.main.width / 2 - 6;
-    const cameraY = this.mainScene.cameras.main.height / 2 - 60;
+    const cameraY = (this.mainScene.cameras.main.height / 2 - 60) + 110;
 
     // Crear un texto para mostrar el nombre del usuario
     this.mainScene.currentSteeringDirectionText = this.add.text(cameraX, cameraY, steeringDirection, {
       fontSize: 18,
       fill: '#ffffff'
     });
+
+    this.mainScene.canShootLeftIndicator = this.add.text(cameraX-45, cameraY, "+", {
+      fontSize: 18,
+      fill: '#ffffff'
+    });
+
+    this.mainScene.canShootRightIndicator = this.add.text(cameraX+45, cameraY, "+", {
+      fontSize: 18,
+      fill: '#ffffff'
+    });
   }
 
   update() {
+    // this.mainScene.currentSteeringDirectionText.setText((canShootLeft ? "+" : "-") + " " + steeringDirection + " " + (canShootRight ? "+" : "-"));
     this.mainScene.currentSteeringDirectionText.setText(steeringDirection);
+
+    this.mainScene.canShootLeftIndicator.setText(canShootLeft ? "+" : "-")
+    this.mainScene.canShootRightIndicator.setText(canShootRight ? "+" : "-")
+
   }
 
 }
