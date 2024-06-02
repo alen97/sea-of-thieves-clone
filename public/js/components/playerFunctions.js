@@ -19,7 +19,36 @@ function addPlayer(self, playerInfo) {
     self.ship.invulnerable = false;
 
     self.ship.speed = 150;
-    
+
+    // DEATH
+    self.physics.add.overlap(self.ship, self.otherBullets, function (player, bullet) {
+
+        if (!self.ship.dead) {
+            console.log("PLAYER ID: ", player.playerId)
+            console.log("SHOOTER ID: ", bullet.shooterId)
+            if (player.playerId !== bullet.shooterId) { // Si la bullet no fue creada por el mismo player
+
+                self.cameras.main.shake(300, 0.03)
+                self.ship.dead = true;
+                self.ship.setTexture("playerMuerto")
+
+                bullet.destroy() // Destruye la bala sólo si no disparaste vos
+                self.ship.setVelocityX(0);
+                self.ship.setVelocityY(0);
+
+                self.ship.setDepth(0)
+
+                // self.ship.anims.stop()
+
+                // self.playerDeathSound.setVolume(0.03)
+                // self.playerDeathSound.play();
+
+                self.socket.emit('playerDied', { x: self.ship.x, y: self.ship.y, rotation: self.ship.rotation, sprite: "playerMuerto", killerId: bullet.shooterId });
+
+            }
+        }
+    }, null, self);
+
 }
 
 function addOtherPlayers(self, playerInfo) {

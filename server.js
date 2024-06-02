@@ -57,6 +57,23 @@ io.on('connection', function (socket) {
     io.emit('newBullet', creationData);
   });
 
+  // when a player dies, update global data
+  socket.on('playerDied', function (deathData) {
+
+    // console.log("PLAYER DIED")
+    players[socket.id].sprite = deathData.sprite;
+    players[socket.id].x = deathData.x;
+    players[socket.id].y = deathData.y;
+    players[socket.id].rotation = deathData.rotation;
+    players[socket.id].isPlayerDead = true;
+
+    players[deathData.killerId].kills++;
+
+    // emit a message to all players about the player that moved
+    // socket.broadcast.emit('playerMoved', players[socket.id]);
+    socket.broadcast.emit('playerIsDead', players[socket.id], deathData);
+  });
+
 });
 
 function resolveInitialPosition(axis) {

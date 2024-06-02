@@ -46,6 +46,9 @@ function preload() {
 
   this.load.audio('shoot', ['sounds/bow5.ogg', 'sounds/bow5.mp3']);
 
+  this.load.image('playerMuerto', 'assets/player_muerto.png');
+
+
 }
 
 function create() {
@@ -114,6 +117,42 @@ function create() {
     addBullet(self, creationData);
   });
 
+
+  this.socket.on('playerIsDead', function (playerInfo, deathData) {
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (playerInfo.playerId === otherPlayer.playerId) {
+
+        // console.log("HEARING PLAYER DEATH SOUND")
+
+        // // LOGICA DE VOLUMEN DEPENDIENDO DISTANCIA
+
+        // const distance = Phaser.Math.Distance.Between(self.ship.x, self.ship.y, deathData.x, deathData.y);
+
+        // // Define una función que ajusta el volumen en función de la distancia.
+        // function calculateVolume(distance, maxDistance) {
+        //   // Puedes ajustar esta fórmula según tus necesidades.
+        //   // En este caso, el volumen disminuirá linealmente a medida que la distancia aumenta.
+        //   return Math.max(0, 1 - distance / maxDistance);
+        // }
+
+        // const maxDistance = 1000; // La distancia máxima a la que quieres que el sonido sea audible.
+
+        // const volume = calculateVolume(distance, maxDistance);
+
+        // console.log("PLAYER DEATH VOLUME: ", 0.03 * volume)
+
+        // // Establece el volumen del sonido en función de la distancia.
+        // self.playerDeathSound.setVolume(0.03 * volume);
+
+        // self.playerDeathSound.play();
+
+        otherPlayer.setTexture(playerInfo.sprite)
+        otherPlayer.setPosition(playerInfo.x, playerInfo.y)
+        otherPlayer.setRotation(playerInfo.rotation)
+      }
+    });
+  });
+
   // ---------------- RENDER TILESET
 
   this.map = this.make.tilemap({ key: 'tilemap' });
@@ -171,64 +210,67 @@ let canShootRight = true;
 const cooldownTime = 3000;  // 1000 ms = 1 segundo
 
 function update() {
-  // Dirección
-  let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-  let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-  // Ancla
-  let keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-  // Disparos
-  let keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
-  let keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
 
-  // Disparar cañones
-  if (Phaser.Input.Keyboard.JustDown(keyLeft)) {
-    if (canShootLeft) {
-      // SHOOT
-      this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left" });
-      this.cameras.main.shake(100, 0.003);
 
-      // Iniciar cooldown
-      canShootLeft = false;
-      this.time.addEvent({
-        delay: cooldownTime,
-        callback: () => { canShootLeft = true; },
-        callbackScope: this
-      });
+  if (this.ship && !this.ship.dead) {
 
-      this.readyToShoot = false;
-      this.activatedKey = undefined;
+    // Dirección
+    let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    // Ancla
+    let keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    // Disparos
+    let keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    let keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+
+    // Disparar cañones
+    if (Phaser.Input.Keyboard.JustDown(keyLeft)) {
+      if (canShootLeft) {
+        // SHOOT
+        this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left" });
+        this.cameras.main.shake(100, 0.003);
+
+        // Iniciar cooldown
+        canShootLeft = false;
+        this.time.addEvent({
+          delay: cooldownTime,
+          callback: () => { canShootLeft = true; },
+          callbackScope: this
+        });
+
+        this.readyToShoot = false;
+        this.activatedKey = undefined;
+      }
     }
-  }
-  if (Phaser.Input.Keyboard.JustDown(keyRight)) {
-    if (canShootRight) {
-      // SHOOT
-      this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "right" });
-      this.cameras.main.shake(100, 0.003);
+    if (Phaser.Input.Keyboard.JustDown(keyRight)) {
+      if (canShootRight) {
+        // SHOOT
+        this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "right" });
+        this.cameras.main.shake(100, 0.003);
 
-      // Iniciar cooldown
-      canShootRight = false;
-      this.time.addEvent({
-        delay: cooldownTime,
-        callback: () => { canShootRight = true; },
-        callbackScope: this
-      });
+        // Iniciar cooldown
+        canShootRight = false;
+        this.time.addEvent({
+          delay: cooldownTime,
+          callback: () => { canShootRight = true; },
+          callbackScope: this
+        });
 
-      this.readyToShoot = false;
-      this.activatedKey = undefined;
+        this.readyToShoot = false;
+        this.activatedKey = undefined;
+      }
     }
-  }
 
 
-  if (Phaser.Input.Keyboard.JustDown(keySpace)) {
-    isAnchored = !isAnchored;  // Alternar el estado del ancla
-    if (!isAnchored) {
-      // Cuando se suelta el ancla, establecer targetSpeed a la velocidad actual
-      const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
-      targetSpeed = currentSpeed;
+    if (Phaser.Input.Keyboard.JustDown(keySpace)) {
+      isAnchored = !isAnchored;  // Alternar el estado del ancla
+      if (!isAnchored) {
+        // Cuando se suelta el ancla, establecer targetSpeed a la velocidad actual
+        const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
+        targetSpeed = currentSpeed;
+      }
     }
-  }
 
-  if (this.ship) {
     // Control de la dirección del timón
     if (keyA.isDown) {
       // Girar a la izquierda
@@ -317,12 +359,12 @@ class UIScene extends Phaser.Scene {
       fill: '#ffffff'
     });
 
-    this.mainScene.canShootLeftIndicator = this.add.text(cameraX-45, cameraY, "+", {
+    this.mainScene.canShootLeftIndicator = this.add.text(cameraX - 45, cameraY, "+", {
       fontSize: 18,
       fill: '#ffffff'
     });
 
-    this.mainScene.canShootRightIndicator = this.add.text(cameraX+45, cameraY, "+", {
+    this.mainScene.canShootRightIndicator = this.add.text(cameraX + 45, cameraY, "+", {
       fontSize: 18,
       fill: '#ffffff'
     });
