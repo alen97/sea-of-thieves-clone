@@ -4,6 +4,7 @@ var server = require('http').Server(app);
 var io = require('socket.io').listen(server);
 
 var players = {};
+var bullets = [];
 
 app.use(express.static(__dirname + '/public'));
 
@@ -43,9 +44,17 @@ io.on('connection', function (socket) {
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
     players[socket.id].sprite = movementData.sprite;
-    players[socket.id].usingDash = movementData.usingDash;
     // emit a message to all players about the player that moved
     socket.broadcast.emit('playerMoved', players[socket.id]);
+  });
+
+  // CREATE BULLET
+  socket.on('createBullet', function (creationData) {
+    // update all other players of the new bullet
+    console.log("creationData (server): ", creationData)
+
+    bullets.push({ id: bullets.length })
+    io.emit('newBullet', creationData);
   });
 
 });
@@ -55,32 +64,32 @@ function resolveInitialPosition(axis) {
   let result = Math.floor(Math.random() * 4) // 0 al 3 (4 bordes del mapa)
   console.log("RANDOM RESULT: ", result)
 
-  if(result === 0) {
-    if(axis === "x") {
+  if (result === 0) {
+    if (axis === "x") {
       return Math.floor(Math.random() * 150) + 25
     } else { // axis === "y"
       return Math.floor(Math.random() * 150) + 25
     }
   }
 
-  if(result === 1) {
-    if(axis === "x") {
+  if (result === 1) {
+    if (axis === "x") {
       return 1600 - Math.floor(Math.random() * 150) - 25
     } else { // axis === "y"
       return Math.floor(Math.random() * 150) + 25
     }
   }
 
-  if(result === 2) {
-    if(axis === "x") {
+  if (result === 2) {
+    if (axis === "x") {
       return Math.floor(Math.random() * 150) + 25
     } else { // axis === "y"
       return 1600 - Math.floor(Math.random() * 150) - 25
     }
   }
 
-  if(result === 3) {
-    if(axis === "x") {
+  if (result === 3) {
+    if (axis === "x") {
       return 1600 - Math.floor(Math.random() * 150) - 25
     } else { // axis === "y"
       return 1600 - Math.floor(Math.random() * 150) - 25

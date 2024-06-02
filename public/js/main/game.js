@@ -42,12 +42,16 @@ function preload() {
   this.load.image('tiles', 'tileset/spritesheet-extruded.png');
   this.load.tilemapTiledJSON('tilemap', 'tileset/tilemap.json');
 
+  this.load.image('bullet', 'assets/bullet.png');
+
+  this.load.audio('shoot', ['sounds/bow5.ogg', 'sounds/bow5.mp3']);
+
 }
 
 function create() {
 
   let canvas = this.sys.canvas;
-  canvas.style.cursor = 'default';
+  canvas.style.cursor = 'none';
 
   var enterGame = this.sound.add('enterGame');
   enterGame.setVolume(0.1)
@@ -58,7 +62,7 @@ function create() {
 
   this.windowData = { width: width, height: height }
 
-  this.input.setDefaultCursor('default');
+  this.input.setDefaultCursor('none');
 
   // game.scale.startFullscreen();
   this.cameras.main.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -72,6 +76,7 @@ function create() {
 
   // Groups
   this.otherPlayers = this.physics.add.group();
+  this.otherBullets = this.physics.add.group();
 
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
@@ -102,6 +107,11 @@ function create() {
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
       }
     });
+  });
+
+  this.socket.on('newBullet', function (creationData) {
+    console.log("PRE ADD BULLET ", creationData)
+    addBullet(self, creationData);
   });
 
   // ---------------- RENDER TILESET
@@ -152,10 +162,46 @@ let navigationLevel = 2; // 1: frenado, 2: nivel medio, 3: máxima velocidad
 let isAnchored = false;
 let targetSpeed = 0;
 
+let triggerShootLeft = false;
+let triggerShootRight = false;
+
 function update() {
+  // Dirección
   let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
   let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+  // Ancla
   let keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+  // Disparos
+  let keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+  let keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+
+  // Disparar cañones
+  if (Phaser.Input.Keyboard.JustDown(keyLeft)) {
+    // if (!triggerShootLeft) {
+      // SHOOT
+
+      this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left"});
+
+      this.cameras.main.shake(100, 0.003)
+
+      this.readyToShoot = false;
+
+      this.activatedKey = undefined;
+    // }
+  }
+  if (Phaser.Input.Keyboard.JustDown(keyRight)) {
+    // if (!triggerShootLeft) {
+      // SHOOT
+
+      this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "right" });
+
+      this.cameras.main.shake(100, 0.003)
+
+      this.readyToShoot = false;
+
+      this.activatedKey = undefined;
+    // }  
+  }
 
   if (Phaser.Input.Keyboard.JustDown(keySpace)) {
     isAnchored = !isAnchored;  // Alternar el estado del ancla
