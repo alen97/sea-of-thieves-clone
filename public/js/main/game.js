@@ -330,6 +330,8 @@ function update() {
       rotation: this.ship.rotation,
       sprite: this.ship.texture.key
     };
+  } else {
+    steeringDirection = 0;
   }
 }
 
