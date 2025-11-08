@@ -14,6 +14,9 @@ function addPlayer(self, playerInfo, ship) {
     player.isControllingShip = false;
     player.ship = ship; // Referencia al barco
 
+    // Jugador apunta inicialmente hacia arriba
+    player.setRotation(Math.PI);
+
     // La cámara inicialmente sigue al jugador
     self.cameras.main.startFollow(player, 1, 1);
 
@@ -57,6 +60,18 @@ function updatePlayer(self, player, ship, input, deltaTime) {
         }
 
         player.setVelocity(playerVelX, playerVelY);
+
+        // Rotar jugador según dirección de movimiento (4 direcciones)
+        // Prioridad: vertical (W/S) > horizontal (A/D)
+        if (input.keyW.isDown) {
+            player.setRotation(Math.PI); // Arriba
+        } else if (input.keyS.isDown) {
+            player.setRotation(0); // Abajo
+        } else if (input.keyA.isDown) {
+            player.setRotation(Math.PI / 2); // Izquierda
+        } else if (input.keyD.isDown) {
+            player.setRotation(-Math.PI / 2); // Derecha
+        }
 
         // IMPORTANTE: Heredar movimiento del barco
         // El jugador se mueve junto con el barco para mantener su posición relativa
@@ -102,5 +117,8 @@ function updatePlayer(self, player, ship, input, deltaTime) {
         const helmY = ship.y - Math.sin(angle) * helmOffset;
 
         player.setPosition(helmX, helmY);
+
+        // El jugador mira en la dirección del barco (hacia adelante)
+        player.setRotation(ship.rotation + Math.PI);
     }
 }

@@ -14,7 +14,7 @@ function addShip(self, shipInfo) {
     // Estado del barco
     ship.health = shipInfo.health || 100;
     ship.damages = []; // Array de sprites de roturas
-    ship.isAnchored = false;
+    ship.isAnchored = true; // Barco empieza con ancla puesta
     ship.currentSpeed = 0; // Velocidad actual (gradual)
 
     // Inicializar oldPosition para sincronización
