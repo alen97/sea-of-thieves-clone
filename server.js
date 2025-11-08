@@ -15,13 +15,25 @@ app.get('/', function (req, res) {
 io.on('connection', function (socket) {
   console.log('a user connected: ', socket.id);
   // create a new player and add it to our players object
-  players[socket.id] = {
-    rotation: 0,
-    x: resolveInitialPosition("x"),
-    y: resolveInitialPosition("y"),
-    playerId: socket.id,
-    sprite: 'ship'
+  const initialX = resolveInitialPosition("x");
+  const initialY = resolveInitialPosition("y");
 
+  players[socket.id] = {
+    playerId: socket.id,
+    ship: {
+      x: initialX,
+      y: initialY,
+      rotation: 0,
+      velocityX: 0,
+      velocityY: 0,
+      health: 100,
+      damages: [] // Array de roturas: {x, y, id}
+    },
+    player: {
+      x: 0, // Posición relativa al barco
+      y: 0,
+      isControllingShip: false
+    }
   };
 
   // send the players object to the new player
@@ -40,12 +52,20 @@ io.on('connection', function (socket) {
 
   // when a player moves, update the player data
   socket.on('playerMovement', function (movementData) {
-    players[socket.id].x = movementData.x;
-    players[socket.id].y = movementData.y;
-    players[socket.id].rotation = movementData.rotation;
-    players[socket.id].sprite = movementData.sprite;
-    // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    if (players[socket.id] && movementData && movementData.ship && movementData.player) {
+      players[socket.id].ship.x = movementData.ship.x;
+      players[socket.id].ship.y = movementData.ship.y;
+      players[socket.id].ship.rotation = movementData.ship.rotation;
+      players[socket.id].ship.velocityX = movementData.ship.velocityX || 0;
+      players[socket.id].ship.velocityY = movementData.ship.velocityY || 0;
+
+      players[socket.id].player.x = movementData.player.x;
+      players[socket.id].player.y = movementData.player.y;
+      players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
+
+      // emit a message to all players about the player that moved
+      socket.broadcast.emit('playerMoved', players[socket.id]);
+    }
   });
 
   // CREATE BULLET
@@ -57,21 +77,34 @@ io.on('connection', function (socket) {
     io.emit('newBullet', creationData);
   });
 
-  // when a player dies, update global data
-  socket.on('playerDied', function (deathData) {
+  // when ship takes damage
+  socket.on('shipDamaged', function (damageData) {
+    if (players[socket.id]) {
+      // Agregar nueva rotura al array de daños
+      players[socket.id].ship.damages.push({
+        x: damageData.x,
+        y: damageData.y,
+        id: damageData.id
+      });
 
-    // console.log("PLAYER DIED")
-    players[socket.id].sprite = deathData.sprite;
-    players[socket.id].x = deathData.x;
-    players[socket.id].y = deathData.y;
-    players[socket.id].rotation = deathData.rotation;
-    players[socket.id].isPlayerDead = true;
+      // Emitir el daño a todos los jugadores
+      io.emit('shipTookDamage', {
+        playerId: socket.id,
+        damage: damageData,
+        health: players[socket.id].ship.health
+      });
+    }
+  });
 
-    players[deathData.killerId].kills++;
-
-    // emit a message to all players about the player that moved
-    // socket.broadcast.emit('playerMoved', players[socket.id]);
-    socket.broadcast.emit('playerIsDead', players[socket.id], deathData);
+  // when ship health updates
+  socket.on('shipHealthUpdate', function (healthData) {
+    if (players[socket.id]) {
+      players[socket.id].ship.health = healthData.health;
+      socket.broadcast.emit('shipHealthChanged', {
+        playerId: socket.id,
+        health: healthData.health
+      });
+    }
   });
 
 });

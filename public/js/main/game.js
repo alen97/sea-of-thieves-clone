@@ -35,6 +35,7 @@ var game = new Phaser.Game(config);
 
 function preload() {
   this.load.image('ship', 'assets/ship.png');
+  this.load.image('player', 'assets/player.png');
   this.load.image('otherPlayer', 'assets/ship.png');
 
   this.load.audio('enterGame', ['sounds/portalenter.ogg', 'sounds/portalenter.mp3']);
@@ -104,10 +105,40 @@ function create() {
   });
 
   this.socket.on('playerMoved', function (playerInfo) {
-    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-      if (playerInfo.playerId === otherPlayer.playerId) {
-        otherPlayer.setRotation(playerInfo.rotation);
-        otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+    self.otherPlayers.getChildren().forEach(function (otherShip) {
+      if (playerInfo.playerId === otherShip.playerId) {
+        // Actualizar barco
+        otherShip.setRotation(playerInfo.ship.rotation);
+        otherShip.setPosition(playerInfo.ship.x, playerInfo.ship.y);
+
+        // Actualizar jugador
+        if (otherShip.playerSprite) {
+          otherShip.playerSprite.setPosition(
+            playerInfo.ship.x + playerInfo.player.x,
+            playerInfo.ship.y + playerInfo.player.y
+          );
+        }
+
+        // Actualizar roturas
+        if (otherShip.damages) {
+          otherShip.damages.forEach(damageSprite => {
+            const angle = otherShip.rotation;
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            // Encontrar el damage correspondiente
+            const damage = playerInfo.ship.damages.find(d => d.id === damageSprite.damageId);
+            if (damage) {
+              const rotatedX = damage.x * cosAngle - damage.y * sinAngle;
+              const rotatedY = damage.x * sinAngle + damage.y * cosAngle;
+
+              damageSprite.setPosition(
+                otherShip.x + rotatedX,
+                otherShip.y + rotatedY
+              );
+            }
+          });
+        }
       }
     });
   });
@@ -117,6 +148,27 @@ function create() {
     addBullet(self, creationData);
   });
 
+  // Evento cuando un barco recibe daño
+  this.socket.on('shipTookDamage', function (damageInfo) {
+    if (damageInfo.playerId === self.socket.id) {
+      // Es nuestro barco, ya creamos la rotura localmente
+      return;
+    }
+
+    // Es otro barco, crear la rotura
+    self.otherPlayers.getChildren().forEach(function (otherShip) {
+      if (damageInfo.playerId === otherShip.playerId) {
+        const damageSprite = self.add.rectangle(
+          otherShip.x + damageInfo.damage.x,
+          otherShip.y + damageInfo.damage.y,
+          10, 10, 0xff0000
+        );
+        damageSprite.setDepth(2);
+        damageSprite.damageId = damageInfo.damage.id;
+        otherShip.damages.push(damageSprite);
+      }
+    });
+  });
 
   this.socket.on('playerIsDead', function (playerInfo, deathData) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
@@ -211,116 +263,255 @@ const cooldownTime = 3000;  // 1000 ms = 1 segundo
 
 function update() {
 
+  if (this.ship && this.player) {
 
-  if (this.ship && !this.ship.dead) {
-
-    // Dirección
+    // ===== CONTROLES DEL JUGADOR (WASD) =====
+    let keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
     let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    let keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    let keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+    // Controles del barco (solo cuando está en el timón)
     // Ancla
     let keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     // Disparos
     let keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     let keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
 
-    // Disparar cañones
-    if (Phaser.Input.Keyboard.JustDown(keyLeft)) {
-      if (canShootLeft) {
-        // SHOOT
-        this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left" });
-        this.cameras.main.shake(100, 0.003);
-
-        // Iniciar cooldown
-        canShootLeft = false;
-        this.time.addEvent({
-          delay: cooldownTime,
-          callback: () => { canShootLeft = true; },
-          callbackScope: this
-        });
-
-        this.readyToShoot = false;
-        this.activatedKey = undefined;
-      }
-    }
-    if (Phaser.Input.Keyboard.JustDown(keyRight)) {
-      if (canShootRight) {
-        // SHOOT
-        this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "right" });
-        this.cameras.main.shake(100, 0.003);
-
-        // Iniciar cooldown
-        canShootRight = false;
-        this.time.addEvent({
-          delay: cooldownTime,
-          callback: () => { canShootRight = true; },
-          callbackScope: this
-        });
-
-        this.readyToShoot = false;
-        this.activatedKey = undefined;
-      }
-    }
-
-
-    if (Phaser.Input.Keyboard.JustDown(keySpace)) {
-      isAnchored = !isAnchored;  // Alternar el estado del ancla
-      if (!isAnchored) {
-        // Cuando se suelta el ancla, establecer targetSpeed a la velocidad actual
-        const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
-        targetSpeed = currentSpeed;
-      }
-    }
-
-    // Control de la dirección del timón
-    if (keyA.isDown) {
-      // Girar a la izquierda
-      steeringDirection = Phaser.Math.Clamp(steeringDirection - steeringIncrement, -maxSteeringDirection, maxSteeringDirection);
-      maxLeftSteering = Math.min(maxLeftSteering, steeringDirection);
-    } else if (keyD.isDown) {
-      // Girar a la derecha
-      steeringDirection = Phaser.Math.Clamp(steeringDirection + steeringIncrement, -maxSteeringDirection, maxSteeringDirection);
-      maxRightSteering = Math.max(maxRightSteering, steeringDirection);
-    }
-
-    // Bloquear la dirección del timón en su posición máxima
-    if (steeringDirection <= -maxSteeringDirection || steeringDirection >= maxSteeringDirection) {
-      steeringDirection = Math.max(Math.min(steeringDirection, maxRightSteering), maxLeftSteering);
-    }
-
-    // Ajustar la dirección a 0 si está entre -3 y 3
-    if ((steeringDirection >= -3 && steeringDirection <= 3) && !(keyA.isDown || keyD.isDown)) {
-      steeringDirection = 0;
-    }
-
-    // Convertir la dirección del timón a velocidad angular
-    const angularVelocity = steeringDirection / maxSteeringDirection * turnSpeed;
-    this.ship.setAngularVelocity(angularVelocity);
-
-    // Aplicar la velocidad calculada
-    const maxSpeed = isDrifting ? maxSpeedForward * driftFactor : maxSpeedForward;
+    // ===== SISTEMA DE TIMÓN =====
+    // Posición del timón (en la popa del barco, parte trasera)
+    const helmOffset = 50; // 50px desde el centro hacia atrás
     const angle = this.ship.rotation - Math.PI / 2;
-    let velocityX, velocityY;
+    const helmX = this.ship.x - Math.cos(angle) * helmOffset;
+    const helmY = this.ship.y - Math.sin(angle) * helmOffset;
 
-    if (isAnchored) {
-      // Reducir la velocidad gradualmente
-      this.ship.setVelocity(this.ship.body.velocity.x * 0.99, this.ship.body.velocity.y * 0.99);
-    } else {
-      // Acelerar gradualmente hasta la velocidad objetivo
-      targetSpeed = Math.min(targetSpeed + 1, maxSpeed);
-      const newSpeed = isDrifting ? targetSpeed * driftFactor : targetSpeed;
-      velocityX = Math.cos(angle) * newSpeed;
-      velocityY = Math.sin(angle) * newSpeed;
-      this.ship.setVelocity(velocityX, velocityY);
+    // Calcular distancia del jugador al timón
+    const distanceToHelm = Phaser.Math.Distance.Between(this.player.x, this.player.y, helmX, helmY);
+    const canUseHelm = distanceToHelm < 15;
+
+    // Mostrar/ocultar indicador de timón
+    if (!this.helmIndicator) {
+      this.helmIndicator = this.add.text(0, 0, 'Presiona E para manejar', {
+        fontSize: '12px',
+        fill: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 5, y: 3 }
+      }).setDepth(10).setOrigin(0.5);
     }
 
+    if (canUseHelm && !this.player.isControllingShip) {
+      this.helmIndicator.setPosition(helmX, helmY - 20);
+      this.helmIndicator.setVisible(true);
+    } else {
+      this.helmIndicator.setVisible(false);
+    }
+
+    // Toggle control del barco con E
+    if (Phaser.Input.Keyboard.JustDown(keyE) && canUseHelm) {
+      this.player.isControllingShip = !this.player.isControllingShip;
+
+      // Cambiar cámara
+      if (this.player.isControllingShip) {
+        this.cameras.main.startFollow(this.ship, 1, 1);
+      } else {
+        this.cameras.main.startFollow(this.player, 1, 1);
+      }
+    }
+
+    // ===== MOVIMIENTO DEL JUGADOR (WASD) =====
+    if (!this.player.isControllingShip) {
+      const playerSpeed = 100;
+      let playerVelX = 0;
+      let playerVelY = 0;
+
+      if (keyW.isDown) playerVelY -= playerSpeed;
+      if (keyS.isDown) playerVelY += playerSpeed;
+      if (keyA.isDown) playerVelX -= playerSpeed;
+      if (keyD.isDown) playerVelX += playerSpeed;
+
+      // Normalizar velocidad diagonal
+      if (playerVelX !== 0 && playerVelY !== 0) {
+        playerVelX *= 0.707;
+        playerVelY *= 0.707;
+      }
+
+      this.player.setVelocity(playerVelX, playerVelY);
+
+      // Mantener jugador dentro del barco (colisión simple)
+      const shipBoundsWidth = 60;
+      const shipBoundsHeight = 132;
+
+      // Calcular posición relativa del jugador al barco
+      const dx = this.player.x - this.ship.x;
+      const dy = this.player.y - this.ship.y;
+
+      // Rotar el offset del jugador según la rotación del barco
+      const cosAngle = Math.cos(-this.ship.rotation);
+      const sinAngle = Math.sin(-this.ship.rotation);
+      const localX = dx * cosAngle - dy * sinAngle;
+      const localY = dx * sinAngle + dy * cosAngle;
+
+      // Limitar el movimiento
+      const maxX = shipBoundsWidth / 2 - 4;
+      const maxY = shipBoundsHeight / 2 - 4;
+      const clampedX = Phaser.Math.Clamp(localX, -maxX, maxX);
+      const clampedY = Phaser.Math.Clamp(localY, -maxY, maxY);
+
+      // Convertir de vuelta a coordenadas del mundo
+      const cosAngleBack = Math.cos(this.ship.rotation);
+      const sinAngleBack = Math.sin(this.ship.rotation);
+      const worldX = clampedX * cosAngleBack - clampedY * sinAngleBack;
+      const worldY = clampedX * sinAngleBack + clampedY * cosAngleBack;
+
+      this.player.setPosition(this.ship.x + worldX, this.ship.y + worldY);
+
+    } else {
+      // Si está controlando el barco, el jugador se mueve con el barco
+      this.player.setVelocity(0, 0);
+      this.player.setPosition(helmX, helmY);
+    }
+
+    // ===== CONTROLES DEL BARCO (solo si está en el timón) =====
+    if (this.player.isControllingShip) {
+
+      // Disparar cañones
+      if (Phaser.Input.Keyboard.JustDown(keyLeft)) {
+        if (canShootLeft) {
+          this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "left" });
+          this.cameras.main.shake(100, 0.003);
+
+          canShootLeft = false;
+          this.time.addEvent({
+            delay: cooldownTime,
+            callback: () => { canShootLeft = true; },
+            callbackScope: this
+          });
+        }
+      }
+      if (Phaser.Input.Keyboard.JustDown(keyRight)) {
+        if (canShootRight) {
+          this.socket.emit('createBullet', { x: this.ship.x, y: this.ship.y, shooterId: this.ship.playerId, rotation: this.ship.rotation, direction: "right" });
+          this.cameras.main.shake(100, 0.003);
+
+          canShootRight = false;
+          this.time.addEvent({
+            delay: cooldownTime,
+            callback: () => { canShootRight = true; },
+            callbackScope: this
+          });
+        }
+      }
+
+      // Ancla
+      if (Phaser.Input.Keyboard.JustDown(keySpace)) {
+        isAnchored = !isAnchored;
+        if (!isAnchored) {
+          const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
+          targetSpeed = currentSpeed;
+        }
+      }
+
+      // Control del timón cuando está manejando
+      // Usamos A/D para girar el barco (ya que el jugador no camina mientras maneja)
+
+      if (keyA.isDown) {
+        steeringDirection = Phaser.Math.Clamp(steeringDirection - steeringIncrement, -maxSteeringDirection, maxSteeringDirection);
+        maxLeftSteering = Math.min(maxLeftSteering, steeringDirection);
+      } else if (keyD.isDown) {
+        steeringDirection = Phaser.Math.Clamp(steeringDirection + steeringIncrement, -maxSteeringDirection, maxSteeringDirection);
+        maxRightSteering = Math.max(maxRightSteering, steeringDirection);
+      }
+
+      if (steeringDirection <= -maxSteeringDirection || steeringDirection >= maxSteeringDirection) {
+        steeringDirection = Math.max(Math.min(steeringDirection, maxRightSteering), maxLeftSteering);
+      }
+
+      if ((steeringDirection >= -3 && steeringDirection <= 3) && !(keyA.isDown || keyD.isDown)) {
+        steeringDirection = 0;
+      }
+
+      // Convertir la dirección del timón a velocidad angular
+      const angularVelocity = steeringDirection / maxSteeringDirection * turnSpeed;
+      this.ship.setAngularVelocity(angularVelocity);
+
+      // Aplicar la velocidad calculada
+      const maxSpeed = isDrifting ? maxSpeedForward * driftFactor : maxSpeedForward;
+      const shipAngle = this.ship.rotation - Math.PI / 2;
+      let velocityX, velocityY;
+
+      if (isAnchored) {
+        this.ship.setVelocity(this.ship.body.velocity.x * 0.99, this.ship.body.velocity.y * 0.99);
+      } else {
+        targetSpeed = Math.min(targetSpeed + 1, maxSpeed);
+        const newSpeed = isDrifting ? targetSpeed * driftFactor : targetSpeed;
+        velocityX = Math.cos(shipAngle) * newSpeed;
+        velocityY = Math.sin(shipAngle) * newSpeed;
+        this.ship.setVelocity(velocityX, velocityY);
+      }
+
+    } else {
+      // Si no está controlando el barco, detener rotación
+      this.ship.setAngularVelocity(0);
+    }
+
+    // Siempre aplicar wrap al barco
     this.physics.world.wrap(this.ship, 0);
 
-    // Emitir movimiento del jugador
-    var x = this.ship.x;
-    var y = this.ship.y;
-    var r = this.ship.rotation;
-    if (this.ship.oldPosition && (x !== this.ship.oldPosition.x || y !== this.ship.oldPosition.y || r !== this.ship.oldPosition.rotation || r !== this.ship.oldPosition.sprite)) {
-      this.socket.emit('playerMovement', { x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation, sprite: this.ship.texture.key });
+    // Actualizar posición de las roturas con el barco
+    if (this.ship.damages && this.ship.damages.length > 0) {
+      this.ship.damages.forEach((damageSprite, index) => {
+        // Las roturas están en posición relativa al barco
+        // No necesitamos actualizar su posición aquí, ya que están en coordenadas del mundo
+        // Pero sí necesitamos rotarlas con el barco
+      });
+    }
+
+    // Sistema de degradación de salud por roturas
+    if (this.ship.damages.length > 0) {
+      // Por cada rotura, pierde 0.5% de salud por segundo (30 FPS aprox)
+      const healthLossPerFrame = (this.ship.damages.length * 0.5) / 60;
+      this.ship.health -= healthLossPerFrame;
+      this.ship.health = Math.max(0, this.ship.health);
+
+      // Emitir actualización de salud cada cierto tiempo
+      if (!this.lastHealthUpdate || Date.now() - this.lastHealthUpdate > 500) {
+        this.socket.emit('shipHealthUpdate', { health: this.ship.health });
+        this.lastHealthUpdate = Date.now();
+      }
+    }
+
+    // Calcular posición relativa del jugador al barco
+    const playerRelativeX = this.player.x - this.ship.x;
+    const playerRelativeY = this.player.y - this.ship.y;
+
+    // Emitir movimiento
+    const x = this.ship.x;
+    const y = this.ship.y;
+    const r = this.ship.rotation;
+
+    // Emitir si es el primer frame O si algo cambió
+    if (!this.ship.oldPosition ||
+        x !== this.ship.oldPosition.x ||
+        y !== this.ship.oldPosition.y ||
+        r !== this.ship.oldPosition.rotation ||
+        playerRelativeX !== this.ship.oldPosition.playerX ||
+        playerRelativeY !== this.ship.oldPosition.playerY) {
+
+      this.socket.emit('playerMovement', {
+        ship: {
+          x: this.ship.x,
+          y: this.ship.y,
+          rotation: this.ship.rotation,
+          velocityX: this.ship.body.velocity.x,
+          velocityY: this.ship.body.velocity.y
+        },
+        player: {
+          x: playerRelativeX,
+          y: playerRelativeY,
+          isControllingShip: this.player.isControllingShip
+        }
+      });
     }
 
     // Guardar datos de la posición anterior
@@ -328,10 +519,9 @@ function update() {
       x: this.ship.x,
       y: this.ship.y,
       rotation: this.ship.rotation,
-      sprite: this.ship.texture.key
+      playerX: playerRelativeX,
+      playerY: playerRelativeY
     };
-  } else {
-    steeringDirection = 0;
   }
 }
 
@@ -352,33 +542,98 @@ class UIScene extends Phaser.Scene {
     this.mainScene = this.scene.get('MainScene');
 
     // Obtén las coordenadas de la cámara del jugador
-    const cameraX = this.mainScene.cameras.main.width / 2 - 6;
-    const cameraY = (this.mainScene.cameras.main.height / 2 - 60) + 110;
+    const cameraX = this.mainScene.cameras.main.width / 2;
+    const cameraY = this.mainScene.cameras.main.height / 2;
 
-    // Crear un texto para mostrar el nombre del usuario
-    this.mainScene.currentSteeringDirectionText = this.add.text(cameraX, cameraY, steeringDirection, {
-      fontSize: 18,
-      fill: '#ffffff'
-    });
+    // Barra de salud del barco (parte superior central)
+    this.healthBarBg = this.add.rectangle(cameraX, 30, 204, 24, 0x000000)
+      .setScrollFactor(0)
+      .setDepth(100);
 
-    this.mainScene.canShootLeftIndicator = this.add.text(cameraX - 45, cameraY, "+", {
-      fontSize: 18,
-      fill: '#ffffff'
-    });
+    this.healthBarFill = this.add.rectangle(cameraX - 100, 30, 200, 20, 0x00ff00)
+      .setScrollFactor(0)
+      .setDepth(101)
+      .setOrigin(0, 0.5);
 
-    this.mainScene.canShootRightIndicator = this.add.text(cameraX + 45, cameraY, "+", {
-      fontSize: 18,
-      fill: '#ffffff'
-    });
+    this.healthText = this.add.text(cameraX, 30, 'HP: 100%', {
+      fontSize: '14px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setScrollFactor(0).setDepth(102).setOrigin(0.5);
+
+    // Indicador de estado (manejando / caminando)
+    this.statusText = this.add.text(cameraX, 60, 'Caminando', {
+      fontSize: '14px',
+      fill: '#ffff00',
+      backgroundColor: '#000000',
+      padding: { x: 8, y: 4 }
+    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+
+    // Indicadores de cooldown de cañones (solo cuando está manejando)
+    this.canShootLeftIndicator = this.add.text(cameraX - 50, cameraY + 50, "Izq: +", {
+      fontSize: 14,
+      fill: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 5, y: 3 }
+    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+
+    this.canShootRightIndicator = this.add.text(cameraX + 50, cameraY + 50, "Der: +", {
+      fontSize: 14,
+      fill: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 5, y: 3 }
+    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+
+    // Indicador de timón
+    this.steeringText = this.add.text(cameraX, cameraY + 80, 'Timón: 0', {
+      fontSize: 14,
+      fill: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 5, y: 3 }
+    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
   }
 
   update() {
-    // this.mainScene.currentSteeringDirectionText.setText((canShootLeft ? "+" : "-") + " " + steeringDirection + " " + (canShootRight ? "+" : "-"));
-    this.mainScene.currentSteeringDirectionText.setText(steeringDirection);
+    // Actualizar barra de salud
+    if (this.mainScene.ship) {
+      const healthPercent = Math.max(0, Math.min(100, this.mainScene.ship.health));
+      this.healthBarFill.width = (healthPercent / 100) * 200;
+      this.healthText.setText('HP: ' + Math.floor(healthPercent) + '%');
 
-    this.mainScene.canShootLeftIndicator.setText(canShootLeft ? "+" : "-")
-    this.mainScene.canShootRightIndicator.setText(canShootRight ? "+" : "-")
+      // Cambiar color según salud
+      if (healthPercent > 60) {
+        this.healthBarFill.setFillStyle(0x00ff00); // Verde
+      } else if (healthPercent > 30) {
+        this.healthBarFill.setFillStyle(0xffff00); // Amarillo
+      } else {
+        this.healthBarFill.setFillStyle(0xff0000); // Rojo
+      }
+    }
 
+    // Actualizar estado del jugador
+    if (this.mainScene.player) {
+      if (this.mainScene.player.isControllingShip) {
+        this.statusText.setText('En el Timón');
+        this.statusText.setStyle({ fill: '#00ff00' });
+
+        // Mostrar indicadores de cañones
+        this.canShootLeftIndicator.setVisible(true);
+        this.canShootRightIndicator.setVisible(true);
+        this.steeringText.setVisible(true);
+
+        this.canShootLeftIndicator.setText(canShootLeft ? "Izq: +" : "Izq: -");
+        this.canShootRightIndicator.setText(canShootRight ? "Der: +" : "Der: -");
+        this.steeringText.setText('Timón: ' + steeringDirection);
+      } else {
+        this.statusText.setText('Caminando');
+        this.statusText.setStyle({ fill: '#ffff00' });
+
+        // Ocultar indicadores de cañones
+        this.canShootLeftIndicator.setVisible(false);
+        this.canShootRightIndicator.setVisible(false);
+        this.steeringText.setVisible(false);
+      }
+    }
   }
 
 }
