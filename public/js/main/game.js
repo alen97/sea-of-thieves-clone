@@ -305,6 +305,9 @@ function update(time, delta) {
       keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)
     };
 
+    // Guardar estado de JustDown para E (solo se puede llamar una vez por frame)
+    const keyEJustPressed = Phaser.Input.Keyboard.JustDown(input.keyE);
+
     // ===== SISTEMA DE TIMÓN =====
     const helmOffset = 50;
     const angle = this.ship.rotation - Math.PI / 2;
@@ -332,7 +335,7 @@ function update(time, delta) {
     }
 
     // Toggle timón con E
-    if (Phaser.Input.Keyboard.JustDown(input.keyE) && canUseHelm) {
+    if (keyEJustPressed && canUseHelm) {
       this.player.isControllingShip = !this.player.isControllingShip;
 
       // Cambiar cámara
@@ -340,6 +343,45 @@ function update(time, delta) {
         this.cameras.main.startFollow(this.ship, 1, 1);
       } else {
         this.cameras.main.startFollow(this.player, 1, 1);
+      }
+    }
+
+    // ===== SISTEMA DE ANCLA =====
+    const anchorOffset = 50;
+    const anchorAngle = this.ship.rotation - Math.PI / 2;
+    const anchorX = this.ship.x + Math.cos(anchorAngle) * anchorOffset;
+    const anchorY = this.ship.y + Math.sin(anchorAngle) * anchorOffset;
+
+    const distanceToAnchor = Phaser.Math.Distance.Between(this.player.x, this.player.y, anchorX, anchorY);
+    const canUseAnchor = distanceToAnchor < 15;
+
+    // Indicador de ancla
+    if (!this.anchorIndicator) {
+      this.anchorIndicator = this.add.text(0, 0, '', {
+        fontSize: '12px',
+        fill: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 5, y: 3 }
+      }).setDepth(10).setOrigin(0.5);
+    }
+
+    // Actualizar texto del indicador según estado del ancla
+    const anchorText = this.ship.isAnchored ? 'Presiona E para levantar ancla' : 'Presiona E para bajar ancla';
+    this.anchorIndicator.setText(anchorText);
+
+    if (canUseAnchor) {
+      this.anchorIndicator.setPosition(anchorX, anchorY - 20);
+      this.anchorIndicator.setVisible(true);
+    } else {
+      this.anchorIndicator.setVisible(false);
+    }
+
+    // Toggle ancla con E (solo si NO estás cerca del timón para evitar conflictos)
+    if (keyEJustPressed && canUseAnchor && !canUseHelm) {
+      this.ship.isAnchored = !this.ship.isAnchored;
+      if (!this.ship.isAnchored) {
+        const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
+        this.ship.targetSpeed = currentSpeed;
       }
     }
 
@@ -386,15 +428,6 @@ function update(time, delta) {
           callback: () => { canShootRight = true; },
           callbackScope: this
         });
-      }
-
-      // Ancla
-      if (Phaser.Input.Keyboard.JustDown(input.keySpace)) {
-        this.ship.isAnchored = !this.ship.isAnchored;
-        if (!this.ship.isAnchored) {
-          const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
-          this.ship.targetSpeed = currentSpeed;
-        }
       }
     }
 
