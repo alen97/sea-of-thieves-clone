@@ -31,7 +31,7 @@ function addOtherShip(self, shipInfo) {
     // Crear barco de otro jugador (sin física)
     const ship = self.add.sprite(shipInfo.x, shipInfo.y, 'ship')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(55, 110);
+        .setDisplaySize(78, 170);
 
     ship.playerId = shipInfo.playerId;
     ship.setRotation(shipInfo.rotation);
