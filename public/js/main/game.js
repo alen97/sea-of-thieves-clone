@@ -79,7 +79,7 @@ function create() {
   self.scene.add('UIScene', UIScene, true);
 
   // Groups
-  this.otherPlayers = this.physics.add.group();
+  this.otherShips = this.physics.add.group();
   this.otherBullets = this.physics.add.group();
 
   this.socket.on('currentPlayers', function (players) {
@@ -103,7 +103,7 @@ function create() {
         const otherPlayer = addOtherPlayer(self, players[id].player, otherShip);
         otherShip.playerSprite = otherPlayer;
 
-        self.otherPlayers.add(otherShip);
+        self.otherShips.add(otherShip);
       }
     });
   });
@@ -115,11 +115,11 @@ function create() {
     const otherPlayer = addOtherPlayer(self, playerInfo.player, otherShip);
     otherShip.playerSprite = otherPlayer;
 
-    self.otherPlayers.add(otherShip);
+    self.otherShips.add(otherShip);
   });
 
   this.socket.on('disconnect', function (playerId) {
-    self.otherPlayers.getChildren().forEach(function (otherShip) {
+    self.otherShips.getChildren().forEach(function (otherShip) {
       if (playerId === otherShip.playerId) {
         // Destruir jugador del barco
         if (otherShip.playerSprite) {
@@ -132,7 +132,7 @@ function create() {
   });
 
   this.socket.on('playerMoved', function (playerInfo) {
-    self.otherPlayers.getChildren().forEach(function (otherShip) {
+    self.otherShips.getChildren().forEach(function (otherShip) {
       if (playerInfo.playerId === otherShip.playerId) {
         // Actualizar barco
         otherShip.setRotation(playerInfo.ship.rotation);
@@ -144,6 +144,7 @@ function create() {
             playerInfo.ship.x + playerInfo.player.x,
             playerInfo.ship.y + playerInfo.player.y
           );
+          otherShip.playerSprite.setRotation(playerInfo.player.rotation);
         }
 
         // Actualizar roturas
@@ -183,7 +184,7 @@ function create() {
     }
 
     // Es otro barco, crear la rotura
-    self.otherPlayers.getChildren().forEach(function (otherShip) {
+    self.otherShips.getChildren().forEach(function (otherShip) {
       if (damageInfo.playerId === otherShip.playerId) {
         const damageSprite = self.add.rectangle(
           otherShip.x + damageInfo.damage.x,
@@ -198,8 +199,8 @@ function create() {
   });
 
   this.socket.on('playerIsDead', function (playerInfo, deathData) {
-    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-      if (playerInfo.playerId === otherPlayer.playerId) {
+    self.otherShips.getChildren().forEach(function (otherShip) {
+      if (playerInfo.playerId === otherShip.playerId) {
 
         // console.log("HEARING PLAYER DEATH SOUND")
 
@@ -225,9 +226,11 @@ function create() {
 
         // self.playerDeathSound.play();
 
-        otherPlayer.setTexture(playerInfo.sprite)
-        otherPlayer.setPosition(playerInfo.x, playerInfo.y)
-        otherPlayer.setRotation(playerInfo.rotation)
+        if (otherShip.playerSprite) {
+          otherShip.playerSprite.setTexture(playerInfo.sprite)
+          otherShip.playerSprite.setPosition(playerInfo.x, playerInfo.y)
+          otherShip.playerSprite.setRotation(playerInfo.rotation)
+        }
       }
     });
   });
@@ -520,7 +523,8 @@ function update(time, delta) {
         y !== this.ship.oldPosition.y ||
         r !== this.ship.oldPosition.rotation ||
         playerRelativeX !== this.ship.oldPosition.playerX ||
-        playerRelativeY !== this.ship.oldPosition.playerY) {
+        playerRelativeY !== this.ship.oldPosition.playerY ||
+        this.player.rotation !== this.ship.oldPosition.playerRotation) {
 
       this.socket.emit('playerMovement', {
         ship: {
@@ -533,6 +537,7 @@ function update(time, delta) {
         player: {
           x: playerRelativeX,
           y: playerRelativeY,
+          rotation: this.player.rotation,
           isControllingShip: this.player.isControllingShip
         }
       });
@@ -544,7 +549,8 @@ function update(time, delta) {
       y: this.ship.y,
       rotation: this.ship.rotation,
       playerX: playerRelativeX,
-      playerY: playerRelativeY
+      playerY: playerRelativeY,
+      playerRotation: this.player.rotation
     };
   }
 }

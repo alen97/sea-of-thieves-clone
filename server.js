@@ -32,6 +32,7 @@ io.on('connection', function (socket) {
     player: {
       x: 0, // Posición relativa al barco
       y: 0,
+      rotation: Math.PI, // Rotación inicial (apuntando hacia arriba)
       isControllingShip: false
     }
   };
@@ -61,6 +62,7 @@ io.on('connection', function (socket) {
 
       players[socket.id].player.x = movementData.player.x;
       players[socket.id].player.y = movementData.player.y;
+      players[socket.id].player.rotation = movementData.player.rotation;
       players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
 
       // emit a message to all players about the player that moved
