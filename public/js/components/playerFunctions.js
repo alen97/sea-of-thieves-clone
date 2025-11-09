@@ -106,6 +106,9 @@ function updatePlayer(self, player, ship, input, deltaTime) {
                 // Actualizar posición del jugador
                 player.x = ship.x + rotatedX;
                 player.y = ship.y + rotatedY;
+
+                // También rotar el sprite visual del jugador para mantener orientación relativa al barco
+                player.rotation += rotationDelta;
             }
         }
 
