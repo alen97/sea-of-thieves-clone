@@ -78,9 +78,9 @@ function updatePlayer(self, player, ship, input, deltaTime) {
         player.x += ship.body.velocity.x * deltaTime;
         player.y += ship.body.velocity.y * deltaTime;
 
-        // Mantener jugador dentro del barco (55x110)
-        const shipBoundsWidth = 55;
-        const shipBoundsHeight = 110;
+        // Mantener jugador dentro del barco (78x170 - tamaño visual del sprite)
+        const shipBoundsWidth = 78;
+        const shipBoundsHeight = 170;
 
         // Calcular posición relativa del jugador al barco
         const dx = player.x - ship.x;
