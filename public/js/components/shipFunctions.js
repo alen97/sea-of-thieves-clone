@@ -61,6 +61,9 @@ function updateShip(self, ship, isControlled, input) {
     const maxSteeringDirection = 100;
     const steeringIncrement = 1;
 
+    // Guardar la rotación anterior para calcular el cambio
+    ship.previousRotation = ship.rotation;
+
     // El barco SIEMPRE mantiene su velocidad/rotación independientemente
 
     if (isControlled && input) {

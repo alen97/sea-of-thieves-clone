@@ -88,6 +88,27 @@ function updatePlayer(self, player, ship, input, deltaTime) {
         player.x += ship.body.velocity.x * deltaTime;
         player.y += ship.body.velocity.y * deltaTime;
 
+        // ROTACIÓN: Si el barco giró, rotar la posición del jugador alrededor del centro del barco
+        if (ship.previousRotation !== undefined) {
+            const rotationDelta = ship.rotation - ship.previousRotation;
+
+            if (rotationDelta !== 0) {
+                // Calcular posición relativa del jugador al barco
+                const dx = player.x - ship.x;
+                const dy = player.y - ship.y;
+
+                // Rotar el vector de posición relativa
+                const cos = Math.cos(rotationDelta);
+                const sin = Math.sin(rotationDelta);
+                const rotatedX = dx * cos - dy * sin;
+                const rotatedY = dx * sin + dy * cos;
+
+                // Actualizar posición del jugador
+                player.x = ship.x + rotatedX;
+                player.y = ship.y + rotatedY;
+            }
+        }
+
         // Mantener jugador dentro del barco (78x170 - tamaño visual del sprite)
         const shipBoundsWidth = 78;
         const shipBoundsHeight = 170;
