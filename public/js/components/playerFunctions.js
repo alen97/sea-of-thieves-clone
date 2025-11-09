@@ -61,16 +61,26 @@ function updatePlayer(self, player, ship, input, deltaTime) {
 
         player.setVelocity(playerVelX, playerVelY);
 
-        // Rotar jugador según dirección de movimiento (4 direcciones)
-        // Prioridad: vertical (W/S) > horizontal (A/D)
-        if (input.keyW.isDown) {
-            player.setRotation(Math.PI); // Arriba
-        } else if (input.keyS.isDown) {
-            player.setRotation(0); // Abajo
-        } else if (input.keyA.isDown) {
-            player.setRotation(Math.PI / 2); // Izquierda
-        } else if (input.keyD.isDown) {
-            player.setRotation(-Math.PI / 2); // Derecha
+        const directionAngles = {
+            "W":  Math.PI,                  // Arriba
+            "S":  0,                        // Abajo
+            "A":  Math.PI / 2,              // Izquierda
+            "D": -Math.PI / 2,              // Derecha
+            "WA": (3 * Math.PI) / 4,        // Arriba-Izquierda
+            "WD": -(3 * Math.PI) / 4,       // Arriba-Derecha
+            "SA": Math.PI / 4,              // Abajo-Izquierda
+            "SD": -Math.PI / 4              // Abajo-Derecha
+        };
+
+        let combo = "";
+        if (input.keyW.isDown) combo += "W";
+        if (input.keyS.isDown) combo += "S";
+        if (input.keyA.isDown) combo += "A";
+        if (input.keyD.isDown) combo += "D";
+
+        const angle = directionAngles[combo];
+        if (angle !== undefined) {
+            player.setRotation(angle);
         }
 
         // IMPORTANTE: Heredar movimiento del barco
