@@ -593,21 +593,6 @@ class UIScene extends Phaser.Scene {
       padding: { x: 8, y: 4 }
     }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
 
-    // Indicadores de cooldown de cañones (solo cuando está manejando)
-    this.canShootLeftIndicator = this.add.text(cameraX - 50, cameraY + 50, "Izq: +", {
-      fontSize: 14,
-      fill: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 5, y: 3 }
-    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
-
-    this.canShootRightIndicator = this.add.text(cameraX + 50, cameraY + 50, "Der: +", {
-      fontSize: 14,
-      fill: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 5, y: 3 }
-    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
-
     // Indicador de timón
     this.steeringText = this.add.text(cameraX, cameraY + 80, 'Timón: 0', {
       fontSize: 14,
@@ -637,24 +622,15 @@ class UIScene extends Phaser.Scene {
     // Actualizar estado del jugador
     if (this.mainScene.player) {
       if (this.mainScene.player.isControllingShip) {
-        this.statusText.setText('En el Timón');
+        this.statusText.setText('En el timón');
         this.statusText.setStyle({ fill: '#00ff00' });
 
-        // Mostrar indicadores de cañones
-        this.canShootLeftIndicator.setVisible(true);
-        this.canShootRightIndicator.setVisible(true);
         this.steeringText.setVisible(true);
-
-        this.canShootLeftIndicator.setText(canShootLeft ? "Izq: +" : "Izq: -");
-        this.canShootRightIndicator.setText(canShootRight ? "Der: +" : "Der: -");
-        this.steeringText.setText('Timón: ' + this.mainScene.steeringDirection);
+        this.steeringText.setText('Dirección: ' + this.mainScene.steeringDirection);
       } else {
         this.statusText.setText('Caminando');
         this.statusText.setStyle({ fill: '#ffff00' });
 
-        // Ocultar indicadores de cañones
-        this.canShootLeftIndicator.setVisible(false);
-        this.canShootRightIndicator.setVisible(false);
         this.steeringText.setVisible(false);
       }
     }
