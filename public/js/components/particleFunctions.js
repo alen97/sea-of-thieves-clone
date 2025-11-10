@@ -15,7 +15,7 @@ const WAKE_CONFIG = {
 };
 
 // Offset position for central wake emitter
-const WAKE_OFFSET = { x: 0, y: 70 };
+const WAKE_OFFSET = { x: 0, y: 60 };
 
 // Global particle manager (shared across all ships)
 let particleManager = null;
@@ -94,7 +94,7 @@ function updateShipWakeEmitters(ship) {
 
   // Calculate emission angle based on ship rotation (particles emit backward/outward)
   const shipAngleDegrees = (ship.rotation + Math.PI / 2) * (180 / Math.PI);
-  const angleSpread = 50; // Wider spread for swoosh effect
+  const angleSpread = 90; // Wider spread for swoosh effect
 
   // Enable/disable emitter based on movement
   if (isMoving) {
