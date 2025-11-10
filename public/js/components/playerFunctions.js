@@ -156,15 +156,13 @@ function updatePlayer(self, player, ship, input, deltaTime) {
         player.setRotation(ship.rotation + Math.PI);
     }
 
-    // Mantener posición relativa del jugador cuando el barco cruza límites del mapa
-    // Guardar posición relativa antes del wrap
-    const relativeX = player.x - ship.x;
-    const relativeY = player.y - ship.y;
+    // WRAP DESHABILITADO - Ahora usamos sistema de rooms en lugar de wrap
+    // Ya no hacemos wrap del barco porque necesitamos detectar cuando cruza los bordes
+    // para hacer la transición entre rooms
 
-    // Hacer wrap del barco
-    self.physics.world.wrap(ship, 0);
-
-    // Recalcular posición absoluta del jugador basada en la posición relativa
-    // Esto mantiene al jugador en la misma posición relativa al barco después del wrap
-    player.setPosition(ship.x + relativeX, ship.y + relativeY);
+    // Código original (comentado):
+    // const relativeX = player.x - ship.x;
+    // const relativeY = player.y - ship.y;
+    // self.physics.world.wrap(ship, 0);
+    // player.setPosition(ship.x + relativeX, ship.y + relativeY);
 }

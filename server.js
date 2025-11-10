@@ -3,12 +3,28 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io').listen(server);
 
-var players = {};
-var bullets = [];
+// Room-based structure: each room has its own players and bullets
+var rooms = {};
 
 // World configuration
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 3200;
+
+// Helper functions
+function getRoomId(roomX, roomY) {
+  return `${roomX},${roomY}`;
+}
+
+function getOrCreateRoom(roomX, roomY) {
+  const roomId = getRoomId(roomX, roomY);
+  if (!rooms[roomId]) {
+    rooms[roomId] = {
+      players: {},
+      bullets: []
+    };
+  }
+  return rooms[roomId];
+}
 
 app.use(express.static(__dirname + '/public'));
 
@@ -18,12 +34,27 @@ app.get('/', function (req, res) {
 
 io.on('connection', function (socket) {
   console.log('a user connected: ', socket.id);
-  // create a new player and add it to our players object
+
+  // Initialize player in room (0, 0)
+  const initialRoomX = 0;
+  const initialRoomY = 0;
+  const roomId = getRoomId(initialRoomX, initialRoomY);
+  const room = getOrCreateRoom(initialRoomX, initialRoomY);
+
+  // Join the socket.io room
+  socket.join(roomId);
+
+  // Store room info in socket
+  socket.currentRoomX = initialRoomX;
+  socket.currentRoomY = initialRoomY;
+
   const initialX = resolveInitialPosition("x");
   const initialY = resolveInitialPosition("y");
 
-  players[socket.id] = {
+  room.players[socket.id] = {
     playerId: socket.id,
+    roomX: initialRoomX,
+    roomY: initialRoomY,
     ship: {
       x: initialX,
       y: initialY,
@@ -31,85 +62,149 @@ io.on('connection', function (socket) {
       velocityX: 0,
       velocityY: 0,
       health: 100,
-      damages: [] // Array de roturas: {x, y, id}
+      damages: []
     },
     player: {
-      x: 0, // Posición relativa al barco
+      x: 0,
       y: 0,
-      rotation: Math.PI, // Rotación inicial (apuntando hacia arriba)
+      rotation: Math.PI,
       isControllingShip: false
     }
   };
 
-  // send the players object to the new player
-  socket.emit('currentPlayers', players);
+  // Send only players in the same room to the new player
+  socket.emit('currentPlayers', room.players);
+  socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
 
-  // update all other players of the new player
-  socket.broadcast.emit('newPlayer', players[socket.id]);
+  // Update other players in the same room about the new player
+  socket.to(roomId).emit('newPlayer', room.players[socket.id]);
 
-  // when a player disconnects, remove them from our players object
+  // when a player disconnects, remove them from their room
   socket.on('disconnect', function () {
     console.log('user disconnected: ', socket.id);
-    delete players[socket.id];
-    // emit a message to all players to remove this player
-    io.emit('disconnect', socket.id);
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id]) {
+      delete room.players[socket.id];
+      // Emit to players in the same room only
+      io.to(roomId).emit('disconnect', socket.id);
+    }
   });
 
   // when a player moves, update the player data
   socket.on('playerMovement', function (movementData) {
-    if (players[socket.id] && movementData && movementData.ship && movementData.player) {
-      players[socket.id].ship.x = movementData.ship.x;
-      players[socket.id].ship.y = movementData.ship.y;
-      players[socket.id].ship.rotation = movementData.ship.rotation;
-      players[socket.id].ship.velocityX = movementData.ship.velocityX || 0;
-      players[socket.id].ship.velocityY = movementData.ship.velocityY || 0;
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
 
-      players[socket.id].player.x = movementData.player.x;
-      players[socket.id].player.y = movementData.player.y;
-      players[socket.id].player.rotation = movementData.player.rotation;
-      players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
+    if (room && room.players[socket.id] && movementData && movementData.ship && movementData.player) {
+      room.players[socket.id].ship.x = movementData.ship.x;
+      room.players[socket.id].ship.y = movementData.ship.y;
+      room.players[socket.id].ship.rotation = movementData.ship.rotation;
+      room.players[socket.id].ship.velocityX = movementData.ship.velocityX || 0;
+      room.players[socket.id].ship.velocityY = movementData.ship.velocityY || 0;
 
-      // emit a message to all players about the player that moved
-      socket.broadcast.emit('playerMoved', players[socket.id]);
+      room.players[socket.id].player.x = movementData.player.x;
+      room.players[socket.id].player.y = movementData.player.y;
+      room.players[socket.id].player.rotation = movementData.player.rotation;
+      room.players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
+
+      // Emit to players in the same room only
+      socket.to(roomId).emit('playerMoved', room.players[socket.id]);
     }
   });
 
   // CREATE BULLET
   socket.on('createBullet', function (creationData) {
-    // update all other players of the new bullet
-    console.log("creationData (server): ", creationData)
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
 
-    bullets.push({ id: bullets.length })
-    io.emit('newBullet', creationData);
+    if (room) {
+      console.log("creationData (server): ", creationData);
+      room.bullets.push({ id: room.bullets.length });
+      // Emit to all players in the same room
+      io.to(roomId).emit('newBullet', creationData);
+    }
   });
 
   // when ship takes damage
   socket.on('shipDamaged', function (damageData) {
-    if (players[socket.id]) {
-      // Agregar nueva rotura al array de daños
-      players[socket.id].ship.damages.push({
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id]) {
+      // Add new damage to the damages array
+      room.players[socket.id].ship.damages.push({
         x: damageData.x,
         y: damageData.y,
         id: damageData.id
       });
 
-      // Emitir el daño a todos los jugadores
-      io.emit('shipTookDamage', {
+      // Emit damage to all players in the same room
+      io.to(roomId).emit('shipTookDamage', {
         playerId: socket.id,
         damage: damageData,
-        health: players[socket.id].ship.health
+        health: room.players[socket.id].ship.health
       });
     }
   });
 
   // when ship health updates
   socket.on('shipHealthUpdate', function (healthData) {
-    if (players[socket.id]) {
-      players[socket.id].ship.health = healthData.health;
-      socket.broadcast.emit('shipHealthChanged', {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id]) {
+      room.players[socket.id].ship.health = healthData.health;
+      socket.to(roomId).emit('shipHealthChanged', {
         playerId: socket.id,
         health: healthData.health
       });
+    }
+  });
+
+  // when a player changes room
+  socket.on('changeRoom', function (roomData) {
+    const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const newRoomId = getRoomId(roomData.roomX, roomData.roomY);
+
+    console.log(`Player ${socket.id} changing from room ${oldRoomId} to ${newRoomId}`);
+
+    // Get old room and remove player from it
+    const oldRoom = rooms[oldRoomId];
+    if (oldRoom && oldRoom.players[socket.id]) {
+      const playerData = oldRoom.players[socket.id];
+      delete oldRoom.players[socket.id];
+
+      // Notify old room players that this player left
+      socket.to(oldRoomId).emit('disconnect', socket.id);
+
+      // Leave old socket.io room
+      socket.leave(oldRoomId);
+
+      // Update player's room coordinates
+      socket.currentRoomX = roomData.roomX;
+      socket.currentRoomY = roomData.roomY;
+      playerData.roomX = roomData.roomX;
+      playerData.roomY = roomData.roomY;
+
+      // Update player position for the new room
+      playerData.ship.x = roomData.shipX;
+      playerData.ship.y = roomData.shipY;
+
+      // Get or create new room and add player to it
+      const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
+      newRoom.players[socket.id] = playerData;
+
+      // Join new socket.io room
+      socket.join(newRoomId);
+
+      // Send current players in new room to the player
+      socket.emit('currentPlayers', newRoom.players);
+      socket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
+
+      // Notify new room players about this player
+      socket.to(newRoomId).emit('newPlayer', playerData);
     }
   });
 

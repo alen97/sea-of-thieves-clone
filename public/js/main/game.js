@@ -93,14 +93,18 @@ function create() {
   this.oceanBackground.setOrigin(0, 0);
   this.oceanBackground.setDepth(-1);
 
-  // Configurar límites del mundo de física para wrap-around correcto
-  this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+  // NO configurar límites del mundo - necesitamos detectar cuando el barco cruza para cambiar de room
+  // this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
   // Inicializar sistema de partículas de estela
   createWakeParticleSystem(this);
 
   var self = this;
   this.socket = io();
+
+  // Room tracking
+  this.currentRoomX = 0;
+  this.currentRoomY = 0;
 
   // Crear una escena de "UI" que se superpondrá a la escena principal
   self.scene.add('UIScene', UIScene, true);
@@ -110,30 +114,50 @@ function create() {
   this.otherBullets = this.physics.add.group();
 
   this.socket.on('currentPlayers', function (players) {
+    // Clear all existing other players when receiving fresh player list (e.g., room change)
+    self.otherShips.getChildren().forEach(function (otherShip) {
+      if (otherShip.playerSprite) {
+        otherShip.playerSprite.destroy();
+      }
+      removeShipWakeEmitters(otherShip);
+      otherShip.destroy();
+    });
+    self.otherShips.clear(true, true);
+
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
-        // Crear mi barco y mi jugador
-        self.ship = addShip(self, players[id].ship);
-        self.ship.playerId = players[id].playerId;
+        // Create or update my ship and player
+        if (!self.ship) {
+          self.ship = addShip(self, players[id].ship);
+          self.ship.playerId = players[id].playerId;
 
-        self.player = addPlayer(self, players[id].player, self.ship);
+          self.player = addPlayer(self, players[id].player, self.ship);
 
-        setupShipCollisions(self, self.ship);
+          setupShipCollisions(self, self.ship);
 
-        // Agregar emisores de estela al barco
-        addShipWakeEmitters(self, self.ship);
+          // Add wake emitters to ship
+          addShipWakeEmitters(self, self.ship);
 
-        // Inicializar variable de steering
-        self.steeringDirection = 0;
+          // Initialize steering variable
+          self.steeringDirection = 0;
+        } else {
+          // Update ship position (for room transition)
+          self.ship.setPosition(players[id].ship.x, players[id].ship.y);
+          self.ship.setRotation(players[id].ship.rotation);
+          self.player.setPosition(
+            players[id].ship.x + players[id].player.x,
+            players[id].ship.y + players[id].player.y
+          );
+        }
       } else {
-        // Crear barco y jugador de otros
+        // Create ships and players of others
         const otherShip = addOtherShip(self, players[id].ship);
         otherShip.playerId = players[id].playerId;
 
         const otherPlayer = addOtherPlayer(self, players[id].player, otherShip);
         otherShip.playerSprite = otherPlayer;
 
-        // Agregar emisores de estela al barco
+        // Add wake emitters to ship
         addShipWakeEmitters(self, otherShip);
 
         self.otherShips.add(otherShip);
@@ -279,6 +303,13 @@ function create() {
         }
       }
     });
+  });
+
+  // Handle room changes
+  this.socket.on('roomChanged', function (roomData) {
+    self.currentRoomX = roomData.roomX;
+    self.currentRoomY = roomData.roomY;
+    console.log(`Changed to room (${roomData.roomX}, ${roomData.roomY})`);
   });
 
 }
@@ -618,6 +649,72 @@ function update(time, delta) {
       playerY: playerRelativeY,
       playerRotation: this.player.rotation
     };
+
+    // ===== ROOM TRANSITION LOGIC =====
+    // Check if ship crossed world boundaries
+    let newRoomX = this.currentRoomX;
+    let newRoomY = this.currentRoomY;
+    let newShipX = this.ship.x;
+    let newShipY = this.ship.y;
+    let shouldChangeRoom = false;
+
+    // Debug: log position every 60 frames (~1 second)
+    if (!this.debugFrameCount) this.debugFrameCount = 0;
+    this.debugFrameCount++;
+    if (this.debugFrameCount % 60 === 0) {
+      console.log(`Ship position: (${Math.floor(this.ship.x)}, ${Math.floor(this.ship.y)})`);
+    }
+
+    // Check right boundary
+    if (this.ship.x > WORLD_WIDTH) {
+      console.log(`CROSSED RIGHT BOUNDARY: ${this.ship.x} > ${WORLD_WIDTH}`);
+      newRoomX = this.currentRoomX + 1;
+      newShipX = 0;
+      shouldChangeRoom = true;
+    }
+    // Check left boundary
+    else if (this.ship.x < 0) {
+      console.log(`CROSSED LEFT BOUNDARY: ${this.ship.x} < 0`);
+      newRoomX = this.currentRoomX - 1;
+      newShipX = WORLD_WIDTH;
+      shouldChangeRoom = true;
+    }
+
+    // Check bottom boundary
+    if (this.ship.y > WORLD_HEIGHT) {
+      console.log(`CROSSED BOTTOM BOUNDARY: ${this.ship.y} > ${WORLD_HEIGHT}`);
+      newRoomY = this.currentRoomY + 1;
+      newShipY = 0;
+      shouldChangeRoom = true;
+    }
+    // Check top boundary
+    else if (this.ship.y < 0) {
+      console.log(`CROSSED TOP BOUNDARY: ${this.ship.y} < 0`);
+      newRoomY = this.currentRoomY - 1;
+      newShipY = WORLD_HEIGHT;
+      shouldChangeRoom = true;
+    }
+
+    if (shouldChangeRoom) {
+      console.log(`Transitioning from room (${this.currentRoomX}, ${this.currentRoomY}) to (${newRoomX}, ${newRoomY})`);
+
+      // Update ship position locally for smooth transition
+      this.ship.setPosition(newShipX, newShipY);
+      this.player.setPosition(
+        newShipX + playerRelativeX,
+        newShipY + playerRelativeY
+      );
+
+      // Notify server about room change
+      this.socket.emit('changeRoom', {
+        roomX: newRoomX,
+        roomY: newRoomY,
+        shipX: newShipX,
+        shipY: newShipY
+      });
+
+      // Note: currentRoomX/Y will be updated by the 'roomChanged' event from server
+    }
   }
 }
 
@@ -640,6 +737,19 @@ class UIScene extends Phaser.Scene {
     // Obtén las coordenadas de la cámara del jugador
     const cameraX = this.mainScene.cameras.main.width / 2;
     const cameraY = this.mainScene.cameras.main.height / 2;
+
+    // Room indicator (esquina superior izquierda)
+    this.roomText = this.add.text(15, 100, 'Room: (0, 0)', {
+      fontSize: '20px',
+      fill: '#00ff00',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 6 },
+      fontStyle: 'bold'
+    });
+    this.roomText.setScrollFactor(0);
+    this.roomText.setDepth(1000);
+    this.roomText.setOrigin(0, 0);
+    console.log('Room text created:', this.roomText);
 
     // Barra de salud del barco (parte superior central)
     this.healthBarBg = this.add.rectangle(cameraX, 30, 204, 24, 0x000000)
@@ -675,6 +785,15 @@ class UIScene extends Phaser.Scene {
   }
 
   update() {
+    // Actualizar indicador de room
+    if (this.mainScene && this.mainScene.currentRoomX !== undefined && this.mainScene.currentRoomY !== undefined) {
+      const roomText = `Room: (${this.mainScene.currentRoomX}, ${this.mainScene.currentRoomY})`;
+      if (this.roomText) {
+        this.roomText.setText(roomText);
+        this.roomText.setVisible(true); // Asegurar que sea visible
+      }
+    }
+
     // Actualizar barra de salud
     if (this.mainScene.ship) {
       const healthPercent = Math.max(0, Math.min(100, this.mainScene.ship.health));
