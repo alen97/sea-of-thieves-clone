@@ -845,6 +845,20 @@ class UIScene extends Phaser.Scene {
       }
     }
 
+    // Indicador del jugador (triángulo rojo usando Graphics para mejor control)
+    this.playerIndicator = this.add.graphics();
+    this.playerIndicator.setScrollFactor(0);
+    this.playerIndicator.setDepth(2002);
+    this.playerIndicator.setVisible(false);
+
+    // Dibujar triángulo centrado en (0, 0)
+    this.playerIndicator.fillStyle(0xFF0000, 1);
+    this.playerIndicator.fillTriangle(
+      0, -5,    // Punto superior (arriba)
+      -4, 4,    // Punto inferior izquierdo
+      4, 4      // Punto inferior derecho
+    );
+
     // Inicialmente oculto
     this.mapBackground.setVisible(false);
     this.mapTitle.setVisible(false);
@@ -887,10 +901,10 @@ class UIScene extends Phaser.Scene {
         // Determinar color según estado
         let color;
         if (roomX === currentRoomX && roomY === currentRoomY) {
-          // Room actual - verde brillante
-          color = 0x00ff00;
+          // Room actual - azul
+          color = 0x1E90FF;
         } else if (visitedRooms.has(roomKey)) {
-          // Room visitado - gris claro
+          // Room visitado - azul
           color = 0x1E90FF;
         } else {
           // Room no visitado - gris muy oscuro
@@ -899,8 +913,44 @@ class UIScene extends Phaser.Scene {
 
         cell.rect.setFillStyle(color);
       });
+
+      // ===== ACTUALIZAR INDICADOR DEL JUGADOR =====
+      if (this.mainScene.ship) {
+        const mapSize = 9;
+        const cellSize = 40;
+        const mapWidth = mapSize * cellSize;
+        const mapHeight = mapSize * cellSize;
+        const cameraX = this.mainScene.cameras.main.width / 2;
+        const cameraY = this.mainScene.cameras.main.height / 2;
+        const mapX = cameraX - mapWidth / 2;
+        const mapY = cameraY - mapHeight / 2;
+
+        // Celda del room actual está en el centro (col=4, row=4)
+        const centerCol = 4;
+        const centerRow = 4;
+        const cellCenterX = mapX + centerCol * cellSize + cellSize / 2;
+        const cellCenterY = mapY + centerRow * cellSize + cellSize / 2;
+
+        // Mapear posición del barco (0-3200) a offset dentro de celda (-19 a +19 pixels)
+        const WORLD_WIDTH = 3200;
+        const WORLD_HEIGHT = 3200;
+        const playerOffsetX = ((this.mainScene.ship.x / WORLD_WIDTH) - 0.5) * (cellSize - 2);
+        const playerOffsetY = ((this.mainScene.ship.y / WORLD_HEIGHT) - 0.5) * (cellSize - 2);
+
+        // Posición final del indicador
+        const indicatorX = cellCenterX + playerOffsetX;
+        const indicatorY = cellCenterY + playerOffsetY;
+
+        // Actualizar posición y rotación
+        this.playerIndicator.setPosition(indicatorX, indicatorY);
+        this.playerIndicator.setRotation(this.mainScene.ship.rotation);
+        this.playerIndicator.setVisible(true);
+      } else {
+        this.playerIndicator.setVisible(false);
+      }
     } else {
       this.mapCells.forEach(cell => cell.rect.setVisible(false));
+      this.playerIndicator.setVisible(false);
     }
 
     // Actualizar barra de salud
