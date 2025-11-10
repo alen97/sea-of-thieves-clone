@@ -1,5 +1,16 @@
-const SCREEN_WIDTH = 1600
-const SCREEN_HEIGHT = 1600
+// World configuration
+const WORLD_WIDTH = 3200;
+const WORLD_HEIGHT = 3200;
+const VIEWPORT_WIDTH = 1600;
+const VIEWPORT_HEIGHT = 1600;
+
+// Zoom configuration
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 1.5;
+const ZOOM_STEP = 0.5;
+
+const SCREEN_WIDTH = WORLD_WIDTH;
+const SCREEN_HEIGHT = WORLD_HEIGHT;
 
 var config = {
   type: Phaser.AUTO,
@@ -7,8 +18,8 @@ var config = {
     mode: Phaser.Scale.ENVELOP,
     parent: 'phaser-example',
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: SCREEN_WIDTH, // 640,
-    height: SCREEN_HEIGHT // 480
+    width: VIEWPORT_WIDTH,
+    height: VIEWPORT_HEIGHT
   },
   // parent: 'phaser-example',
   // width: 800,
@@ -40,9 +51,6 @@ function preload() {
 
   this.load.audio('enterGame', ['sounds/portalenter.ogg', 'sounds/portalenter.mp3']);
 
-  this.load.image('tiles', 'tileset/spritesheet-extruded.png');
-  this.load.tilemapTiledJSON('tilemap', 'tileset/tilemap.json');
-
   this.load.image('bullet', 'assets/bullet.png');
 
   this.load.audio('shoot', ['sounds/bow5.ogg', 'sounds/bow5.mp3']);
@@ -69,8 +77,24 @@ function create() {
   this.input.setDefaultCursor('none');
 
   // game.scale.startFullscreen();
-  this.cameras.main.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  this.cameras.main.setViewport(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   this.cameras.main.setZoom(1);
+  this.currentZoom = 1;
+
+  // Generar textura de océano en runtime
+  const oceanGraphics = this.add.graphics();
+  oceanGraphics.fillStyle(0x1E90FF, 1); // Color océano azul
+  oceanGraphics.fillRect(0, 0, 16, 16);
+  oceanGraphics.generateTexture('oceanTile', 16, 16);
+  oceanGraphics.destroy();
+
+  // Crear TileSprite para el fondo del océano
+  this.oceanBackground = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'oceanTile');
+  this.oceanBackground.setOrigin(0, 0);
+  this.oceanBackground.setDepth(-1);
+
+  // Configurar límites del mundo de física para wrap-around correcto
+  this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
   var self = this;
   this.socket = io();
@@ -235,23 +259,6 @@ function create() {
     });
   });
 
-  // ---------------- RENDER TILESET
-
-  this.map = this.make.tilemap({ key: 'tilemap' });
-  var tileset = this.map.addTilesetImage('tilemap_packed', 'tiles', 16, 16, 1, 2); // Nombre de imagen Tilemap
-  // const tilemap = this.map.createLayer('objects', tileset, 0, 0);
-
-  this.map.createStaticLayer("Tile Layer 1", tileset);
-
-  // this.map.objects.forEach(object => {
-  //   console.log("OBJECT NAME: ", object)
-  //   if (object.name === "walls") {
-  //     object.objects.forEach(objectToCreate => {
-  //       console.log("OBJECT TO CREATE: ", objectToCreate)
-  //       addWalls(this, objectToCreate)
-  //     })
-  //   }
-
 }
 
 ////////////////////////////////////////// UPDATE
@@ -307,11 +314,40 @@ function update(time, delta) {
       keyE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
       keySpace: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
       keyLeft: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-      keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)
+      keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
+      keyPlus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
+      keyMinus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS)
     };
 
     // Guardar estado de JustDown para E (solo se puede llamar una vez por frame)
     const keyEJustPressed = Phaser.Input.Keyboard.JustDown(input.keyE);
+
+    // ===== SISTEMA DE ZOOM =====
+    // Zoom con teclas +/- (cada tap hace un cambio mayor)
+    if (Phaser.Input.Keyboard.JustDown(input.keyPlus)) {
+      this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
+    }
+    if (Phaser.Input.Keyboard.JustDown(input.keyMinus)) {
+      this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
+    }
+
+    // Zoom con rueda del mouse
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+      if (deltaY > 0) {
+        this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
+      } else if (deltaY < 0) {
+        this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
+      }
+    });
+
+    // Aplicar zoom suave
+    if (this.targetZoom === undefined) {
+      this.targetZoom = this.currentZoom;
+    }
+    if (this.currentZoom !== this.targetZoom) {
+      this.currentZoom = Phaser.Math.Linear(this.currentZoom, this.targetZoom, 0.1);
+      this.cameras.main.setZoom(this.currentZoom);
+    }
 
     // ===== SISTEMA DE TIMÓN =====
     const helmOffset = 50;

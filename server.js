@@ -6,6 +6,10 @@ var io = require('socket.io').listen(server);
 var players = {};
 var bullets = [];
 
+// World configuration
+const WORLD_WIDTH = 3200;
+const WORLD_HEIGHT = 3200;
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function (req, res) {
@@ -126,7 +130,7 @@ function resolveInitialPosition(axis) {
 
   if (result === 1) {
     if (axis === "x") {
-      return 1600 - Math.floor(Math.random() * 150) - 25
+      return WORLD_WIDTH - Math.floor(Math.random() * 150) - 25
     } else { // axis === "y"
       return Math.floor(Math.random() * 150) + 25
     }
@@ -136,20 +140,20 @@ function resolveInitialPosition(axis) {
     if (axis === "x") {
       return Math.floor(Math.random() * 150) + 25
     } else { // axis === "y"
-      return 1600 - Math.floor(Math.random() * 150) - 25
+      return WORLD_HEIGHT - Math.floor(Math.random() * 150) - 25
     }
   }
 
   if (result === 3) {
     if (axis === "x") {
-      return 1600 - Math.floor(Math.random() * 150) - 25
+      return WORLD_WIDTH - Math.floor(Math.random() * 150) - 25
     } else { // axis === "y"
-      return 1600 - Math.floor(Math.random() * 150) - 25
+      return WORLD_HEIGHT - Math.floor(Math.random() * 150) - 25
     }
   }
 
 }
 
-server.listen(80, function () {
+server.listen(3000, function () {
   console.log(`Listening on ${server.address().port}`);
 });
