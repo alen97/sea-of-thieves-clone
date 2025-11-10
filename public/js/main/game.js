@@ -96,6 +96,9 @@ function create() {
   // Configurar límites del mundo de física para wrap-around correcto
   this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
+  // Inicializar sistema de partículas de estela
+  createWakeParticleSystem(this);
+
   var self = this;
   this.socket = io();
 
@@ -117,6 +120,9 @@ function create() {
 
         setupShipCollisions(self, self.ship);
 
+        // Agregar emisores de estela al barco
+        addShipWakeEmitters(self, self.ship);
+
         // Inicializar variable de steering
         self.steeringDirection = 0;
       } else {
@@ -126,6 +132,9 @@ function create() {
 
         const otherPlayer = addOtherPlayer(self, players[id].player, otherShip);
         otherShip.playerSprite = otherPlayer;
+
+        // Agregar emisores de estela al barco
+        addShipWakeEmitters(self, otherShip);
 
         self.otherShips.add(otherShip);
       }
@@ -139,6 +148,9 @@ function create() {
     const otherPlayer = addOtherPlayer(self, playerInfo.player, otherShip);
     otherShip.playerSprite = otherPlayer;
 
+    // Agregar emisores de estela al barco
+    addShipWakeEmitters(self, otherShip);
+
     self.otherShips.add(otherShip);
   });
 
@@ -149,6 +161,8 @@ function create() {
         if (otherShip.playerSprite) {
           otherShip.playerSprite.destroy();
         }
+        // Limpiar emisores de estela
+        removeShipWakeEmitters(otherShip);
         // Destruir barco
         otherShip.destroy();
       }
@@ -543,6 +557,9 @@ function update(time, delta) {
 
     // ===== ACTUALIZAR SHIP (física independiente) =====
     updateShip(this, this.ship, this.player.isControllingShip, input);
+
+    // ===== ACTUALIZAR EMISORES DE ESTELA =====
+    updateShipWakeEmitters(this.ship);
 
     // Calcular posición relativa del jugador al barco
     const playerRelativeX = this.player.x - this.ship.x;
