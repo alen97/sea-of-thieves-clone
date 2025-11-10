@@ -176,6 +176,14 @@ function create() {
         otherShip.setRotation(playerInfo.ship.rotation);
         otherShip.setPosition(playerInfo.ship.x, playerInfo.ship.y);
 
+        // Calcular y guardar currentSpeed para el sistema de partículas
+        const velocityX = playerInfo.ship.velocityX || 0;
+        const velocityY = playerInfo.ship.velocityY || 0;
+        otherShip.currentSpeed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+
+        // Por ahora, asumimos que el ancla está levantada (el servidor podría enviarlo en el futuro)
+        otherShip.isAnchored = false;
+
         // Actualizar jugador
         if (otherShip.playerSprite) {
           otherShip.playerSprite.setPosition(
@@ -560,6 +568,11 @@ function update(time, delta) {
 
     // ===== ACTUALIZAR EMISORES DE ESTELA =====
     updateShipWakeEmitters(this.ship);
+
+    // Actualizar emisores de estela para todos los otherShips
+    this.otherShips.getChildren().forEach(function (otherShip) {
+      updateShipWakeEmitters(otherShip);
+    });
 
     // Calcular posición relativa del jugador al barco
     const playerRelativeX = this.player.x - this.ship.x;

@@ -118,9 +118,6 @@ function updateShip(self, ship, isControlled, input) {
 
     ship.setVelocity(velocityX, velocityY);
 
-    // Siempre aplicar wrap al barco
-    self.physics.world.wrap(ship, 0);
-
     // Sistema de degradación de salud por roturas
     if (ship.damages.length > 0) {
         const healthLossPerFrame = (ship.damages.length * 0.5) / 60;
