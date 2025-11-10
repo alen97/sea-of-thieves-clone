@@ -105,6 +105,9 @@ function create() {
   // Room tracking
   this.currentRoomX = 0;
   this.currentRoomY = 0;
+  this.visitedRooms = new Set();
+  this.visitedRooms.add('0,0'); // Add initial room
+  this.mapVisible = false;
 
   // Crear una escena de "UI" que se superpondrá a la escena principal
   self.scene.add('UIScene', UIScene, true);
@@ -309,7 +312,13 @@ function create() {
   this.socket.on('roomChanged', function (roomData) {
     self.currentRoomX = roomData.roomX;
     self.currentRoomY = roomData.roomY;
+
+    // Add to visited rooms
+    const roomKey = `${roomData.roomX},${roomData.roomY}`;
+    self.visitedRooms.add(roomKey);
+
     console.log(`Changed to room (${roomData.roomX}, ${roomData.roomY})`);
+    console.log(`Visited rooms: ${self.visitedRooms.size}`);
   });
 
 }
@@ -369,11 +378,18 @@ function update(time, delta) {
       keyLeft: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
       keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
       keyPlus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
-      keyMinus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS)
+      keyMinus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS),
+      keyM: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M)
     };
 
     // Guardar estado de JustDown para E (solo se puede llamar una vez por frame)
     const keyEJustPressed = Phaser.Input.Keyboard.JustDown(input.keyE);
+
+    // Toggle mapa con M
+    if (Phaser.Input.Keyboard.JustDown(input.keyM)) {
+      this.mapVisible = !this.mapVisible;
+      console.log(`Map ${this.mapVisible ? 'shown' : 'hidden'}`);
+    }
 
     // ===== SISTEMA DE ZOOM =====
     // Zoom con teclas +/- (cada tap hace un cambio mayor)
@@ -782,6 +798,57 @@ class UIScene extends Phaser.Scene {
       backgroundColor: '#000000',
       padding: { x: 5, y: 3 }
     }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+
+    // ===== MAPA =====
+    const mapSize = 9; // 9x9 grid
+    const cellSize = 40;
+    const mapWidth = mapSize * cellSize;
+    const mapHeight = mapSize * cellSize;
+    const mapX = cameraX - mapWidth / 2;
+    const mapY = cameraY - mapHeight / 2;
+
+    // Contenedor del mapa
+    this.mapContainer = this.add.container(0, 0);
+    this.mapContainer.setScrollFactor(0);
+    this.mapContainer.setDepth(2000);
+
+    // Fondo del mapa
+    this.mapBackground = this.add.rectangle(cameraX, cameraY, mapWidth + 40, mapHeight + 80, 0x000000, 0.9);
+    this.mapBackground.setScrollFactor(0);
+    this.mapBackground.setDepth(1999);
+
+    // Título del mapa
+    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M)', {
+      fontSize: '16px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
+
+    // Grid de celdas (9x9 = 81 celdas)
+    this.mapCells = [];
+    for (let row = 0; row < mapSize; row++) {
+      for (let col = 0; col < mapSize; col++) {
+        const cellX = mapX + col * cellSize + cellSize / 2;
+        const cellY = mapY + row * cellSize + cellSize / 2;
+
+        // Crear celda
+        const cell = this.add.rectangle(cellX, cellY, cellSize - 2, cellSize - 2, 0x222222);
+        cell.setScrollFactor(0);
+        cell.setDepth(2000);
+        cell.setStrokeStyle(1, 0x444444);
+
+        this.mapCells.push({
+          rect: cell,
+          row: row,
+          col: col
+        });
+      }
+    }
+
+    // Inicialmente oculto
+    this.mapBackground.setVisible(false);
+    this.mapTitle.setVisible(false);
+    this.mapCells.forEach(cell => cell.rect.setVisible(false));
   }
 
   update() {
@@ -792,6 +859,48 @@ class UIScene extends Phaser.Scene {
         this.roomText.setText(roomText);
         this.roomText.setVisible(true); // Asegurar que sea visible
       }
+    }
+
+    // ===== ACTUALIZAR MAPA =====
+    const mapVisible = this.mainScene.mapVisible;
+
+    // Mostrar/ocultar elementos del mapa
+    this.mapBackground.setVisible(mapVisible);
+    this.mapTitle.setVisible(mapVisible);
+
+    if (mapVisible) {
+      const currentRoomX = this.mainScene.currentRoomX;
+      const currentRoomY = this.mainScene.currentRoomY;
+      const visitedRooms = this.mainScene.visitedRooms;
+
+      // Grid es 9x9, centrado en room actual
+      const halfSize = 4; // (9-1)/2
+
+      this.mapCells.forEach(cell => {
+        cell.rect.setVisible(true);
+
+        // Calcular coordenadas de room para esta celda
+        const roomX = currentRoomX + (cell.col - halfSize);
+        const roomY = currentRoomY + (cell.row - halfSize);
+        const roomKey = `${roomX},${roomY}`;
+
+        // Determinar color según estado
+        let color;
+        if (roomX === currentRoomX && roomY === currentRoomY) {
+          // Room actual - verde brillante
+          color = 0x00ff00;
+        } else if (visitedRooms.has(roomKey)) {
+          // Room visitado - gris claro
+          color = 0x1E90FF;
+        } else {
+          // Room no visitado - gris muy oscuro
+          color = 0x222222;
+        }
+
+        cell.rect.setFillStyle(color);
+      });
+    } else {
+      this.mapCells.forEach(cell => cell.rect.setVisible(false));
     }
 
     // Actualizar barra de salud
