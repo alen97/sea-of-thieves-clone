@@ -15,7 +15,7 @@ const WAKE_CONFIG = {
 };
 
 // Offset position for central wake emitter
-const WAKE_OFFSET = { x: 0, y: 60 };
+const WAKE_OFFSET = { x: 0, y: 40 };
 
 // Global particle manager (shared across all ships)
 let particleManager = null;
