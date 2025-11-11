@@ -4,7 +4,7 @@ function addShip(self, shipInfo) {
     // Crear el barco con dimensiones correctas (55x110)
     const ship = self.physics.add.sprite(shipInfo.x, shipInfo.y, 'ship')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(78, 170);
+        .setDisplaySize(178, 463);
 
     ship.playerId = shipInfo.playerId || 'unknown';
     ship.setMaxVelocity(300);
@@ -31,7 +31,7 @@ function addOtherShip(self, shipInfo) {
     // Crear barco de otro jugador (sin física)
     const ship = self.add.sprite(shipInfo.x, shipInfo.y, 'ship')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(78, 170);
+        .setDisplaySize(178, 463);
 
     ship.playerId = shipInfo.playerId;
     ship.setRotation(shipInfo.rotation);

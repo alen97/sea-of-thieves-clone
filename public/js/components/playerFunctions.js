@@ -112,9 +112,9 @@ function updatePlayer(self, player, ship, input, deltaTime) {
             }
         }
 
-        // Mantener jugador dentro del barco (78x170 - tamaño visual del sprite)
-        const shipBoundsWidth = 78;
-        const shipBoundsHeight = 170;
+        // Mantener jugador dentro del barco (tamaño visual del sprite)
+        const shipBoundsWidth = 178 - 45;
+        const shipBoundsHeight = 463 - 200;
 
         // Calcular posición relativa del jugador al barco
         const dx = player.x - ship.x;
@@ -145,7 +145,7 @@ function updatePlayer(self, player, ship, input, deltaTime) {
         player.setVelocity(0, 0);
 
         // Posición del timón (en la popa del barco)
-        const helmOffset = 50;
+        const helmOffset = 125;
         const angle = ship.rotation - Math.PI / 2;
         const helmX = ship.x - Math.cos(angle) * helmOffset;
         const helmY = ship.y - Math.sin(angle) * helmOffset;

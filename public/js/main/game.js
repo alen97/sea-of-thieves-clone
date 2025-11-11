@@ -419,7 +419,7 @@ function update(time, delta) {
     }
 
     // ===== SISTEMA DE TIMÓN =====
-    const helmOffset = 50;
+    const helmOffset = 125;
     const angle = this.ship.rotation - Math.PI / 2;
     const helmX = this.ship.x - Math.cos(angle) * helmOffset;
     const helmY = this.ship.y - Math.sin(angle) * helmOffset;
@@ -457,7 +457,7 @@ function update(time, delta) {
     }
 
     // ===== SISTEMA DE ANCLA =====
-    const anchorOffset = 50;
+    const anchorOffset = 115;
     const anchorAngle = this.ship.rotation - Math.PI / 2;
     const anchorX = this.ship.x + Math.cos(anchorAngle) * anchorOffset;
     const anchorY = this.ship.y + Math.sin(anchorAngle) * anchorOffset;
@@ -496,7 +496,7 @@ function update(time, delta) {
     }
 
     // ===== SISTEMA DE CAÑÓN IZQUIERDO =====
-    const leftCannonOffset = 30;
+    const leftCannonOffset = 50;
     // Perpendicular a la izquierda del barco
     const leftCannonX = this.ship.x + Math.cos(this.ship.rotation - Math.PI) * leftCannonOffset;
     const leftCannonY = this.ship.y + Math.sin(this.ship.rotation - Math.PI) * leftCannonOffset;
@@ -552,7 +552,7 @@ function update(time, delta) {
     }
 
     // ===== SISTEMA DE CAÑÓN DERECHO =====
-    const rightCannonOffset = 30;
+    const rightCannonOffset = 50;
     // Perpendicular a la derecha del barco
     const rightCannonX = this.ship.x + Math.cos(this.ship.rotation) * rightCannonOffset;
     const rightCannonY = this.ship.y + Math.sin(this.ship.rotation) * rightCannonOffset;
