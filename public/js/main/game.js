@@ -161,6 +161,8 @@ function create() {
 
           // Create cannons for the ship
           self.ship.cannons = createCannons(self, self.ship);
+          updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
+          updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
 
           // Initialize steering variable
           self.steeringDirection = 0;
@@ -186,6 +188,8 @@ function create() {
 
         // Create cannons for other ships
         otherShip.cannons = createCannons(self, otherShip);
+        updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
+        updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
 
         self.otherShips.add(otherShip);
       }
@@ -213,6 +217,11 @@ function create() {
 
     // Agregar emisores de estela al barco
     addShipWakeEmitters(self, otherShip);
+
+    // Create cannons for the new ship
+    otherShip.cannons = createCannons(self, otherShip);
+    updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
+    updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
 
     self.otherShips.add(otherShip);
   });
