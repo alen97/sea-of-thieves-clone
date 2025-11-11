@@ -1,14 +1,15 @@
 ////////////////////////////////////////////////// PLAYER FUNCTIONS
 
 function addPlayer(self, playerInfo, ship) {
-    // Crear el jugador con sprite player.png (24x15)
+    // Crear el jugador con sprite de animación
     const player = self.physics.add.sprite(
         ship.x + playerInfo.x,
         ship.y + playerInfo.y,
-        'player'
+        'playerRun',
+        'tile000.png'
     )
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(24, 15);
+        .setDisplaySize(28, 28);
 
     player.setDepth(3);
     player.isControllingShip = false;
@@ -24,14 +25,15 @@ function addPlayer(self, playerInfo, ship) {
 }
 
 function addOtherPlayer(self, playerInfo, ship) {
-    // Crear jugador de otro (sprite player.png)
+    // Crear jugador de otro con sprite de animación
     const player = self.add.sprite(
         ship.x + playerInfo.x,
         ship.y + playerInfo.y,
-        'player'
+        'playerRun',
+        'tile000.png'
     )
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(24, 15);
+        .setDisplaySize(28, 28);
 
     player.setDepth(3);
 
@@ -63,6 +65,18 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
 
             player.setVelocity(playerVelX, playerVelY);
 
+            // Play run animation if moving, stop if idle
+            if (playerVelX !== 0 || playerVelY !== 0) {
+                if (!player.anims.isPlaying || player.anims.currentAnim.key !== 'run') {
+                    player.play('run');
+                }
+            } else {
+                if (player.anims.isPlaying) {
+                    player.stop();
+                    player.setFrame('tile000.png');
+                }
+            }
+
             const directionAngles = {
                 "W":  Math.PI,                  // Arriba
                 "S":  0,                        // Abajo
@@ -87,6 +101,12 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         } else {
             // Si input está deshabilitado, detener movimiento del jugador
             player.setVelocity(0, 0);
+
+            // Stop animation when input disabled
+            if (player.anims.isPlaying) {
+                player.stop();
+                player.setFrame('tile000.png');
+            }
         }
 
         // IMPORTANTE: Heredar movimiento del barco (SIEMPRE ejecutar)
@@ -149,6 +169,12 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
     } else {
         // El jugador ESTÁ en el timón - no puede caminar
         player.setVelocity(0, 0);
+
+        // Stop animation when controlling ship
+        if (player.anims.isPlaying) {
+            player.stop();
+            player.setFrame('tile000.png');
+        }
 
         // Posición del timón (en la popa del barco)
         const helmOffset = 125;

@@ -57,6 +57,8 @@ function preload() {
 
   this.load.image('playerMuerto', 'assets/player_muerto.png');
 
+  // Load player run animation atlas
+  this.load.atlas('playerRun', 'assets/player_run.png', 'assets/player_run.json');
 
 }
 
@@ -98,6 +100,20 @@ function create() {
 
   // Inicializar sistema de partículas de estela
   createWakeParticleSystem(this);
+
+  // Create player run animation
+  this.anims.create({
+    key: 'run',
+    frames: this.anims.generateFrameNames('playerRun', {
+      start: 0,
+      end: 7,
+      prefix: 'tile',
+      suffix: '.png',
+      zeroPad: 3
+    }),
+    frameRate: 10,
+    repeat: -1
+  });
 
   var self = this;
   this.socket = io();
@@ -176,6 +192,18 @@ function create() {
     const otherPlayer = addOtherPlayer(self, playerInfo.player, otherShip);
     otherShip.playerSprite = otherPlayer;
 
+    // Inicializar estado de animación
+    const playerVelX = playerInfo.player.velocityX || 0;
+    const playerVelY = playerInfo.player.velocityY || 0;
+    const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
+    const isMoving = playerSpeed > 10;
+
+    if (isMoving && !playerInfo.player.isControllingShip) {
+      otherPlayer.play('run');
+    } else {
+      otherPlayer.setFrame('tile000.png');
+    }
+
     // Agregar emisores de estela al barco
     addShipWakeEmitters(self, otherShip);
 
@@ -219,6 +247,26 @@ function create() {
             playerInfo.ship.y + playerInfo.player.y
           );
           otherShip.playerSprite.setRotation(playerInfo.player.rotation);
+
+          // Sincronizar animación basada en velocidad del jugador
+          const playerVelX = playerInfo.player.velocityX || 0;
+          const playerVelY = playerInfo.player.velocityY || 0;
+          const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
+          const isMoving = playerSpeed > 10;
+
+          if (isMoving && !playerInfo.player.isControllingShip) {
+            // Jugador caminando - reproducir animación
+            if (!otherShip.playerSprite.anims.isPlaying ||
+                otherShip.playerSprite.anims.currentAnim.key !== 'run') {
+              otherShip.playerSprite.play('run');
+            }
+          } else {
+            // Jugador quieto o en el timón - detener animación
+            if (otherShip.playerSprite.anims.isPlaying) {
+              otherShip.playerSprite.stop();
+              otherShip.playerSprite.setFrame('tile000.png');
+            }
+          }
         }
 
         // Actualizar roturas
@@ -697,7 +745,9 @@ function update(time, delta) {
           x: playerRelativeX,
           y: playerRelativeY,
           rotation: this.player.rotation,
-          isControllingShip: this.player.isControllingShip
+          isControllingShip: this.player.isControllingShip,
+          velocityX: this.player.body.velocity.x,
+          velocityY: this.player.body.velocity.y
         }
       });
     }
