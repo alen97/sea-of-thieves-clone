@@ -920,7 +920,7 @@ class UIScene extends Phaser.Scene {
           color = 0x1E90FF;
         } else {
           // Room no visitado - gris muy oscuro
-          color = 0x222222;
+          color = 0x000000;
         }
 
         cell.rect.setFillStyle(color);
