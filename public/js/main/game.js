@@ -474,7 +474,6 @@ function update(time, delta) {
       keyS: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       keyD: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       keyE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-      keySpace: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
       keyLeft: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
       keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
       keyPlus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
@@ -675,8 +674,8 @@ function update(time, delta) {
       // Rotar cañón con A/D
       updateCannonRotation(currentCannon, input.keyA, input.keyD, delta);
 
-      // Disparar con Space
-      if (Phaser.Input.Keyboard.JustDown(input.keySpace)) {
+      // Disparar con W
+      if (Phaser.Input.Keyboard.JustDown(input.keyW)) {
         if (canShootLeft && this.player.cannonSide === 'left') {
           fireCannonball(this, currentCannon, this.ship, this.socket);
           canShootLeft = false;
