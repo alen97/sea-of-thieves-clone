@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////// CANNON FUNCTIONS
 
 // Constantes
-const CANNON_ROTATION_SPEED = 1.5; // radianes por segundo
+const CANNON_ROTATION_SPEED = 0.5; // radianes por segundo
 const CANNON_MAX_ANGLE = Math.PI / 3; // ±60 grados
 const CANNON_OFFSET = 75; // Distancia del cañón desde el centro del barco
 
