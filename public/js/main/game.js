@@ -824,6 +824,13 @@ class UIScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
 
+    // Coordenadas del jugador
+    this.mapCoordinates = this.add.text(cameraX, mapY + mapHeight + 20, 'Coordenadas: 0, 0', {
+      fontSize: '14px',
+      fill: '#00ff00',
+      fontStyle: 'bold'
+    }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
+
     // Grid de celdas (9x9 = 81 celdas)
     this.mapCells = [];
     for (let row = 0; row < mapSize; row++) {
@@ -862,6 +869,7 @@ class UIScene extends Phaser.Scene {
     // Inicialmente oculto
     this.mapBackground.setVisible(false);
     this.mapTitle.setVisible(false);
+    this.mapCoordinates.setVisible(false);
     this.mapCells.forEach(cell => cell.rect.setVisible(false));
   }
 
@@ -881,11 +889,15 @@ class UIScene extends Phaser.Scene {
     // Mostrar/ocultar elementos del mapa
     this.mapBackground.setVisible(mapVisible);
     this.mapTitle.setVisible(mapVisible);
+    this.mapCoordinates.setVisible(mapVisible);
 
     if (mapVisible) {
       const currentRoomX = this.mainScene.currentRoomX;
       const currentRoomY = this.mainScene.currentRoomY;
       const visitedRooms = this.mainScene.visitedRooms;
+
+      // Actualizar texto de coordenadas
+      this.mapCoordinates.setText(`Coordenadas: ${currentRoomX}, ${currentRoomY}`);
 
       // Grid es 9x9, centrado en room actual
       const halfSize = 4; // (9-1)/2
