@@ -866,19 +866,6 @@ class UIScene extends Phaser.Scene {
     const cameraX = this.mainScene.cameras.main.width / 2;
     const cameraY = this.mainScene.cameras.main.height / 2;
 
-    // Room indicator (esquina superior izquierda)
-    this.roomText = this.add.text(15, 100, 'Room: (0, 0)', {
-      fontSize: '20px',
-      fill: '#00ff00',
-      backgroundColor: '#000000',
-      padding: { x: 10, y: 6 },
-      fontStyle: 'bold'
-    });
-    this.roomText.setScrollFactor(0);
-    this.roomText.setDepth(1000);
-    this.roomText.setOrigin(0, 0);
-    console.log('Room text created:', this.roomText);
-
     // Barra de salud del barco (parte superior central)
     this.healthBarBg = this.add.rectangle(cameraX, 30, 204, 24, 0x000000)
       .setScrollFactor(0)
@@ -895,21 +882,38 @@ class UIScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setScrollFactor(0).setDepth(102).setOrigin(0.5);
 
-    // Indicador de estado (manejando / caminando)
-    this.statusText = this.add.text(cameraX, 60, 'Caminando', {
-      fontSize: '14px',
-      fill: '#ffff00',
-      backgroundColor: '#000000',
-      padding: { x: 8, y: 4 }
-    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+    // Indicador de timón - Barra horizontal minimalista
+    const helmBarWidth = 425; // Ancho de la barra (con margen de 50px en cada lado)
+    const helmBarY = cameraY + 350; // Posición en el viewport
+    const markerHeight = 30; // Altura del marcador vertical principal
+    const centerMarkerHeight = 20; // Altura del marcador central (más corto)
 
-    // Indicador de timón
-    this.steeringText = this.add.text(cameraX, cameraY + 80, 'Timón: 0', {
-      fontSize: 14,
-      fill: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 5, y: 3 }
-    }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+    // Barra base horizontal (fija)
+    this.steeringBar = this.add.graphics();
+    this.steeringBar.lineStyle(3, 0xffffff, 0.7);
+    this.steeringBar.lineBetween(-helmBarWidth / 2, 0, helmBarWidth / 2, 0);
+    this.steeringBar.setPosition(cameraX, helmBarY);
+    this.steeringBar.setScrollFactor(0);
+    this.steeringBar.setDepth(100);
+    this.steeringBar.setVisible(false); // Inicialmente invisible
+
+    // Marcador vertical (se desliza)
+    this.steeringMarker = this.add.graphics();
+    this.steeringMarker.lineStyle(5, 0xffffff, 0.85);
+    this.steeringMarker.lineBetween(0, -markerHeight / 2, 0, markerHeight / 2);
+    this.steeringMarker.setPosition(cameraX, helmBarY);
+    this.steeringMarker.setScrollFactor(0);
+    this.steeringMarker.setDepth(101);
+    this.steeringMarker.setVisible(false); // Inicialmente invisible
+
+    // Marcador central (fijo, como referencia)
+    this.steeringCenterMarker = this.add.graphics();
+    this.steeringCenterMarker.lineStyle(4, 0xffffff, 0.5);
+    this.steeringCenterMarker.lineBetween(0, -centerMarkerHeight / 2, 0, centerMarkerHeight / 2);
+    this.steeringCenterMarker.setPosition(cameraX, helmBarY);
+    this.steeringCenterMarker.setScrollFactor(0);
+    this.steeringCenterMarker.setDepth(100);
+    this.steeringCenterMarker.setVisible(false); // Inicialmente invisible
 
     // ===== MAPA =====
     const mapSize = 9; // 9x9 grid
@@ -1053,15 +1057,6 @@ class UIScene extends Phaser.Scene {
   }
 
   update() {
-    // Actualizar indicador de room
-    if (this.mainScene && this.mainScene.currentRoomX !== undefined && this.mainScene.currentRoomY !== undefined) {
-      const roomText = `Room: (${this.mainScene.currentRoomX}, ${this.mainScene.currentRoomY})`;
-      if (this.roomText) {
-        this.roomText.setText(roomText);
-        this.roomText.setVisible(true); // Asegurar que sea visible
-      }
-    }
-
     // ===== ACTUALIZAR MAPA =====
     const mapVisible = this.mainScene.mapVisible;
 
@@ -1163,16 +1158,20 @@ class UIScene extends Phaser.Scene {
     // Actualizar estado del jugador
     if (this.mainScene.player) {
       if (this.mainScene.player.isControllingShip) {
-        this.statusText.setText('En el timón');
-        this.statusText.setStyle({ fill: '#00ff00' });
+        this.steeringBar.setVisible(true);
+        this.steeringMarker.setVisible(true);
+        this.steeringCenterMarker.setVisible(true);
 
-        this.steeringText.setVisible(true);
-        this.steeringText.setText('Dirección: ' + this.mainScene.steeringDirection);
+        // Mover el marcador horizontalmente según la dirección
+        // steeringDirection: -45 a +45 → markerOffset: -100 a +100
+        const markerOffsetX = (this.mainScene.steeringDirection / 45) * 100;
+        const cameraX = this.mainScene.cameras.main.width / 2;
+        const helmBarY = this.mainScene.cameras.main.height / 2 + 350;
+        this.steeringMarker.setPosition(cameraX + markerOffsetX, helmBarY);
       } else {
-        this.statusText.setText('Caminando');
-        this.statusText.setStyle({ fill: '#ffff00' });
-
-        this.steeringText.setVisible(false);
+        this.steeringBar.setVisible(false);
+        this.steeringMarker.setVisible(false);
+        this.steeringCenterMarker.setVisible(false);
       }
     }
 
