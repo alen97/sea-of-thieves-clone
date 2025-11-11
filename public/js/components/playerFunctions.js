@@ -13,6 +13,9 @@ function addPlayer(self, playerInfo, ship) {
 
     player.setDepth(3);
     player.isControllingShip = false;
+    player.isOnCannon = false; // Para sistema de cañones
+    player.cannonSide = null; // 'left' o 'right'
+    player.canMove = true; // Control de movimiento
     player.ship = ship; // Referencia al barco
 
     // Jugador apunta inicialmente hacia arriba
@@ -43,8 +46,8 @@ function addOtherPlayer(self, playerInfo, ship) {
 function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
     const playerSpeed = 100;
 
-    if (!player.isControllingShip) {
-        // El jugador NO está en el timón - puede caminar
+    if (!player.isControllingShip && !player.isOnCannon) {
+        // El jugador NO está en el timón ni en el cañón - puede caminar
 
         // Solo procesar input WASD si inputEnabled = true
         if (inputEnabled) {
@@ -165,6 +168,31 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         const worldY = clampedX * sinAngleBack + clampedY * cosAngleBack;
 
         player.setPosition(ship.x + worldX, ship.y + worldY);
+
+    } else if (player.isOnCannon) {
+        // El jugador ESTÁ en el cañón - no puede caminar
+        player.setVelocity(0, 0);
+
+        // Stop animation when on cannon
+        if (player.anims.isPlaying) {
+            player.stop();
+            player.setFrame('tile000.png');
+        }
+
+        // Obtener el cañón actual desde el barco
+        const currentCannon = player.cannonSide === 'left' ? ship.cannons.left : ship.cannons.right;
+
+        if (currentCannon) {
+            // Posicionar jugador detrás del cañón basado en su rotación
+            const offsetDistance = 35; // Distancia detrás del cañón
+            const playerX = currentCannon.x - Math.cos(currentCannon.rotation) * offsetDistance;
+            const playerY = currentCannon.y - Math.sin(currentCannon.rotation) * offsetDistance;
+
+            player.setPosition(playerX, playerY);
+
+            // El jugador mira en la misma dirección que el cañón
+            player.setRotation(currentCannon.rotation - Math.PI / 2);        
+        }
 
     } else {
         // El jugador ESTÁ en el timón - no puede caminar

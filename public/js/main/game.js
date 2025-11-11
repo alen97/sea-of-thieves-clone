@@ -52,6 +52,7 @@ function preload() {
   this.load.audio('enterGame', ['sounds/portalenter.ogg', 'sounds/portalenter.mp3']);
 
   this.load.image('bullet', 'assets/bullet.png');
+  this.load.image('cannon', 'assets/cannon.png');
 
   this.load.audio('shoot', ['sounds/bow5.ogg', 'sounds/bow5.mp3']);
 
@@ -158,6 +159,9 @@ function create() {
           // Add wake emitters to ship
           addShipWakeEmitters(self, self.ship);
 
+          // Create cannons for the ship
+          self.ship.cannons = createCannons(self, self.ship);
+
           // Initialize steering variable
           self.steeringDirection = 0;
         } else {
@@ -179,6 +183,9 @@ function create() {
 
         // Add wake emitters to ship
         addShipWakeEmitters(self, otherShip);
+
+        // Create cannons for other ships
+        otherShip.cannons = createCannons(self, otherShip);
 
         self.otherShips.add(otherShip);
       }
@@ -267,6 +274,14 @@ function create() {
               otherShip.playerSprite.setFrame('tile000.png');
             }
           }
+        }
+
+        // Actualizar cañones
+        if (otherShip.cannons && playerInfo.ship.cannons) {
+          otherShip.cannons.left.relativeAngle = playerInfo.ship.cannons.leftAngle || 0;
+          otherShip.cannons.right.relativeAngle = playerInfo.ship.cannons.rightAngle || 0;
+          updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
+          updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
         }
 
         // Actualizar roturas
@@ -576,18 +591,20 @@ function update(time, delta) {
       }
     }
 
-    // ===== SISTEMA DE CAÑÓN IZQUIERDO =====
-    const leftCannonOffset = 50;
-    // Perpendicular a la izquierda del barco
-    const leftCannonX = this.ship.x + Math.cos(this.ship.rotation - Math.PI) * leftCannonOffset;
-    const leftCannonY = this.ship.y + Math.sin(this.ship.rotation - Math.PI) * leftCannonOffset;
+    // ===== SISTEMA DE CAÑONES =====
+    // Actualizar posición de los cañones
+    if (this.ship.cannons) {
+      updateCannonPosition(this.ship.cannons.left, this.ship, 'left');
+      updateCannonPosition(this.ship.cannons.right, this.ship, 'right');
+    }
 
-    const distanceToLeftCannon = Phaser.Math.Distance.Between(this.player.x, this.player.y, leftCannonX, leftCannonY);
-    const canUseLeftCannon = distanceToLeftCannon < 15;
+    // Verificar proximidad a los cañones
+    const canUseLeftCannon = isNearCannon(this.player, this.ship.cannons.left);
+    const canUseRightCannon = isNearCannon(this.player, this.ship.cannons.right);
 
-    // Indicador de cañón izquierdo
-    if (!this.leftCannonIndicator) {
-      this.leftCannonIndicator = this.add.text(0, 0, '', {
+    // Indicador de cañón (único indicador para ambos cañones)
+    if (!this.cannonIndicator) {
+      this.cannonIndicator = this.add.text(0, 0, '', {
         fontSize: '12px',
         fill: '#ffffff',
         backgroundColor: '#000000',
@@ -595,97 +612,82 @@ function update(time, delta) {
       }).setDepth(10).setOrigin(0.5);
     }
 
-    // Actualizar texto del indicador según cooldown
-    let leftCannonText = '';
-    if (canShootLeft) {
-      leftCannonText = 'Presiona E para disparar cañón';
+    // Mostrar indicador según el estado
+    if (this.player.isOnCannon) {
+      // Montado en cañón: mostrar cooldown solo si está recargando
+      const isLeftCannon = this.player.cannonSide === 'left';
+      const canShoot = isLeftCannon ? canShootLeft : canShootRight;
+      const currentCannon = isLeftCannon ? this.ship.cannons.left : this.ship.cannons.right;
+
+      if (!canShoot) {
+        const lastShot = isLeftCannon ? leftCannonLastShot : rightCannonLastShot;
+        const timeRemaining = Math.ceil((cooldownTime - (time - lastShot)) / 1000);
+        this.cannonIndicator.setText(`Recargando... (${timeRemaining}s)`);
+        this.cannonIndicator.setPosition(currentCannon.x, currentCannon.y - 30);
+        this.cannonIndicator.setVisible(true);
+      } else {
+        this.cannonIndicator.setVisible(false);
+      }
+    } else if (canUseLeftCannon && !canUseHelm && !canUseAnchor) {
+      // Cerca del cañón izquierdo
+      this.cannonIndicator.setText('Presiona E para usar cañón');
+      this.cannonIndicator.setPosition(this.ship.cannons.left.x, this.ship.cannons.left.y - 20);
+      this.cannonIndicator.setVisible(true);
+    } else if (canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon) {
+      // Cerca del cañón derecho
+      this.cannonIndicator.setText('Presiona E para usar cañón');
+      this.cannonIndicator.setPosition(this.ship.cannons.right.x, this.ship.cannons.right.y - 20);
+      this.cannonIndicator.setVisible(true);
     } else {
-      const timeRemaining = Math.ceil((cooldownTime - (time - leftCannonLastShot)) / 1000);
-      leftCannonText = 'Recargando... (' + timeRemaining + 's)';
-    }
-    this.leftCannonIndicator.setText(leftCannonText);
-
-    if (canUseLeftCannon) {
-      this.leftCannonIndicator.setPosition(leftCannonX, leftCannonY - 20);
-      this.leftCannonIndicator.setVisible(true);
-    } else {
-      this.leftCannonIndicator.setVisible(false);
+      this.cannonIndicator.setVisible(false);
     }
 
-    // Disparar cañón izquierdo con E (solo si NO estás cerca del timón, ancla)
-    if (inputEnabled && keyEJustPressed && canUseLeftCannon && !canUseHelm && !canUseAnchor && canShootLeft) {
-      this.socket.emit('createBullet', {
-        x: this.ship.x,
-        y: this.ship.y,
-        shooterId: this.ship.playerId,
-        rotation: this.ship.rotation,
-        direction: "left"
-      });
-      this.cameras.main.shake(100, 0.003);
-
-      canShootLeft = false;
-      leftCannonLastShot = time;
-      this.time.addEvent({
-        delay: cooldownTime,
-        callback: () => { canShootLeft = true; },
-        callbackScope: this
-      });
+    // Montar/desmontar cañón con E
+    if (inputEnabled && keyEJustPressed) {
+      if (this.player.isOnCannon) {
+        // Desmontar
+        dismountCannon(this.player);
+        this.cameras.main.startFollow(this.player, 1, 1);
+      } else if (canUseLeftCannon && !canUseHelm && !canUseAnchor) {
+        // Montar cañón izquierdo
+        mountCannon(this.player, this.ship.cannons.left, 'left');
+        this.cameras.main.startFollow(this.ship.cannons.left, 1, 1);
+      } else if (canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon) {
+        // Montar cañón derecho
+        mountCannon(this.player, this.ship.cannons.right, 'right');
+        this.cameras.main.startFollow(this.ship.cannons.right, 1, 1);
+      }
     }
 
-    // ===== SISTEMA DE CAÑÓN DERECHO =====
-    const rightCannonOffset = 50;
-    // Perpendicular a la derecha del barco
-    const rightCannonX = this.ship.x + Math.cos(this.ship.rotation) * rightCannonOffset;
-    const rightCannonY = this.ship.y + Math.sin(this.ship.rotation) * rightCannonOffset;
+    // Controles del cañón (cuando está montado)
+    if (this.player.isOnCannon && inputEnabled) {
+      const currentCannon = this.player.cannonSide === 'left' ? this.ship.cannons.left : this.ship.cannons.right;
 
-    const distanceToRightCannon = Phaser.Math.Distance.Between(this.player.x, this.player.y, rightCannonX, rightCannonY);
-    const canUseRightCannon = distanceToRightCannon < 15;
+      // Rotar cañón con A/D
+      updateCannonRotation(currentCannon, input.keyA, input.keyD, delta);
 
-    // Indicador de cañón derecho
-    if (!this.rightCannonIndicator) {
-      this.rightCannonIndicator = this.add.text(0, 0, '', {
-        fontSize: '12px',
-        fill: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 5, y: 3 }
-      }).setDepth(10).setOrigin(0.5);
-    }
-
-    // Actualizar texto del indicador según cooldown
-    let rightCannonText = '';
-    if (canShootRight) {
-      rightCannonText = 'Presiona E para disparar cañón';
-    } else {
-      const timeRemaining = Math.ceil((cooldownTime - (time - rightCannonLastShot)) / 1000);
-      rightCannonText = 'Recargando... (' + timeRemaining + 's)';
-    }
-    this.rightCannonIndicator.setText(rightCannonText);
-
-    if (canUseRightCannon) {
-      this.rightCannonIndicator.setPosition(rightCannonX, rightCannonY - 20);
-      this.rightCannonIndicator.setVisible(true);
-    } else {
-      this.rightCannonIndicator.setVisible(false);
-    }
-
-    // Disparar cañón derecho con E (solo si NO estás cerca del timón, ancla, ni cañón izquierdo)
-    if (inputEnabled && keyEJustPressed && canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon && canShootRight) {
-      this.socket.emit('createBullet', {
-        x: this.ship.x,
-        y: this.ship.y,
-        shooterId: this.ship.playerId,
-        rotation: this.ship.rotation,
-        direction: "right"
-      });
-      this.cameras.main.shake(100, 0.003);
-
-      canShootRight = false;
-      rightCannonLastShot = time;
-      this.time.addEvent({
-        delay: cooldownTime,
-        callback: () => { canShootRight = true; },
-        callbackScope: this
-      });
+      // Disparar con Space
+      if (Phaser.Input.Keyboard.JustDown(input.keySpace)) {
+        if (canShootLeft && this.player.cannonSide === 'left') {
+          fireCannonball(this, currentCannon, this.ship, this.socket);
+          canShootLeft = false;
+          leftCannonLastShot = time;
+          this.time.addEvent({
+            delay: cooldownTime,
+            callback: () => { canShootLeft = true; },
+            callbackScope: this
+          });
+        } else if (canShootRight && this.player.cannonSide === 'right') {
+          fireCannonball(this, currentCannon, this.ship, this.socket);
+          canShootRight = false;
+          rightCannonLastShot = time;
+          this.time.addEvent({
+            delay: cooldownTime,
+            callback: () => { canShootRight = true; },
+            callbackScope: this
+          });
+        }
+      }
     }
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
@@ -739,13 +741,19 @@ function update(time, delta) {
           y: this.ship.y,
           rotation: this.ship.rotation,
           velocityX: this.ship.body.velocity.x,
-          velocityY: this.ship.body.velocity.y
+          velocityY: this.ship.body.velocity.y,
+          cannons: {
+            leftAngle: this.ship.cannons ? this.ship.cannons.left.relativeAngle : 0,
+            rightAngle: this.ship.cannons ? this.ship.cannons.right.relativeAngle : 0
+          }
         },
         player: {
           x: playerRelativeX,
           y: playerRelativeY,
           rotation: this.player.rotation,
           isControllingShip: this.player.isControllingShip,
+          isOnCannon: this.player.isOnCannon,
+          cannonSide: this.player.cannonSide,
           velocityX: this.player.body.velocity.x,
           velocityY: this.player.body.velocity.y
         }

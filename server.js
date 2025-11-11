@@ -62,13 +62,19 @@ io.on('connection', function (socket) {
       velocityX: 0,
       velocityY: 0,
       health: 100,
-      damages: []
+      damages: [],
+      cannons: {
+        leftAngle: 0,
+        rightAngle: 0
+      }
     },
     player: {
       x: 0,
       y: 0,
       rotation: Math.PI,
-      isControllingShip: false
+      isControllingShip: false,
+      isOnCannon: false,
+      cannonSide: null
     }
   };
 
@@ -104,12 +110,25 @@ io.on('connection', function (socket) {
       room.players[socket.id].ship.velocityX = movementData.ship.velocityX || 0;
       room.players[socket.id].ship.velocityY = movementData.ship.velocityY || 0;
 
+      // Sincronizar ángulos de los cañones
+      if (movementData.ship.cannons) {
+        room.players[socket.id].ship.cannons = movementData.ship.cannons;
+      }
+
       room.players[socket.id].player.x = movementData.player.x;
       room.players[socket.id].player.y = movementData.player.y;
       room.players[socket.id].player.rotation = movementData.player.rotation;
       room.players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
       room.players[socket.id].player.velocityX = movementData.player.velocityX || 0;
       room.players[socket.id].player.velocityY = movementData.player.velocityY || 0;
+
+      // Sincronizar estado del cañón
+      if (movementData.player.isOnCannon !== undefined) {
+        room.players[socket.id].player.isOnCannon = movementData.player.isOnCannon;
+      }
+      if (movementData.player.cannonSide !== undefined) {
+        room.players[socket.id].player.cannonSide = movementData.player.cannonSide;
+      }
 
       // Emit to players in the same room only
       socket.to(roomId).emit('playerMoved', room.players[socket.id]);
