@@ -102,10 +102,10 @@ function updateShip(self, ship, isControlled, input, inputEnabled = true) {
     // Aplicar aceleración/desaceleración gradual
     if (ship.isAnchored) {
         // Ancla bajada - desacelerar gradualmente hacia 0
-        ship.currentSpeed *= 0.999;
+        ship.currentSpeed *= 0.995;
 
         // También reducir la velocidad angular con ancla
-        ship.setAngularVelocity(angularVelocity * 0.999);
+        ship.setAngularVelocity(angularVelocity * 0.995);
     } else {
         // Sin ancla - acelerar gradualmente hacia velocidad constante
         // Factor más bajo = aceleración más lenta
