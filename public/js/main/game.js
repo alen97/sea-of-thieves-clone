@@ -127,6 +127,13 @@ function create() {
   this.mapVisible = false;
   this.chatMode = false;
 
+  // Day/Night cycle - synchronized from server
+  this.gameTime = {
+    currentTime: 0,
+    timeRatio: 0.5, // Start at noon
+    cycleLength: 5 * 60 * 1000
+  };
+
   // Crear una escena de "UI" que se superpondrá a la escena principal
   self.scene.add('UIScene', UIScene, true);
 
@@ -419,6 +426,15 @@ function create() {
         }
       }
     });
+  });
+
+  // Listen for day/night cycle updates from server
+  this.socket.on('timeUpdate', function (timeData) {
+    self.gameTime = {
+      currentTime: timeData.currentTime,
+      timeRatio: timeData.timeRatio,
+      cycleLength: timeData.cycleLength
+    };
   });
 
 }
@@ -866,6 +882,21 @@ class UIScene extends Phaser.Scene {
     const cameraX = this.mainScene.cameras.main.width / 2;
     const cameraY = this.mainScene.cameras.main.height / 2;
 
+    // Day/Night overlay - covers entire screen with tint
+    const screenWidth = this.mainScene.cameras.main.width;
+    const screenHeight = this.mainScene.cameras.main.height;
+
+    this.dayNightOverlay = this.add.rectangle(
+      cameraX,
+      cameraY,
+      screenWidth,
+      screenHeight,
+      0xffffff,
+      0
+    );
+    this.dayNightOverlay.setScrollFactor(0);
+    this.dayNightOverlay.setDepth(50); // Above game world, below UI elements
+
     // Barra de salud del barco (parte superior central)
     this.healthBarBg = this.add.rectangle(cameraX, 30, 204, 24, 0x000000)
       .setScrollFactor(0)
@@ -1057,6 +1088,39 @@ class UIScene extends Phaser.Scene {
   }
 
   update() {
+    // ===== ACTUALIZAR DÍA/NOCHE =====
+    if (this.mainScene.gameTime && this.dayNightOverlay) {
+      const timeRatio = this.mainScene.gameTime.timeRatio;
+
+      // Calculate color and alpha based on time of day
+      // timeRatio: 0=midnight, 0.25=sunrise, 0.5=noon, 0.75=sunset, 1=midnight
+      let color, alpha;
+
+      if (timeRatio < 0.25) {
+        // Night to Sunrise (0.0 - 0.25)
+        const t = timeRatio / 0.25; // 0 to 1
+        color = this.interpolateColor(0x0a0a1e, 0xFFCC88, t);
+        alpha = 0.9 - (t * 0.6); // 0.9 to 0.3
+      } else if (timeRatio < 0.5) {
+        // Sunrise to Noon (0.25 - 0.5)
+        const t = (timeRatio - 0.25) / 0.25; // 0 to 1
+        color = this.interpolateColor(0xFFCC88, 0xFFFFFF, t);
+        alpha = 0.3 - (t * 0.3); // 0.3 to 0.0
+      } else if (timeRatio < 0.75) {
+        // Noon to Sunset (0.5 - 0.75)
+        const t = (timeRatio - 0.5) / 0.25; // 0 to 1
+        color = this.interpolateColor(0xFFFFFF, 0xFF8844, t);
+        alpha = t * 0.35; // 0.0 to 0.35
+      } else {
+        // Sunset to Night (0.75 - 1.0)
+        const t = (timeRatio - 0.75) / 0.25; // 0 to 1
+        color = this.interpolateColor(0xFF8844, 0x0a0a1e, t);
+        alpha = 0.35 + (t * 0.55); // 0.35 to 0.9
+      }
+
+      this.dayNightOverlay.setFillStyle(color, alpha);
+    }
+
     // ===== ACTUALIZAR MAPA =====
     const mapVisible = this.mainScene.mapVisible;
 
@@ -1233,6 +1297,26 @@ class UIScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  // Helper function to interpolate between two hex colors
+  interpolateColor(color1, color2, t) {
+    // Extract RGB components
+    const r1 = (color1 >> 16) & 0xff;
+    const g1 = (color1 >> 8) & 0xff;
+    const b1 = color1 & 0xff;
+
+    const r2 = (color2 >> 16) & 0xff;
+    const g2 = (color2 >> 8) & 0xff;
+    const b2 = color2 & 0xff;
+
+    // Interpolate
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+
+    // Combine back to hex
+    return (r << 16) | (g << 8) | b;
   }
 
 }

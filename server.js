@@ -6,6 +6,17 @@ var io = require('socket.io').listen(server);
 // Room-based structure: each room has its own players and bullets
 var rooms = {};
 
+// Day/Night cycle - Server authoritative time
+var gameWorld = {
+  cycleLength: 1 * 60 * 1000, // 5 minutes for full day/night cycle
+  gameStartTime: Date.now(),
+  currentTime: 0, // Will be calculated
+  timeRatio: 0.5 // Start at noon (0.5 = 12:00 PM)
+};
+
+// Initialize starting time to noon
+gameWorld.currentTime = gameWorld.cycleLength * 0.5;
+
 // World configuration
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 3200;
@@ -291,6 +302,25 @@ function resolveInitialPosition(axis) {
   }
 
 }
+
+// Day/Night cycle update loop - broadcasts time to all clients every second
+setInterval(function() {
+  const now = Date.now();
+  const elapsed = now - gameWorld.gameStartTime;
+
+  // Calculate current time in cycle (loops back to 0 after full cycle)
+  gameWorld.currentTime = (gameWorld.currentTime + 1000) % gameWorld.cycleLength;
+
+  // Calculate time ratio (0-1, where 0=midnight, 0.25=sunrise, 0.5=noon, 0.75=sunset)
+  gameWorld.timeRatio = gameWorld.currentTime / gameWorld.cycleLength;
+
+  // Broadcast to ALL connected clients (not room-specific)
+  io.emit('timeUpdate', {
+    currentTime: gameWorld.currentTime,
+    timeRatio: gameWorld.timeRatio,
+    cycleLength: gameWorld.cycleLength
+  });
+}, 1000); // Update every 1 second
 
 server.listen(3000, function () {
   console.log(`Listening on ${server.address().port}`);
