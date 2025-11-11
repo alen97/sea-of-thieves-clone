@@ -10,20 +10,20 @@ const BASE_WAKE_CONFIG = {
 // Unified configuration for all emitters (same for all 3)
 const UNIFIED_EMITTER_CONFIG = {
   speed: { min: 30, max: 70 },
-  lifespan: { min: 2000, max: 2000 },
+  lifespan: { min: 3000, max: 3000 },
   scale: { start: 0.6, end: 0.04 },
   alpha: { start: 0.5, end: 0 },
   frequency: 80,
   quantity: 1,
-  angleSpread: 80,
+  angleSpread: 250,
   rotate: { start: 0, end: 360 }
 };
 
 // Emitter positions (3 symmetric emitters)
 const EMITTER_POSITIONS = {
-  FRONT: { x: 0, y: -70 },
-  MIDDLE: { x: 0, y: -35 },
-  BACK: { x: 0, y: 65 }
+  FRONT: { x: 0, y: -210 },
+  MIDDLE: { x: 0, y: -150 },
+  BACK: { x: 0, y: 125 }
 };
 
 // Legacy support
@@ -133,6 +133,7 @@ function updateShipWakeEmitters(ship) {
   const emitters = [
     { emitter: ship.wakeEmitters.front, position: EMITTER_POSITIONS.FRONT },
     { emitter: ship.wakeEmitters.middle, position: EMITTER_POSITIONS.MIDDLE },
+    { emitter: ship.wakeEmitters.back, position: EMITTER_POSITIONS.BACK },
   ];
 
   emitters.forEach(({ emitter, position }) => {
