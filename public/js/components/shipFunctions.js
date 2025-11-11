@@ -54,7 +54,7 @@ function addOtherShip(self, shipInfo) {
     return ship;
 }
 
-function updateShip(self, ship, isControlled, input) {
+function updateShip(self, ship, isControlled, input, inputEnabled = true) {
     // Variables globales de física del barco
     const constantSpeed = 100; // Velocidad constante del barco
     const turnSpeed = 5; // Velocidad de giro (reducida para navegación más suave)
@@ -66,7 +66,7 @@ function updateShip(self, ship, isControlled, input) {
 
     // El barco SIEMPRE mantiene su velocidad/rotación independientemente
 
-    if (isControlled && input) {
+    if (inputEnabled && isControlled && input) {
         // El jugador está en el timón - puede MODIFICAR la dirección del timón
 
         // Control de dirección (A/D) - Modifica el steeringDirection

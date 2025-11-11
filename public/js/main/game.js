@@ -108,6 +108,7 @@ function create() {
   this.visitedRooms = new Set();
   this.visitedRooms.add('0,0'); // Add initial room
   this.mapVisible = false;
+  this.chatMode = false;
 
   // Crear una escena de "UI" que se superpondrá a la escena principal
   self.scene.add('UIScene', UIScene, true);
@@ -321,6 +322,33 @@ function create() {
     console.log(`Visited rooms: ${self.visitedRooms.size}`);
   });
 
+  // Handle chat messages
+  this.socket.on('playerSentMessage', function (messageData) {
+    const MAX_CHAT_DISTANCE = 550; // Distancia máxima para ver mensajes
+
+    // Si es mi propio mensaje, mostrarlo sobre mi jugador
+    if (messageData.playerId === self.socket.id) {
+      showChatBubble(self, self.player, messageData.message);
+      return;
+    }
+
+    // Buscar al jugador que envió el mensaje
+    self.otherShips.getChildren().forEach(function (otherShip) {
+      if (messageData.playerId === otherShip.playerId) {
+        // Calcular distancia entre mi barco y el otro barco
+        const distance = Phaser.Math.Distance.Between(
+          self.ship.x, self.ship.y,
+          otherShip.x, otherShip.y
+        );
+
+        // Solo mostrar si está dentro del rango
+        if (distance <= MAX_CHAT_DISTANCE) {
+          showChatBubble(self, otherShip.playerSprite, messageData.message);
+        }
+      }
+    });
+  });
+
 }
 
 ////////////////////////////////////////// UPDATE
@@ -385,29 +413,34 @@ function update(time, delta) {
     // Guardar estado de JustDown para E (solo se puede llamar una vez por frame)
     const keyEJustPressed = Phaser.Input.Keyboard.JustDown(input.keyE);
 
+    // Si el chat está activo, deshabilitar solo el input del jugador (no el update completo)
+    const inputEnabled = !this.chatMode;
+
     // Toggle mapa con M
-    if (Phaser.Input.Keyboard.JustDown(input.keyM)) {
+    if (inputEnabled && Phaser.Input.Keyboard.JustDown(input.keyM)) {
       this.mapVisible = !this.mapVisible;
       console.log(`Map ${this.mapVisible ? 'shown' : 'hidden'}`);
     }
 
     // ===== SISTEMA DE ZOOM =====
     // Zoom con teclas +/- (cada tap hace un cambio mayor)
-    if (Phaser.Input.Keyboard.JustDown(input.keyPlus)) {
+    if (inputEnabled && Phaser.Input.Keyboard.JustDown(input.keyPlus)) {
       this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
     }
-    if (Phaser.Input.Keyboard.JustDown(input.keyMinus)) {
+    if (inputEnabled && Phaser.Input.Keyboard.JustDown(input.keyMinus)) {
       this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
     }
 
     // Zoom con rueda del mouse
-    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-      if (deltaY > 0) {
-        this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
-      } else if (deltaY < 0) {
-        this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
-      }
-    });
+    if (inputEnabled) {
+      this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+        if (deltaY > 0) {
+          this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
+        } else if (deltaY < 0) {
+          this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
+        }
+      });
+    }
 
     // Aplicar zoom suave
     if (this.targetZoom === undefined) {
@@ -445,7 +478,7 @@ function update(time, delta) {
     }
 
     // Toggle timón con E
-    if (keyEJustPressed && canUseHelm) {
+    if (inputEnabled && keyEJustPressed && canUseHelm) {
       this.player.isControllingShip = !this.player.isControllingShip;
 
       // Cambiar cámara
@@ -487,7 +520,7 @@ function update(time, delta) {
     }
 
     // Toggle ancla con E (solo si NO estás cerca del timón para evitar conflictos)
-    if (keyEJustPressed && canUseAnchor && !canUseHelm) {
+    if (inputEnabled && keyEJustPressed && canUseAnchor && !canUseHelm) {
       this.ship.isAnchored = !this.ship.isAnchored;
       if (!this.ship.isAnchored) {
         const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
@@ -532,7 +565,7 @@ function update(time, delta) {
     }
 
     // Disparar cañón izquierdo con E (solo si NO estás cerca del timón, ancla)
-    if (keyEJustPressed && canUseLeftCannon && !canUseHelm && !canUseAnchor && canShootLeft) {
+    if (inputEnabled && keyEJustPressed && canUseLeftCannon && !canUseHelm && !canUseAnchor && canShootLeft) {
       this.socket.emit('createBullet', {
         x: this.ship.x,
         y: this.ship.y,
@@ -588,7 +621,7 @@ function update(time, delta) {
     }
 
     // Disparar cañón derecho con E (solo si NO estás cerca del timón, ancla, ni cañón izquierdo)
-    if (keyEJustPressed && canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon && canShootRight) {
+    if (inputEnabled && keyEJustPressed && canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon && canShootRight) {
       this.socket.emit('createBullet', {
         x: this.ship.x,
         y: this.ship.y,
@@ -608,10 +641,10 @@ function update(time, delta) {
     }
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
-    updatePlayer(this, this.player, this.ship, input, deltaTime);
+    updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled);
 
     // ===== ACTUALIZAR SHIP (física independiente) =====
-    updateShip(this, this.ship, this.player.isControllingShip, input);
+    updateShip(this, this.ship, this.player.isControllingShip, input, inputEnabled);
 
     // ===== ACTUALIZAR EMISORES DE ESTELA =====
     updateShipWakeEmitters(this.ship);
@@ -619,6 +652,19 @@ function update(time, delta) {
     // Actualizar emisores de estela para todos los otherShips
     this.otherShips.getChildren().forEach(function (otherShip) {
       updateShipWakeEmitters(otherShip);
+    });
+
+    // ===== ACTUALIZAR POSICIONES DE BURBUJAS DE CHAT =====
+    // Actualizar burbujas del jugador local
+    if (this.player) {
+      updateChatBubblePosition(this.player);
+    }
+
+    // Actualizar burbujas de otros jugadores
+    this.otherShips.getChildren().forEach(function (otherShip) {
+      if (otherShip.playerSprite) {
+        updateChatBubblePosition(otherShip.playerSprite);
+      }
     });
 
     // Calcular posición relativa del jugador al barco
@@ -871,6 +917,73 @@ class UIScene extends Phaser.Scene {
     this.mapTitle.setVisible(false);
     this.mapCoordinates.setVisible(false);
     this.mapCells.forEach(cell => cell.rect.setVisible(false));
+
+    // ===== CHAT INPUT =====
+    // Estado del chat
+    this.chatActive = false;
+    this.chatMessage = '';
+
+    // Fondo del input de chat
+    this.chatInputBg = this.add.rectangle(cameraX, cameraY - 100, 400, 30, 0x000000, 0.8);
+    this.chatInputBg.setScrollFactor(0);
+    this.chatInputBg.setDepth(2010);
+    this.chatInputBg.setVisible(false);
+
+    // Texto del input de chat
+    this.chatInputText = this.add.text(cameraX - 190, cameraY - 100, '', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    });
+    this.chatInputText.setScrollFactor(0);
+    this.chatInputText.setDepth(2011);
+    this.chatInputText.setOrigin(0, 0.5);
+    this.chatInputText.setVisible(false);
+
+    // Contador de caracteres
+    this.chatCounter = this.add.text(cameraX + 180, cameraY - 100, '0/50', {
+      fontSize: '11px',
+      fill: '#888888'
+    });
+    this.chatCounter.setScrollFactor(0);
+    this.chatCounter.setDepth(2011);
+    this.chatCounter.setOrigin(1, 0.5);
+    this.chatCounter.setVisible(false);
+
+    // Registrar teclas una sola vez
+    this.keyT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+    this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.keyBackspace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
+
+    // Capturar input de teclado para chat
+    this.input.keyboard.on('keydown', (event) => {
+      if (!this.chatActive) return;
+
+      const key = event.key;
+
+      // Borrar con Backspace
+      if (key === 'Backspace') {
+        this.chatMessage = this.chatMessage.slice(0, -1);
+      }
+      // Capturar caracteres imprimibles (longitud 1)
+      else if (key.length === 1 && this.chatMessage.length < 50) {
+        this.chatMessage += key;
+      }
+
+      // Actualizar el texto mostrado con ventana deslizante
+      const displayText = this.chatMessage.length > 30
+        ? '...' + this.chatMessage.substring(this.chatMessage.length - 27)
+        : this.chatMessage;
+      this.chatInputText.setText(displayText + '|');
+      this.chatCounter.setText(this.chatMessage.length + '/50');
+
+      // Cambiar color si se acerca al límite
+      if (this.chatMessage.length >= 90) {
+        this.chatCounter.setStyle({ fill: '#ff0000' });
+      } else {
+        this.chatCounter.setStyle({ fill: '#888888' });
+      }
+    });
   }
 
   update() {
@@ -994,6 +1107,65 @@ class UIScene extends Phaser.Scene {
         this.statusText.setStyle({ fill: '#ffff00' });
 
         this.steeringText.setVisible(false);
+      }
+    }
+
+    // ===== MANEJAR CHAT INPUT =====
+    // Usar referencias de teclas registradas en create
+    const keyT = this.keyT;
+    const keyEnter = this.keyEnter;
+    const keyEsc = this.keyEsc;
+    const keyBackspace = this.keyBackspace;
+
+    if (Phaser.Input.Keyboard.JustDown(keyT) && !this.chatActive) {
+      // Activar chat
+      this.chatActive = true;
+      this.chatMessage = '';
+      this.chatInputBg.setVisible(true);
+      this.chatInputText.setVisible(true);
+      this.chatCounter.setVisible(true);
+
+      // Limpiar el texto mostrado
+      this.chatInputText.setText('|');
+      this.chatCounter.setText('0/50');
+      this.chatCounter.setStyle({ fill: '#888888' });
+
+      // Desactivar controles del juego
+      if (this.mainScene) {
+        this.mainScene.chatMode = true;
+      }
+    }
+
+    if (this.chatActive) {
+      // Enviar mensaje con Enter
+      if (Phaser.Input.Keyboard.JustDown(keyEnter)) {
+        if (this.chatMessage.trim().length > 0) {
+          sendChatMessage(this.mainScene, this.chatMessage);
+        }
+        this.chatActive = false;
+        this.chatMessage = '';
+        this.chatInputBg.setVisible(false);
+        this.chatInputText.setVisible(false);
+        this.chatCounter.setVisible(false);
+
+        // Reactivar controles del juego
+        if (this.mainScene) {
+          this.mainScene.chatMode = false;
+        }
+      }
+
+      // Cancelar con Escape
+      if (Phaser.Input.Keyboard.JustDown(keyEsc)) {
+        this.chatActive = false;
+        this.chatMessage = '';
+        this.chatInputBg.setVisible(false);
+        this.chatInputText.setVisible(false);
+        this.chatCounter.setVisible(false);
+
+        // Reactivar controles del juego
+        if (this.mainScene) {
+          this.mainScene.chatMode = false;
+        }
       }
     }
   }

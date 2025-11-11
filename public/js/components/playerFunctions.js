@@ -38,52 +38,58 @@ function addOtherPlayer(self, playerInfo, ship) {
     return player;
 }
 
-function updatePlayer(self, player, ship, input, deltaTime) {
+function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
     const playerSpeed = 100;
 
     if (!player.isControllingShip) {
         // El jugador NO está en el timón - puede caminar
 
-        let playerVelX = 0;
-        let playerVelY = 0;
+        // Solo procesar input WASD si inputEnabled = true
+        if (inputEnabled) {
+            let playerVelX = 0;
+            let playerVelY = 0;
 
-        // Input WASD
-        if (input.keyW.isDown) playerVelY -= playerSpeed;
-        if (input.keyS.isDown) playerVelY += playerSpeed;
-        if (input.keyA.isDown) playerVelX -= playerSpeed;
-        if (input.keyD.isDown) playerVelX += playerSpeed;
+            // Input WASD
+            if (input.keyW.isDown) playerVelY -= playerSpeed;
+            if (input.keyS.isDown) playerVelY += playerSpeed;
+            if (input.keyA.isDown) playerVelX -= playerSpeed;
+            if (input.keyD.isDown) playerVelX += playerSpeed;
 
-        // Normalizar velocidad diagonal
-        if (playerVelX !== 0 && playerVelY !== 0) {
-            playerVelX *= 0.707;
-            playerVelY *= 0.707;
+            // Normalizar velocidad diagonal
+            if (playerVelX !== 0 && playerVelY !== 0) {
+                playerVelX *= 0.707;
+                playerVelY *= 0.707;
+            }
+
+            player.setVelocity(playerVelX, playerVelY);
+
+            const directionAngles = {
+                "W":  Math.PI,                  // Arriba
+                "S":  0,                        // Abajo
+                "A":  Math.PI / 2,              // Izquierda
+                "D": -Math.PI / 2,              // Derecha
+                "WA": (3 * Math.PI) / 4,        // Arriba-Izquierda
+                "WD": -(3 * Math.PI) / 4,       // Arriba-Derecha
+                "SA": Math.PI / 4,              // Abajo-Izquierda
+                "SD": -Math.PI / 4              // Abajo-Derecha
+            };
+
+            let combo = "";
+            if (input.keyW.isDown) combo += "W";
+            if (input.keyS.isDown) combo += "S";
+            if (input.keyA.isDown) combo += "A";
+            if (input.keyD.isDown) combo += "D";
+
+            const angle = directionAngles[combo];
+            if (angle !== undefined) {
+                player.setRotation(angle);
+            }
+        } else {
+            // Si input está deshabilitado, detener movimiento del jugador
+            player.setVelocity(0, 0);
         }
 
-        player.setVelocity(playerVelX, playerVelY);
-
-        const directionAngles = {
-            "W":  Math.PI,                  // Arriba
-            "S":  0,                        // Abajo
-            "A":  Math.PI / 2,              // Izquierda
-            "D": -Math.PI / 2,              // Derecha
-            "WA": (3 * Math.PI) / 4,        // Arriba-Izquierda
-            "WD": -(3 * Math.PI) / 4,       // Arriba-Derecha
-            "SA": Math.PI / 4,              // Abajo-Izquierda
-            "SD": -Math.PI / 4              // Abajo-Derecha
-        };
-
-        let combo = "";
-        if (input.keyW.isDown) combo += "W";
-        if (input.keyS.isDown) combo += "S";
-        if (input.keyA.isDown) combo += "A";
-        if (input.keyD.isDown) combo += "D";
-
-        const angle = directionAngles[combo];
-        if (angle !== undefined) {
-            player.setRotation(angle);
-        }
-
-        // IMPORTANTE: Heredar movimiento del barco
+        // IMPORTANTE: Heredar movimiento del barco (SIEMPRE ejecutar)
         // El jugador se mueve junto con el barco para mantener su posición relativa
         player.x += ship.body.velocity.x * deltaTime;
         player.y += ship.body.velocity.y * deltaTime;

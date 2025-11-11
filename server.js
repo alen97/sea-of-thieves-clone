@@ -163,6 +163,28 @@ io.on('connection', function (socket) {
     }
   });
 
+  // when a player sends a chat message
+  socket.on('chatMessage', function (messageData) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+
+    // Validar que el mensaje existe y no está vacío
+    if (!messageData.message || messageData.message.trim() === '') {
+      return;
+    }
+
+    // Limitar longitud del mensaje
+    const message = messageData.message.trim().substring(0, 50);
+
+    // Broadcast a todos los jugadores en el mismo room (incluyendo el emisor)
+    io.to(roomId).emit('playerSentMessage', {
+      playerId: socket.id,
+      message: message,
+      x: messageData.x,
+      y: messageData.y,
+      timestamp: Date.now()
+    });
+  });
+
   // when a player changes room
   socket.on('changeRoom', function (roomData) {
     const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
