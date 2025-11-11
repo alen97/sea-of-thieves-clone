@@ -57,7 +57,7 @@ function addOtherShip(self, shipInfo) {
 function updateShip(self, ship, isControlled, input) {
     // Variables globales de física del barco
     const constantSpeed = 100; // Velocidad constante del barco
-    const turnSpeed = 15; // Velocidad de giro (reducida para navegación más suave)
+    const turnSpeed = 5; // Velocidad de giro (reducida para navegación más suave)
     const maxSteeringDirection = 100;
     const steeringIncrement = 1;
 

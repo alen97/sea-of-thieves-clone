@@ -326,7 +326,7 @@ function create() {
 ////////////////////////////////////////// UPDATE
 
 // Configuración de parámetros
-const accelerationRateForward = 0.005;  // Tasa de aumento de aceleración al ir hacia adelante
+const accelerationRateForward = 0.001;  // Tasa de aumento de aceleración al ir hacia adelante
 const accelerationRateReverse = 0.01;   // Tasa de aumento de aceleración al ir en reversa
 
 const maxSpeedForward = 150;  // Velocidad máxima al ir hacia adelante
