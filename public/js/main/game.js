@@ -56,6 +56,14 @@ function preload() {
 
   this.load.audio('shoot', 'sounds/bow5.mp3');
 
+  // Anchor sounds
+  this.load.audio('anchorDrop', 'sounds/anchor-chain-drop.wav');
+  this.load.audio('anchorRise', 'sounds/anchor-chain-rising.mp3');
+
+  // Lantern sounds
+  this.load.audio('lanternLight', 'sounds/light-fire.wav');
+  this.load.audio('lanternExtinguish', 'sounds/extinguish-fire.wav');
+
   this.load.image('playerMuerto', 'assets/player_muerto.png');
 
   // Load player run animation atlas
@@ -602,6 +610,21 @@ function update(time, delta) {
       // Toggle local state
       this.lanternLit = !this.lanternLit;
 
+      // Play lantern sound with fade out
+      const lanternSound = this.sound.add(this.lanternLit ? 'lanternLight' : 'lanternExtinguish');
+      lanternSound.setVolume(0.3);
+      lanternSound.play();
+
+      // Fade out after 1 second (duration: 500ms)
+      this.time.delayedCall(1000, () => {
+        this.tweens.add({
+          targets: lanternSound,
+          volume: 0,
+          duration: 1000,
+          onComplete: () => lanternSound.stop()
+        });
+      });
+
       // Emit to server
       this.socket.emit('toggleLantern');
     }
@@ -677,6 +700,22 @@ function update(time, delta) {
     // Toggle ancla con E (solo si NO estás cerca del timón para evitar conflictos)
     if (inputEnabled && keyEJustPressed && canUseAnchor && !canUseHelm) {
       this.ship.isAnchored = !this.ship.isAnchored;
+
+      // Play anchor sound with fade out
+      const anchorSound = this.sound.add(this.ship.isAnchored ? 'anchorDrop' : 'anchorRise');
+      anchorSound.setVolume(0.2);
+      anchorSound.play();
+
+      // Fade out after 2 seconds (duration: 800ms)
+      this.time.delayedCall(2000, () => {
+        this.tweens.add({
+          targets: anchorSound,
+          volume: 0,
+          duration: 1400,
+          onComplete: () => anchorSound.stop()
+        });
+      });
+
       if (!this.ship.isAnchored) {
         const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
         this.ship.targetSpeed = currentSpeed;
