@@ -27,7 +27,7 @@ function createLantern(self, ship) {
   self.tweens.add({
     targets: lanternContainer,
     scale: { from: 1.0, to: 1.15 },
-    duration: 500,  // 0.8 seconds per pulse (adjust for faster/slower)
+    duration: 1000,
     yoyo: true,
     repeat: -1,
     ease: 'Sine.easeInOut'
