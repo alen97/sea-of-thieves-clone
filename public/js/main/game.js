@@ -1238,7 +1238,7 @@ class UIScene extends Phaser.Scene {
     const breathingAmount = 0.05; // 5% variation in size
     const breathingFactor = 1 + (Math.sin(this.breathingTime / breathingSpeed * Math.PI * 2) * breathingAmount);
 
-    const effectiveRadius = (worldRadius / mainZoom) * breathingFactor;
+    const effectiveRadius = worldRadius * breathingFactor;
 
     // Create a temporary Graphics object to draw circles
     const graphics = this.add.graphics();
