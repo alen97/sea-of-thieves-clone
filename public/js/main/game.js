@@ -1231,8 +1231,8 @@ class UIScene extends Phaser.Scene {
     // Calculate effective light radius based on darkness
     // Use world units (independent of camera zoom) and convert to screen pixels
     // Ship is 178px wide, so 350px world units covers ship + buffer nicely
-    const baseRadiusWorldUnits = 350; // World-space radius at night
-    const minRadiusWorldUnits = 300;  // World-space radius during day
+    const baseRadiusWorldUnits = 450; // World-space radius at night
+    const minRadiusWorldUnits = 400;  // World-space radius during day
     const worldRadius = minRadiusWorldUnits + (baseRadiusWorldUnits - minRadiusWorldUnits) * darknessFactor;
 
     // Convert world units to screen pixels based on camera zoom
