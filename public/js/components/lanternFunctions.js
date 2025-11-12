@@ -2,29 +2,33 @@
 // LANTERN FUNCTIONS
 // ========================================
 
-// Create the lantern visual (always visible, gradient circle)
-function createLantern(self, ship) {
-  const lanternContainer = self.add.container(ship.x, ship.y);
+// Helper function to draw lantern graphics based on lit state
+function drawLanternGraphics(graphics, isLit) {
+  graphics.clear();
 
-  const graphics = self.add.graphics();
+  if (isLit) {
+    // Three concentric circles (orange/yellow gradient) when lit
+    // Outer circle (darkest orange)
+    graphics.fillStyle(0xFF6600, 0.4);
+    graphics.fillCircle(0, 0, 12);
 
-  // Outer circle (darkest orange)
-  graphics.fillStyle(0xFF6600, 0.4);
-  graphics.fillCircle(0, 0, 12);
+    // Middle circle
+    graphics.fillStyle(0xFF8800, 0.7);
+    graphics.fillCircle(0, 0, 8);
 
-  // Middle circle
-  graphics.fillStyle(0xFF8800, 0.7);
-  graphics.fillCircle(0, 0, 8);
+    // Inner circle (brightest)
+    graphics.fillStyle(0xFFAA00, 1.0);
+    graphics.fillCircle(0, 0, 5);
+  } else {
+    // Single gray circle when unlit
+    graphics.fillStyle(0x666666, 0.8);
+    graphics.fillCircle(0, 0, 8);
+  }
+}
 
-  // Inner circle (brightest)
-  graphics.fillStyle(0xFFAA00, 1.0);
-  graphics.fillCircle(0, 0, 5);
-
-  lanternContainer.add(graphics);
-  lanternContainer.setDepth(2.3); // Above ship, below cannons
-
-  // Breathing effect - gentle pulsing animation
-  self.tweens.add({
+// Helper function to add breathing animation to lantern
+function addBreathingAnimation(scene, lanternContainer) {
+  scene.tweens.add({
     targets: lanternContainer,
     scale: { from: 1.0, to: 1.15 },
     duration: 1000,
@@ -32,8 +36,51 @@ function createLantern(self, ship) {
     repeat: -1,
     ease: 'Sine.easeInOut'
   });
+}
+
+// Create the lantern visual
+function createLantern(self, ship, isLit = false) {
+  const lanternContainer = self.add.container(ship.x, ship.y);
+
+  const graphics = self.add.graphics();
+
+  // Store references for later updates
+  lanternContainer.graphics = graphics;
+  lanternContainer.scene = self;
+
+  // Draw initial state
+  drawLanternGraphics(graphics, isLit);
+
+  lanternContainer.add(graphics);
+  lanternContainer.setDepth(2.3); // Above ship, below cannons
+
+  // Add breathing animation only if lit
+  if (isLit) {
+    addBreathingAnimation(self, lanternContainer);
+  }
 
   return lanternContainer;
+}
+
+// Update lantern visual when lit state changes
+function updateLanternVisual(lantern, isLit) {
+  if (!lantern || !lantern.graphics) return;
+
+  // Update graphics
+  drawLanternGraphics(lantern.graphics, isLit);
+
+  // Remove existing tweens (breathing animation)
+  if (lantern.scene && lantern.scene.tweens) {
+    lantern.scene.tweens.killTweensOf(lantern);
+  }
+
+  // Reset scale
+  lantern.setScale(1.0);
+
+  // Add breathing animation only if lit
+  if (isLit && lantern.scene) {
+    addBreathingAnimation(lantern.scene, lantern);
+  }
 }
 
 // Note: Light effect is now handled by the bitmap mask system in UIScene

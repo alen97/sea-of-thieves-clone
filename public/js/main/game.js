@@ -180,8 +180,8 @@ function create() {
           updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
 
           // Create lantern at ship center
-          self.lantern = createLantern(self, self.ship);
           self.lanternLit = false; // Track if lantern is lit (initially off)
+          self.lantern = createLantern(self, self.ship, self.lanternLit);
 
           // Initialize steering variable
           self.steeringDirection = 0;
@@ -211,8 +211,8 @@ function create() {
         updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
 
         // Create lantern for other ships
-        otherShip.lantern = createLantern(self, otherShip);
         otherShip.lanternLit = players[id].ship.lanternLit || false;
+        otherShip.lantern = createLantern(self, otherShip, otherShip.lanternLit);
 
         self.otherShips.add(otherShip);
       }
@@ -247,8 +247,8 @@ function create() {
     updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
 
     // Create lantern for the new ship
-    otherShip.lantern = createLantern(self, otherShip);
     otherShip.lanternLit = playerInfo.ship.lanternLit || false;
+    otherShip.lantern = createLantern(self, otherShip, otherShip.lanternLit);
 
     self.otherShips.add(otherShip);
   });
@@ -473,6 +473,8 @@ function create() {
     self.otherShips.getChildren().forEach(function (otherShip) {
       if (otherShip.playerId === data.playerId) {
         otherShip.lanternLit = data.lanternLit;
+        // Update the visual state
+        updateLanternVisual(otherShip.lantern, otherShip.lanternLit);
       }
     });
   });
@@ -609,6 +611,9 @@ function update(time, delta) {
     if (inputEnabled && keyEJustPressed && canUseLantern && !this.player.isControllingShip) {
       // Toggle local state
       this.lanternLit = !this.lanternLit;
+
+      // Update lantern visual
+      updateLanternVisual(this.lantern, this.lanternLit);
 
       // Play lantern sound with fade out
       const lanternSound = this.sound.add(this.lanternLit ? 'lanternLight' : 'lanternExtinguish');
