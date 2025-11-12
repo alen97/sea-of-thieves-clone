@@ -6,7 +6,10 @@
       "WebFetch(domain:photonstorm.github.io)",
       "WebFetch(domain:newdocs.phaser.io)",
       "WebFetch(domain:blog.ourcade.co)",
-      "WebFetch(domain:phaser.io)"
+      "WebFetch(domain:phaser.io)",
+      "WebFetch(domain:stevenklambert.com)",
+      "WebFetch(domain:phaser.discourse.group)",
+      "WebFetch(domain:rexrainbow.github.io)"
     ],
     "deny": [],
     "ask": []

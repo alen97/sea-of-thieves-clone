@@ -3,7 +3,7 @@
 function addBullet(self, creationData) {
   console.log("CREATE BULLET!");
 
-  const bullet = self.physics.add.sprite(creationData.x, creationData.y, 'bullet').setOrigin(0.5, 0.5).setDisplaySize(8, 8);
+  const bullet = self.physics.add.sprite(creationData.x, creationData.y, 'bullet').setOrigin(0.5, 0.5).setDisplaySize(12, 12);
   const shoot = self.sound.add('shoot');
 
   // LOGICA DE VOLUMEN DEPENDIENDO DISTANCIA

@@ -54,7 +54,7 @@ function preload() {
   this.load.image('bullet', 'assets/bullet.png');
   this.load.image('cannon', 'assets/cannon.png');
 
-  this.load.audio('shoot', ['sounds/bow5.ogg', 'sounds/bow5.mp3']);
+  this.load.audio('shoot', 'sounds/bow5.mp3');
 
   this.load.image('playerMuerto', 'assets/player_muerto.png');
 
@@ -526,7 +526,8 @@ function update(time, delta) {
       keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
       keyPlus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
       keyMinus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS),
-      keyM: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M)
+      keyM: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M),
+      keySpace: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
     };
 
     // Guardar estado de JustDown para E (solo se puede llamar una vez por frame)
@@ -758,7 +759,7 @@ function update(time, delta) {
       updateCannonRotation(currentCannon, input.keyA, input.keyD, delta);
 
       // Disparar con W
-      if (Phaser.Input.Keyboard.JustDown(input.keyW)) {
+      if (Phaser.Input.Keyboard.JustDown(input.keySpace)) {
         if (canShootLeft && this.player.cannonSide === 'left') {
           fireCannonball(this, currentCannon, this.ship, this.socket);
           canShootLeft = false;
@@ -819,18 +820,22 @@ function update(time, delta) {
 
       // Add own ship's lantern if lit
       if (this.lanternLit && this.ship) {
-        // Convert world coordinates to camera coordinates
-        const camX = this.ship.x - this.cameras.main.scrollX;
-        const camY = this.ship.y - this.cameras.main.scrollY;
+        // Convert world coordinates to screen coordinates (account for zoom origin at camera center)
+        const zoom = this.cameras.main.zoom;
+        const cam = this.cameras.main;
+        const camX = (this.ship.x - cam.scrollX) * zoom + cam.width / 2 * (1 - zoom);
+        const camY = (this.ship.y - cam.scrollY) * zoom + cam.height / 2 * (1 - zoom);
         lanternPositions.push({ x: camX, y: camY });
       }
 
       // Add other ships' lanterns if lit
       const self = this;
+      const zoom = this.cameras.main.zoom;
+      const cam = this.cameras.main;
       this.otherShips.getChildren().forEach(function (otherShip) {
         if (otherShip.lanternLit) {
-          const camX = otherShip.x - self.cameras.main.scrollX;
-          const camY = otherShip.y - self.cameras.main.scrollY;
+          const camX = (otherShip.x - cam.scrollX) * zoom + cam.width / 2 * (1 - zoom);
+          const camY = (otherShip.y - cam.scrollY) * zoom + cam.height / 2 * (1 - zoom);
           lanternPositions.push({ x: camX, y: camY });
         }
       });
@@ -1238,7 +1243,7 @@ class UIScene extends Phaser.Scene {
     const breathingAmount = 0.05; // 5% variation in size
     const breathingFactor = 1 + (Math.sin(this.breathingTime / breathingSpeed * Math.PI * 2) * breathingAmount);
 
-    const effectiveRadius = worldRadius * breathingFactor;
+    const effectiveRadius = (worldRadius * breathingFactor) * mainZoom;
 
     // Create a temporary Graphics object to draw circles
     const graphics = this.add.graphics();
@@ -1248,7 +1253,7 @@ class UIScene extends Phaser.Scene {
       graphics.fillStyle(0xffffff, 1.0);
       // Scale day radius by zoom to maintain world-space coverage
       const dayRadiusWorld = 5000;
-      const dayRadius = dayRadiusWorld / mainZoom;
+      const dayRadius = dayRadiusWorld * mainZoom;
       graphics.fillCircle(
         this.mainScene.cameras.main.width / 2,
         this.mainScene.cameras.main.height / 2,
@@ -1269,7 +1274,7 @@ class UIScene extends Phaser.Scene {
       // Blur effect - draw concentric circles with decreasing alpha
       const blurSteps = 4;
       const blurWidthWorld = 60; // Total blur width in world units
-      const blurWidth = blurWidthWorld / mainZoom; // Convert to screen pixels
+      const blurWidth = blurWidthWorld * mainZoom; // Convert to screen pixels
       for (let i = 1; i <= blurSteps; i++) {
         const alpha = 1.0 - (i / blurSteps);
         const radius = effectiveRadius + (blurWidth * i / blurSteps);
