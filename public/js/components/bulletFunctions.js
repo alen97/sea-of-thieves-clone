@@ -15,9 +15,9 @@ function addBullet(self, creationData) {
 
   const maxDistance = 800;
   const volume = calculateVolume(distance, maxDistance);
-  console.log("SHOT VOLUME: ", 0.4 * volume);
+  console.log("SHOT VOLUME: ", 2 * volume);
 
-  shoot.setVolume(0.4 * volume);
+  shoot.setVolume(2 * volume);
   shoot.play();
 
   bullet.shooterId = creationData.shooterId;
