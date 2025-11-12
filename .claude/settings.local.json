@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:docs.phaser.io)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:photonstorm.github.io)",
+      "WebFetch(domain:newdocs.phaser.io)",
+      "WebFetch(domain:blog.ourcade.co)",
+      "WebFetch(domain:phaser.io)"
     ],
     "deny": [],
     "ask": []

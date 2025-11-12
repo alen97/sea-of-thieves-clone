@@ -74,6 +74,7 @@ io.on('connection', function (socket) {
       velocityY: 0,
       health: 100,
       damages: [],
+      lanternLit: false,
       cannons: {
         leftAngle: 0,
         rightAngle: 0
@@ -215,6 +216,23 @@ io.on('connection', function (socket) {
       y: messageData.y,
       timestamp: Date.now()
     });
+  });
+
+  // when a player toggles the lantern
+  socket.on('toggleLantern', function () {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id]) {
+      // Toggle lantern state
+      room.players[socket.id].ship.lanternLit = !room.players[socket.id].ship.lanternLit;
+
+      // Broadcast new state to all players in room
+      io.to(roomId).emit('lanternToggled', {
+        playerId: socket.id,
+        lanternLit: room.players[socket.id].ship.lanternLit
+      });
+    }
   });
 
   // when a player changes room

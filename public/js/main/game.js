@@ -171,6 +171,10 @@ function create() {
           updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
           updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
 
+          // Create lantern at ship center
+          self.lantern = createLantern(self, self.ship);
+          self.lanternLit = false; // Track if lantern is lit (initially off)
+
           // Initialize steering variable
           self.steeringDirection = 0;
         } else {
@@ -197,6 +201,10 @@ function create() {
         otherShip.cannons = createCannons(self, otherShip);
         updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
         updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
+
+        // Create lantern for other ships
+        otherShip.lantern = createLantern(self, otherShip);
+        otherShip.lanternLit = players[id].ship.lanternLit || false;
 
         self.otherShips.add(otherShip);
       }
@@ -229,6 +237,10 @@ function create() {
     otherShip.cannons = createCannons(self, otherShip);
     updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
     updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
+
+    // Create lantern for the new ship
+    otherShip.lantern = createLantern(self, otherShip);
+    otherShip.lanternLit = playerInfo.ship.lanternLit || false;
 
     self.otherShips.add(otherShip);
   });
@@ -298,6 +310,11 @@ function create() {
           otherShip.cannons.right.relativeAngle = playerInfo.ship.cannons.rightAngle || 0;
           updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
           updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
+        }
+
+        // Actualizar farol
+        if (otherShip.lantern) {
+          updateLanternPosition(otherShip.lantern, otherShip);
         }
 
         // Actualizar roturas
@@ -437,6 +454,21 @@ function create() {
     };
   });
 
+  // Listen for lantern toggle from other players
+  this.socket.on('lanternToggled', function (data) {
+    if (data.playerId === self.socket.id) {
+      // My own lantern - already toggled locally
+      return;
+    }
+
+    // Find the other ship and toggle its lantern
+    self.otherShips.getChildren().forEach(function (otherShip) {
+      if (otherShip.playerId === data.playerId) {
+        otherShip.lanternLit = data.lanternLit;
+      }
+    });
+  });
+
 }
 
 ////////////////////////////////////////// UPDATE
@@ -536,6 +568,41 @@ function update(time, delta) {
     if (this.currentZoom !== this.targetZoom) {
       this.currentZoom = Phaser.Math.Linear(this.currentZoom, this.targetZoom, 0.1);
       this.cameras.main.setZoom(this.currentZoom);
+    }
+
+    // ===== SISTEMA DE FAROL =====
+    // Update lantern position to follow ship
+    updateLanternPosition(this.lantern, this.ship);
+
+    // Check if player is near lantern (center of ship)
+    const canUseLantern = isNearLantern(this.player, this.ship);
+
+    // Lantern indicator
+    if (!this.lanternIndicator) {
+      this.lanternIndicator = this.add.text(0, 0, '', {
+        fontSize: '12px',
+        fill: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 5, y: 3 }
+      }).setDepth(10).setOrigin(0.5);
+    }
+
+    if (canUseLantern && !this.player.isControllingShip) {
+      const lanternText = this.lanternLit ? 'Presiona E para apagar farol' : 'Presiona E para prender farol';
+      this.lanternIndicator.setText(lanternText);
+      this.lanternIndicator.setPosition(this.ship.x, this.ship.y - 30);
+      this.lanternIndicator.setVisible(true);
+    } else {
+      this.lanternIndicator.setVisible(false);
+    }
+
+    // Toggle lantern with E
+    if (inputEnabled && keyEJustPressed && canUseLantern && !this.player.isControllingShip) {
+      // Toggle local state
+      this.lanternLit = !this.lanternLit;
+
+      // Emit to server
+      this.socket.emit('toggleLantern');
     }
 
     // ===== SISTEMA DE TIMÓN =====
@@ -728,6 +795,53 @@ function update(time, delta) {
       updateShipWakeEmitters(otherShip);
     });
 
+    // ===== UPDATE LIGHT MASK =====
+    // Calculate darkness factor based on time of day
+    if (this.gameTime) {
+      const timeRatio = this.gameTime.timeRatio;
+      let darknessFactor;
+      if (timeRatio < 0.25) {
+        // Deep night (0.0-0.25)
+        darknessFactor = 1.0 - (timeRatio / 0.25) * 0.3; // 1.0 → 0.7
+      } else if (timeRatio < 0.5) {
+        // Sunrise to noon (0.25-0.5)
+        darknessFactor = 0.7 - ((timeRatio - 0.25) / 0.25) * 0.7; // 0.7 → 0.0
+      } else if (timeRatio < 0.75) {
+        // Noon to sunset (0.5-0.75)
+        darknessFactor = ((timeRatio - 0.5) / 0.25) * 0.5; // 0.0 → 0.5
+      } else {
+        // Sunset to night (0.75-1.0)
+        darknessFactor = 0.5 + ((timeRatio - 0.75) / 0.25) * 0.5; // 0.5 → 1.0
+      }
+
+      // Collect positions of all lit lanterns
+      const lanternPositions = [];
+
+      // Add own ship's lantern if lit
+      if (this.lanternLit && this.ship) {
+        // Convert world coordinates to camera coordinates
+        const camX = this.ship.x - this.cameras.main.scrollX;
+        const camY = this.ship.y - this.cameras.main.scrollY;
+        lanternPositions.push({ x: camX, y: camY });
+      }
+
+      // Add other ships' lanterns if lit
+      const self = this;
+      this.otherShips.getChildren().forEach(function (otherShip) {
+        if (otherShip.lanternLit) {
+          const camX = otherShip.x - self.cameras.main.scrollX;
+          const camY = otherShip.y - self.cameras.main.scrollY;
+          lanternPositions.push({ x: camX, y: camY });
+        }
+      });
+
+      // Update the light mask in UIScene
+      const uiScene = this.scene.get('UIScene');
+      if (uiScene && uiScene.updateLightMask) {
+        uiScene.updateLightMask(lanternPositions, darknessFactor);
+      }
+    }
+
     // ===== ACTUALIZAR POSICIONES DE BURBUJAS DE CHAT =====
     // Actualizar burbujas del jugador local
     if (this.player) {
@@ -878,6 +992,9 @@ class UIScene extends Phaser.Scene {
     // Obtén una referencia a la escena principal (MainScene)
     this.mainScene = this.scene.get('MainScene');
 
+    // Track time for light breathing effect
+    this.breathingTime = 0;
+
     // Obtén las coordenadas de la cámara del jugador
     const cameraX = this.mainScene.cameras.main.width / 2;
     const cameraY = this.mainScene.cameras.main.height / 2;
@@ -891,11 +1008,23 @@ class UIScene extends Phaser.Scene {
       cameraY,
       screenWidth,
       screenHeight,
-      0xffffff,
+      0x0a0a1e, // Dark blue/purple night color
       0
     );
     this.dayNightOverlay.setScrollFactor(0);
-    this.dayNightOverlay.setDepth(50); // Above game world, below UI elements
+    this.dayNightOverlay.setDepth(1);
+
+    // Light mask - RenderTexture that will define where light reveals the scene
+    // This will be used as a bitmap mask on the overlay
+    this.lightMask = this.add.renderTexture(0, 0, screenWidth, screenHeight);
+    this.lightMask.setScrollFactor(0); // Keep in screen/camera coordinates
+    this.lightMask.setVisible(false); // Hide the RenderTexture itself (only use as mask source)
+
+    // Apply bitmap mask to the overlay
+    // Where the mask is drawn white (light sources), the overlay will be hidden
+    const bitmapMask = this.lightMask.createBitmapMask();
+    bitmapMask.invertAlpha = true; // Invert: white in mask = transparent in overlay
+    this.dayNightOverlay.setMask(bitmapMask);
 
     // Barra de salud del barco (parte superior central)
     this.healthBarBg = this.add.rectangle(cameraX, 30, 204, 24, 0x000000)
@@ -1087,7 +1216,79 @@ class UIScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  // Update the light mask to draw circles where lanterns illuminate
+  updateLightMask(lanternPositions, darknessFactor) {
+    if (!this.lightMask) return;
+
+    // Clear previous mask (fills with transparent black)
+    this.lightMask.clear();
+
+    // Calculate effective light radius based on darkness
+    // Use world units (independent of camera zoom) and convert to screen pixels
+    // Ship is 178px wide, so 350px world units covers ship + buffer nicely
+    const baseRadiusWorldUnits = 350; // World-space radius at night
+    const minRadiusWorldUnits = 300;  // World-space radius during day
+    const worldRadius = minRadiusWorldUnits + (baseRadiusWorldUnits - minRadiusWorldUnits) * darknessFactor;
+
+    // Convert world units to screen pixels based on camera zoom
+    const mainZoom = this.mainScene.cameras.main.zoom;
+
+    // Add breathing oscillation (pulsing effect)
+    const breathingSpeed = 2000; // Milliseconds per cycle (lower = faster)
+    const breathingAmount = 0.05; // 5% variation in size
+    const breathingFactor = 1 + (Math.sin(this.breathingTime / breathingSpeed * Math.PI * 2) * breathingAmount);
+
+    const effectiveRadius = (worldRadius / mainZoom) * breathingFactor;
+
+    // Create a temporary Graphics object to draw circles
+    const graphics = this.add.graphics();
+
+    // If it's very bright (low darkness), draw a huge circle to reveal almost everything
+    if (darknessFactor < 0.1) {
+      graphics.fillStyle(0xffffff, 1.0);
+      // Scale day radius by zoom to maintain world-space coverage
+      const dayRadiusWorld = 5000;
+      const dayRadius = dayRadiusWorld / mainZoom;
+      graphics.fillCircle(
+        this.mainScene.cameras.main.width / 2,
+        this.mainScene.cameras.main.height / 2,
+        dayRadius
+      );
+      // Draw the graphics onto the RenderTexture
+      this.lightMask.draw(graphics, 0, 0);
+      graphics.destroy();
+      return;
+    }
+
+    // Draw light circles for each lantern
+    lanternPositions.forEach(pos => {
+      // Core light circle (sharp edge)
+      graphics.fillStyle(0xffffff, 1.0);
+      graphics.fillCircle(pos.x, pos.y, effectiveRadius);
+
+      // Blur effect - draw concentric circles with decreasing alpha
+      const blurSteps = 4;
+      const blurWidthWorld = 60; // Total blur width in world units
+      const blurWidth = blurWidthWorld / mainZoom; // Convert to screen pixels
+      for (let i = 1; i <= blurSteps; i++) {
+        const alpha = 1.0 - (i / blurSteps);
+        const radius = effectiveRadius + (blurWidth * i / blurSteps);
+        graphics.fillStyle(0xffffff, alpha);
+        graphics.fillCircle(pos.x, pos.y, radius);
+      }
+    });
+
+    // Draw the graphics onto the RenderTexture
+    this.lightMask.draw(graphics, 0, 0);
+
+    // Destroy the temporary graphics object
+    graphics.destroy();
+  }
+
+  update(time, delta) {
+    // Update breathing time for light pulsing effect
+    this.breathingTime += delta;
+
     // ===== ACTUALIZAR DÍA/NOCHE =====
     if (this.mainScene.gameTime && this.dayNightOverlay) {
       const timeRatio = this.mainScene.gameTime.timeRatio;
