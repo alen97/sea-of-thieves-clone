@@ -8,7 +8,7 @@ var rooms = {};
 
 // Day/Night cycle - Server authoritative time
 var gameWorld = {
-  cycleLength: 30 * 60 * 1000, // 30 minutes for full day/night cycle
+  cycleLength: 60 * 60 * 1000, // 60 minutes for full day/night cycle
   gameStartTime: Date.now(),
   currentTime: 0, // Will be calculated
   timeRatio: 0.5 // Start at noon (0.5 = 12:00 PM)
