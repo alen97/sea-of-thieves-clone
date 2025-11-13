@@ -847,16 +847,16 @@ function update(time, delta) {
       let darknessFactor;
       if (timeRatio < 0.25) {
         // Deep night (0.0-0.25)
-        darknessFactor = 1.0 - (timeRatio / 0.25) * 0.3; // 1.0 → 0.7
+        darknessFactor = 1.0 - (timeRatio / 0.25) * 0.1; // 1.0 → 0.9
       } else if (timeRatio < 0.5) {
         // Sunrise to noon (0.25-0.5)
-        darknessFactor = 0.7 - ((timeRatio - 0.25) / 0.25) * 0.7; // 0.7 → 0.0
+        darknessFactor = 0.9 - ((timeRatio - 0.25) / 0.25) * 0.9; // 0.9 → 0.0
       } else if (timeRatio < 0.75) {
         // Noon to sunset (0.5-0.75)
         darknessFactor = ((timeRatio - 0.5) / 0.25) * 0.5; // 0.0 → 0.5
       } else {
         // Sunset to night (0.75-1.0)
-        darknessFactor = 0.5 + ((timeRatio - 0.75) / 0.25) * 0.5; // 0.5 → 1.0
+        darknessFactor = 0.5 + ((timeRatio - 0.75) / 0.25) * 0.45; // 0.5 → 0.95
       }
 
       // Collect positions of all lit lanterns
@@ -1057,7 +1057,7 @@ class UIScene extends Phaser.Scene {
       cameraY,
       screenWidth,
       screenHeight,
-      0x0a0a1e, // Dark blue/purple night color
+      0x050510, // Very dark blue/purple night color
       0
     );
     this.dayNightOverlay.setScrollFactor(0);
@@ -1349,8 +1349,8 @@ class UIScene extends Phaser.Scene {
       if (timeRatio < 0.25) {
         // Night to Sunrise (0.0 - 0.25)
         const t = timeRatio / 0.25; // 0 to 1
-        color = this.interpolateColor(0x0a0a1e, 0xFFCC88, t);
-        alpha = 0.9 - (t * 0.6); // 0.9 to 0.3
+        color = this.interpolateColor(0x050510, 0xFFCC88, t);
+        alpha = 0.95 - (t * 0.65); // 0.95 to 0.3
       } else if (timeRatio < 0.5) {
         // Sunrise to Noon (0.25 - 0.5)
         const t = (timeRatio - 0.25) / 0.25; // 0 to 1
@@ -1364,8 +1364,8 @@ class UIScene extends Phaser.Scene {
       } else {
         // Sunset to Night (0.75 - 1.0)
         const t = (timeRatio - 0.75) / 0.25; // 0 to 1
-        color = this.interpolateColor(0xFF8844, 0x0a0a1e, t);
-        alpha = 0.35 + (t * 0.55); // 0.35 to 0.9
+        color = this.interpolateColor(0xFF8844, 0x050510, t);
+        alpha = 0.35 + (t * 0.6); // 0.35 to 0.95
       }
 
       this.dayNightOverlay.setFillStyle(color, alpha);
