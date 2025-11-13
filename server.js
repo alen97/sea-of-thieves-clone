@@ -37,6 +37,54 @@ function getOrCreateRoom(roomX, roomY) {
   return rooms[roomId];
 }
 
+// Get all adjacent rooms (3x3 grid: current room + 8 neighbors)
+function getAdjacentRooms(roomX, roomY) {
+  const adjacentRooms = [];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      adjacentRooms.push({
+        roomX: roomX + dx,
+        roomY: roomY + dy,
+        roomId: getRoomId(roomX + dx, roomY + dy)
+      });
+    }
+  }
+  return adjacentRooms;
+}
+
+// Join socket to all adjacent rooms for awareness
+function joinAdjacentRooms(socket, roomX, roomY) {
+  const adjacentRooms = getAdjacentRooms(roomX, roomY);
+  adjacentRooms.forEach(room => {
+    socket.join(room.roomId);
+  });
+}
+
+// Leave all adjacent rooms
+function leaveAdjacentRooms(socket, roomX, roomY) {
+  const adjacentRooms = getAdjacentRooms(roomX, roomY);
+  adjacentRooms.forEach(room => {
+    socket.leave(room.roomId);
+  });
+}
+
+// Get all players in adjacent rooms for seamless rendering
+function getPlayersInAdjacentRooms(roomX, roomY) {
+  const adjacentRooms = getAdjacentRooms(roomX, roomY);
+  const allPlayers = {};
+
+  adjacentRooms.forEach(room => {
+    const roomData = rooms[room.roomId];
+    if (roomData && roomData.players) {
+      Object.values(roomData.players).forEach(player => {
+        allPlayers[player.playerId] = player;
+      });
+    }
+  });
+
+  return allPlayers;
+}
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function (req, res) {
@@ -52,8 +100,8 @@ io.on('connection', function (socket) {
   const roomId = getRoomId(initialRoomX, initialRoomY);
   const room = getOrCreateRoom(initialRoomX, initialRoomY);
 
-  // Join the socket.io room
-  socket.join(roomId);
+  // Join the socket.io room and all adjacent rooms for seamless experience
+  joinAdjacentRooms(socket, initialRoomX, initialRoomY);
 
   // Store room info in socket
   socket.currentRoomX = initialRoomX;
@@ -90,8 +138,9 @@ io.on('connection', function (socket) {
     }
   };
 
-  // Send only players in the same room to the new player
-  socket.emit('currentPlayers', room.players);
+  // Send players in adjacent rooms for seamless experience
+  const adjacentPlayers = getPlayersInAdjacentRooms(initialRoomX, initialRoomY);
+  socket.emit('currentPlayers', adjacentPlayers);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
 
   // Update other players in the same room about the new player
@@ -251,8 +300,8 @@ io.on('connection', function (socket) {
       // Notify old room players that this player left
       socket.to(oldRoomId).emit('disconnect', socket.id);
 
-      // Leave old socket.io room
-      socket.leave(oldRoomId);
+      // Leave old socket.io room and all adjacent rooms
+      leaveAdjacentRooms(socket, socket.currentRoomX, socket.currentRoomY);
 
       // Update player's room coordinates
       socket.currentRoomX = roomData.roomX;
@@ -268,11 +317,12 @@ io.on('connection', function (socket) {
       const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
       newRoom.players[socket.id] = playerData;
 
-      // Join new socket.io room
-      socket.join(newRoomId);
+      // Join new socket.io room and all adjacent rooms
+      joinAdjacentRooms(socket, roomData.roomX, roomData.roomY);
 
-      // Send current players in new room to the player
-      socket.emit('currentPlayers', newRoom.players);
+      // Send players in adjacent rooms for seamless experience
+      const adjacentPlayers = getPlayersInAdjacentRooms(roomData.roomX, roomData.roomY);
+      socket.emit('currentPlayers', adjacentPlayers);
       socket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
 
       // Notify new room players about this player

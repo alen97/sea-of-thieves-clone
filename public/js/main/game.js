@@ -12,6 +12,28 @@ const ZOOM_STEP = 0.5;
 const SCREEN_WIDTH = WORLD_WIDTH;
 const SCREEN_HEIGHT = WORLD_HEIGHT;
 
+// Maximum distance to render players from adjacent rooms (in pixels)
+const MAX_RENDER_DISTANCE = 2000;
+
+// Helper function to calculate adjusted coordinates for cross-room rendering
+function getAdjustedCoordinates(playerInfo, myRoomX, myRoomY) {
+  const roomDiffX = playerInfo.roomX - myRoomX;
+  const roomDiffY = playerInfo.roomY - myRoomY;
+
+  return {
+    x: playerInfo.ship.x + (roomDiffX * WORLD_WIDTH),
+    y: playerInfo.ship.y + (roomDiffY * WORLD_HEIGHT),
+    offsetX: roomDiffX * WORLD_WIDTH,
+    offsetY: roomDiffY * WORLD_HEIGHT
+  };
+}
+
+// Helper function to check if player should be rendered based on distance
+function shouldRenderPlayer(adjustedX, adjustedY, myX, myY) {
+  const distance = Phaser.Math.Distance.Between(myX, myY, adjustedX, adjustedY);
+  return distance <= MAX_RENDER_DISTANCE;
+}
+
 var config = {
   type: Phaser.AUTO,
   scale: {
@@ -99,8 +121,10 @@ function create() {
   oceanGraphics.generateTexture('oceanTile', 16, 16);
   oceanGraphics.destroy();
 
-  // Crear TileSprite para el fondo del océano
-  this.oceanBackground = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'oceanTile');
+  // Crear TileSprite para el fondo del océano (3x3 rooms para seamless experience)
+  // Fixed position since room coordinates are local (0-3200 in each room)
+  const OCEAN_SIZE = WORLD_WIDTH * 3; // 9600x9600 to cover 9 rooms
+  this.oceanBackground = this.add.tileSprite(-WORLD_WIDTH, -WORLD_HEIGHT, OCEAN_SIZE, OCEAN_SIZE, 'oceanTile');
   this.oceanBackground.setOrigin(0, 0);
   this.oceanBackground.setDepth(-1);
 
@@ -196,8 +220,27 @@ function create() {
         }
       } else {
         // Create ships and players of others
-        const otherShip = addOtherShip(self, players[id].ship);
+        // Calculate adjusted coordinates for cross-room rendering
+        const adjusted = getAdjustedCoordinates(players[id], self.currentRoomX, self.currentRoomY);
+
+        // Only render if within distance threshold
+        if (self.ship && !shouldRenderPlayer(adjusted.x, adjusted.y, self.ship.x, self.ship.y)) {
+          return; // Skip rendering this player (too far)
+        }
+
+        // Create ship with adjusted coordinates
+        const adjustedShipData = {
+          ...players[id].ship,
+          x: adjusted.x,
+          y: adjusted.y
+        };
+
+        const otherShip = addOtherShip(self, adjustedShipData);
         otherShip.playerId = players[id].playerId;
+        otherShip.roomX = players[id].roomX; // Store room coordinates
+        otherShip.roomY = players[id].roomY;
+        otherShip.roomOffsetX = adjusted.offsetX;
+        otherShip.roomOffsetY = adjusted.offsetY;
 
         const otherPlayer = addOtherPlayer(self, players[id].player, otherShip);
         otherShip.playerSprite = otherPlayer;
@@ -220,8 +263,27 @@ function create() {
   });
 
   this.socket.on('newPlayer', function (playerInfo) {
-    const otherShip = addOtherShip(self, playerInfo.ship);
+    // Calculate adjusted coordinates for cross-room rendering
+    const adjusted = getAdjustedCoordinates(playerInfo, self.currentRoomX, self.currentRoomY);
+
+    // Only render if within distance threshold
+    if (self.ship && !shouldRenderPlayer(adjusted.x, adjusted.y, self.ship.x, self.ship.y)) {
+      return; // Skip rendering this player (too far)
+    }
+
+    // Create ship with adjusted coordinates
+    const adjustedShipData = {
+      ...playerInfo.ship,
+      x: adjusted.x,
+      y: adjusted.y
+    };
+
+    const otherShip = addOtherShip(self, adjustedShipData);
     otherShip.playerId = playerInfo.playerId;
+    otherShip.roomX = playerInfo.roomX; // Store room coordinates
+    otherShip.roomY = playerInfo.roomY;
+    otherShip.roomOffsetX = adjusted.offsetX;
+    otherShip.roomOffsetY = adjusted.offsetY;
 
     const otherPlayer = addOtherPlayer(self, playerInfo.player, otherShip);
     otherShip.playerSprite = otherPlayer;
@@ -271,9 +333,24 @@ function create() {
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherShips.getChildren().forEach(function (otherShip) {
       if (playerInfo.playerId === otherShip.playerId) {
+        // Apply room offset for cross-room rendering
+        const adjustedX = playerInfo.ship.x + (otherShip.roomOffsetX || 0);
+        const adjustedY = playerInfo.ship.y + (otherShip.roomOffsetY || 0);
+
+        // Check if player is still within render distance
+        if (self.ship && !shouldRenderPlayer(adjustedX, adjustedY, self.ship.x, self.ship.y)) {
+          // Player moved too far, remove from rendering
+          if (otherShip.playerSprite) {
+            otherShip.playerSprite.destroy();
+          }
+          removeShipWakeEmitters(otherShip);
+          otherShip.destroy();
+          return;
+        }
+
         // Actualizar barco
         otherShip.setRotation(playerInfo.ship.rotation);
-        otherShip.setPosition(playerInfo.ship.x, playerInfo.ship.y);
+        otherShip.setPosition(adjustedX, adjustedY);
 
         // Calcular y guardar currentSpeed para el sistema de partículas
         const velocityX = playerInfo.ship.velocityX || 0;
@@ -286,8 +363,8 @@ function create() {
         // Actualizar jugador
         if (otherShip.playerSprite) {
           otherShip.playerSprite.setPosition(
-            playerInfo.ship.x + playerInfo.player.x,
-            playerInfo.ship.y + playerInfo.player.y
+            adjustedX + playerInfo.player.x,
+            adjustedY + playerInfo.player.y
           );
           otherShip.playerSprite.setRotation(playerInfo.player.rotation);
 
