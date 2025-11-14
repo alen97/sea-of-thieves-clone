@@ -20,27 +20,26 @@ function addBullet(self, creationData) {
   shoot.setVolume(2 * volume);
   shoot.play();
 
+  // Efecto de cámara (sacudida)
+  self.cameras.main.shake(100, 0.003);
+
   bullet.shooterId = creationData.shooterId;
   self.otherBullets.add(bullet);
   bullet.setRotation(creationData.rotation);
 
-  // Ajustar la dirección del disparo basado en la dirección de rotación del barco
-  let angleOffset = 0;
-
-  if (creationData.direction === 'right') {
-    angleOffset = 0;  // 0 grados (derecha)
-  } else if (creationData.direction === 'left') {
-    angleOffset = Math.PI;  // 180 grados (izquierda)
-  }
-
-  const bulletAngle = creationData.rotation + angleOffset;
-  const targetX = bullet.x + Math.cos(bulletAngle) * 10000;
-  const targetY = bullet.y + Math.sin(bulletAngle) * 10000;
-
+  console.log("=== BULLET DEBUG ===");
+  console.log("My ship:", self.ship.playerId, "at", self.ship.x, self.ship.y);
+  console.log("Shooter:", creationData.shooterId);
+  console.log("Bullet pos:", creationData.x, creationData.y);
+  console.log("Am I shooter?", self.ship.playerId === creationData.shooterId);
+  console.log("Bullet depth:", bullet.depth);
+  console.log("Bullet visible:", bullet.visible);
+  console.log("Bullet alpha:", bullet.alpha);
   console.log("BULLET: ", bullet);
   console.log("creationData: ", creationData);
 
-  self.physics.moveTo(bullet, targetX, targetY, 750);
+  // Usar las velocidades ya calculadas en lugar de recalcular
+  bullet.setVelocity(creationData.velocityX, creationData.velocityY);
 
   function destroyBullet() {
     if (self.otherBullets.contains(bullet)) {

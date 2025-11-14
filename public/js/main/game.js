@@ -384,7 +384,10 @@ function create() {
   });
 
   this.socket.on('newBullet', function (creationData) {
+    console.log("self.ship", self.ship)
+    console.log("self.ship.playerId", self.ship?.playerId)
     console.log("PRE ADD BULLET ", creationData)
+    console.log("Received newBullet from:", creationData.shooterId, "My ID:", self.ship?.playerId);
     addBullet(self, creationData);
   });
 

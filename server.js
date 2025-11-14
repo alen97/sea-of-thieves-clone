@@ -296,6 +296,8 @@ io.on('connection', function (socket) {
 
     if (room) {
       console.log("creationData (server): ", creationData);
+      console.log("Broadcasting bullet to room", roomId, "from shooter", creationData.shooterId);
+      console.log("Players in room:", Object.keys(room.players));
       room.bullets.push({ id: room.bullets.length });
       // Emit to all players in the same room
       io.to(roomId).emit('newBullet', creationData);
