@@ -159,6 +159,12 @@ function create() {
   this.mapVisible = false;
   this.chatMode = false;
 
+  // Network optimization: track last sent values for throttling
+  this.lastSentSteeringDirection = 0;
+  this.lastSentCannonLeft = 0;
+  this.lastSentCannonRight = 0;
+  this.lastNetworkSendTime = 0;
+
   // Day/Night cycle - synchronized from server
   this.gameTime = {
     currentTime: 0,
@@ -246,14 +252,23 @@ function create() {
       if (shipData.targetSpeed !== undefined) {
         self.ship.targetSpeed = shipData.targetSpeed;
       }
-      if (shipData.steeringDirection !== undefined) {
+
+      // Client-side prediction: Only sync steeringDirection if NOT controlling the helm
+      if (shipData.steeringDirection !== undefined && !self.player.isControllingShip) {
         self.steeringDirection = shipData.steeringDirection;
       }
 
-      // Always sync non-physics data
+      // Client-side prediction: Only sync cannon angles if NOT mounted on that specific cannon
       if (shipData.cannons) {
-        self.ship.cannons.left.relativeAngle = shipData.cannons.leftAngle || 0;
-        self.ship.cannons.right.relativeAngle = shipData.cannons.rightAngle || 0;
+        // Update left cannon only if player is not mounted on it
+        if (!self.player.isOnCannon || self.player.cannonSide !== 'left') {
+          self.ship.cannons.left.relativeAngle = shipData.cannons.leftAngle || 0;
+        }
+        // Update right cannon only if player is not mounted on it
+        if (!self.player.isOnCannon || self.player.cannonSide !== 'right') {
+          self.ship.cannons.right.relativeAngle = shipData.cannons.rightAngle || 0;
+        }
+        // Always update visual position (rotation is already set above)
         updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
         updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
       }
@@ -878,6 +893,22 @@ function update(time, delta) {
     const y = this.ship.y;
     const r = this.ship.rotation;
 
+    // Network optimization: check if steering/cannon values changed significantly
+    const currentSteeringDirection = this.steeringDirection;
+    const currentCannonLeft = this.ship.cannons ? this.ship.cannons.left.relativeAngle : 0;
+    const currentCannonRight = this.ship.cannons ? this.ship.cannons.right.relativeAngle : 0;
+
+    const STEERING_THRESHOLD = 2; // Only send if changed by more than 2 units
+    const CANNON_THRESHOLD = 0.03; // ~1.7 degrees
+    const NETWORK_THROTTLE_MS = 50; // Minimum 50ms between steering/cannon updates
+
+    const steeringChanged = Math.abs(currentSteeringDirection - this.lastSentSteeringDirection) > STEERING_THRESHOLD;
+    const cannonLeftChanged = Math.abs(currentCannonLeft - this.lastSentCannonLeft) > CANNON_THRESHOLD;
+    const cannonRightChanged = Math.abs(currentCannonRight - this.lastSentCannonRight) > CANNON_THRESHOLD;
+    const throttleTimeElapsed = (time - this.lastNetworkSendTime) > NETWORK_THROTTLE_MS;
+
+    const shouldSendSteeringOrCannon = (steeringChanged || cannonLeftChanged || cannonRightChanged) && throttleTimeElapsed;
+
     // Emitir si es el primer frame O si algo cambió
     if (!this.ship.oldPosition ||
         x !== this.ship.oldPosition.x ||
@@ -885,7 +916,8 @@ function update(time, delta) {
         r !== this.ship.oldPosition.rotation ||
         playerRelativeX !== this.ship.oldPosition.playerX ||
         playerRelativeY !== this.ship.oldPosition.playerY ||
-        this.player.rotation !== this.ship.oldPosition.playerRotation) {
+        this.player.rotation !== this.ship.oldPosition.playerRotation ||
+        shouldSendSteeringOrCannon) {
 
       this.socket.emit('playerMovement', {
         ship: {
@@ -897,10 +929,10 @@ function update(time, delta) {
           isAnchored: this.ship.isAnchored,           // Critical for particles sync
           currentSpeed: this.ship.currentSpeed,       // Critical for particles intensity
           targetSpeed: this.ship.targetSpeed,         // Critical for navigation level
-          steeringDirection: this.steeringDirection,  // Ship steering wheel position
+          steeringDirection: currentSteeringDirection,  // Ship steering wheel position
           cannons: {
-            leftAngle: this.ship.cannons ? this.ship.cannons.left.relativeAngle : 0,
-            rightAngle: this.ship.cannons ? this.ship.cannons.right.relativeAngle : 0
+            leftAngle: currentCannonLeft,
+            rightAngle: currentCannonRight
           }
         },
         player: {
@@ -915,6 +947,14 @@ function update(time, delta) {
           velocityY: this.player.body.velocity.y
         }
       });
+
+      // Update last sent values if they were sent due to significant change
+      if (shouldSendSteeringOrCannon) {
+        this.lastSentSteeringDirection = currentSteeringDirection;
+        this.lastSentCannonLeft = currentCannonLeft;
+        this.lastSentCannonRight = currentCannonRight;
+        this.lastNetworkSendTime = time;
+      }
     }
 
     // Guardar datos de la posición anterior
