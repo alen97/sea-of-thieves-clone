@@ -66,11 +66,17 @@ function updateShip(self, ship, isControlled, input, inputEnabled = true) {
                 maxSteeringDirection
             );
         }
+
+        // Auto-centrado: resetear dirección si está cerca del centro y no se presiona A/D
+        if ((self.steeringDirection >= -5 && self.steeringDirection <= 5) &&
+            !(input.keyA.isDown || input.keyD.isDown)) {
+            self.steeringDirection = 0;
+        }
     }
 
-    // Steering direction es mantenido por el servidor (server-authoritative)
-    // No aplicamos decay client-side para evitar race conditions con la sincronización
-    // El barco mantiene su giro hasta que alguien lo cambie manualmente desde el timón
+    // Client-side prediction: el jugador que controla el timón tiene autoridad sobre steeringDirection
+    // El servidor sincroniza con otros jugadores, pero no sobrescribe al controlador activo
+    // Auto-centrado aplicado solo cuando el jugador está en el timón para navegación más natural
 
     // SIEMPRE aplicar la velocidad angular basada en steeringDirection
     // (tanto si está en el timón como si no)
