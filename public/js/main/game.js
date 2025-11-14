@@ -9,30 +9,8 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 1.5;
 const ZOOM_STEP = 0.5;
 
-const SCREEN_WIDTH = WORLD_WIDTH;
-const SCREEN_HEIGHT = WORLD_HEIGHT;
-
 // Maximum distance to render players from adjacent rooms (in pixels)
 const MAX_RENDER_DISTANCE = 2000;
-
-// Helper function to calculate adjusted coordinates for cross-room rendering
-function getAdjustedCoordinates(playerInfo, myRoomX, myRoomY) {
-  const roomDiffX = playerInfo.roomX - myRoomX;
-  const roomDiffY = playerInfo.roomY - myRoomY;
-
-  return {
-    x: playerInfo.ship.x + (roomDiffX * WORLD_WIDTH),
-    y: playerInfo.ship.y + (roomDiffY * WORLD_HEIGHT),
-    offsetX: roomDiffX * WORLD_WIDTH,
-    offsetY: roomDiffY * WORLD_HEIGHT
-  };
-}
-
-// Helper function to check if player should be rendered based on distance
-function shouldRenderPlayer(adjustedX, adjustedY, myX, myY) {
-  const distance = Phaser.Math.Distance.Between(myX, myY, adjustedX, adjustedY);
-  return distance <= MAX_RENDER_DISTANCE;
-}
 
 var config = {
   type: Phaser.AUTO,
@@ -43,9 +21,6 @@ var config = {
     width: VIEWPORT_WIDTH,
     height: VIEWPORT_HEIGHT
   },
-  // parent: 'phaser-example',
-  // width: 800,
-  // height: 600,
   disableContextMenu: true,
   physics: {
     default: 'arcade',
@@ -61,8 +36,6 @@ var config = {
     key: 'MainScene'
   }
 };
-
-// console.log("IS MOBILE? ", navigator.userAgentData.mobile); //resolves true/false)
 
 var game = new Phaser.Game(config);
 
@@ -85,8 +58,6 @@ function preload() {
   // Lantern sounds
   this.load.audio('lanternLight', 'sounds/light-fire.wav');
   this.load.audio('lanternExtinguish', 'sounds/extinguish-fire.wav');
-
-  this.load.image('playerMuerto', 'assets/player_muerto.png');
 
   // Load player run animation atlas
   this.load.atlas('playerRun', 'assets/player_run.png', 'assets/player_run.json');
@@ -431,8 +402,6 @@ function create() {
 
   // Handle chat messages
   this.socket.on('playerSentMessage', function (messageData) {
-    const MAX_CHAT_DISTANCE = 550; // Max distance to see messages
-
     // If it's my own message, show it above my player
     if (messageData.playerId === self.socket.id) {
       showChatBubble(self, self.player, messageData.message);
@@ -471,13 +440,6 @@ function create() {
 }
 
 ////////////////////////////////////////// UPDATE
-
-// Variables de control
-let steeringDirection = 0; // Rango de -100 a 100
-
-// Variable para el estado del ancla
-let isAnchored = false;
-let targetSpeed = 0;
 
 // Definir variables de cooldown
 let canShootLeft = true;
@@ -1011,9 +973,6 @@ function update(time, delta) {
     }
   }
 }
-
-
-
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
