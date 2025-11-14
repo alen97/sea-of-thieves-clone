@@ -367,13 +367,10 @@ function create() {
           );
           otherPlayer.setRotation(playerInfo.player.rotation);
 
-          // Synchronize animation based on player velocity
-          const playerVelX = playerInfo.player.velocityX || 0;
-          const playerVelY = playerInfo.player.velocityY || 0;
-          const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
-          const isMoving = playerSpeed > 10;
+          // Synchronize animation based on received isMoving state
+          const isMoving = playerInfo.player.isMoving || false;
 
-          if (isMoving && !playerInfo.player.isControllingShip) {
+          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon) {
             // Player walking - play animation
             if (!otherPlayer.anims.isPlaying ||
                 otherPlayer.anims.currentAnim.key !== 'run') {
@@ -890,6 +887,13 @@ function update(time, delta) {
     const playerRelativeX = this.player.x - this.ship.x;
     const playerRelativeY = this.player.y - this.ship.y;
 
+    // Calcular si el jugador está en movimiento (para sincronizar animaciones)
+    const isPlayerMoving = inputEnabled &&
+                          !this.player.isControllingShip &&
+                          !this.player.isOnCannon &&
+                          (input.keyW.isDown || input.keyS.isDown ||
+                           input.keyA.isDown || input.keyD.isDown);
+
     // Emitir movimiento
     const x = this.ship.x;
     const y = this.ship.y;
@@ -927,6 +931,7 @@ function update(time, delta) {
           isControllingShip: this.player.isControllingShip,
           isOnCannon: this.player.isOnCannon,
           cannonSide: this.player.cannonSide,
+          isMoving: isPlayerMoving,  // Animation sync
           velocityX: this.player.body.velocity.x,
           velocityY: this.player.body.velocity.y
         }

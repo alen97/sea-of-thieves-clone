@@ -273,6 +273,7 @@ io.on('connection', function (socket) {
         room.players[socket.id].player.y = movementData.player.y;
         room.players[socket.id].player.rotation = movementData.player.rotation;
         room.players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
+        room.players[socket.id].player.isMoving = movementData.player.isMoving || false;
         room.players[socket.id].player.velocityX = movementData.player.velocityX || 0;
         room.players[socket.id].player.velocityY = movementData.player.velocityY || 0;
 
