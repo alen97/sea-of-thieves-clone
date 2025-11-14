@@ -54,17 +54,35 @@ function getAdjacentRooms(roomX, roomY) {
 
 // Join socket to all adjacent rooms for awareness
 function joinAdjacentRooms(socket, roomX, roomY) {
+  if (!socket || !socket.connected) {
+    console.log('Cannot join rooms: socket not connected');
+    return;
+  }
+
   const adjacentRooms = getAdjacentRooms(roomX, roomY);
   adjacentRooms.forEach(room => {
-    socket.join(room.roomId);
+    try {
+      socket.join(room.roomId);
+    } catch (error) {
+      console.error(`Error joining room ${room.roomId}:`, error.message);
+    }
   });
 }
 
 // Leave all adjacent rooms
 function leaveAdjacentRooms(socket, roomX, roomY) {
+  if (!socket || !socket.connected) {
+    console.log('Cannot leave rooms: socket not connected');
+    return;
+  }
+
   const adjacentRooms = getAdjacentRooms(roomX, roomY);
   adjacentRooms.forEach(room => {
-    socket.leave(room.roomId);
+    try {
+      socket.leave(room.roomId);
+    } catch (error) {
+      console.error(`Error leaving room ${room.roomId}:`, error.message);
+    }
   });
 }
 
@@ -155,7 +173,7 @@ io.on('connection', function (socket) {
     if (room && room.players[socket.id]) {
       delete room.players[socket.id];
       // Emit to players in the same room only
-      io.to(roomId).emit('disconnect', socket.id);
+      io.to(roomId).emit('playerLeft', socket.id);
     }
   });
 
@@ -286,47 +304,59 @@ io.on('connection', function (socket) {
 
   // when a player changes room
   socket.on('changeRoom', function (roomData) {
-    const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
-    const newRoomId = getRoomId(roomData.roomX, roomData.roomY);
+    try {
+      // Validate room data
+      if (!roomData || roomData.roomX === undefined || roomData.roomY === undefined) {
+        console.error(`Invalid room data received from ${socket.id}:`, roomData);
+        socket.emit('roomChangeError', { message: 'Invalid room data' });
+        return;
+      }
 
-    console.log(`Player ${socket.id} changing from room ${oldRoomId} to ${newRoomId}`);
+      const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+      const newRoomId = getRoomId(roomData.roomX, roomData.roomY);
 
-    // Get old room and remove player from it
-    const oldRoom = rooms[oldRoomId];
-    if (oldRoom && oldRoom.players[socket.id]) {
-      const playerData = oldRoom.players[socket.id];
-      delete oldRoom.players[socket.id];
+      console.log(`Player ${socket.id} changing from room ${oldRoomId} to ${newRoomId}`);
 
-      // Notify old room players that this player left
-      socket.to(oldRoomId).emit('disconnect', socket.id);
+      // Get old room and remove player from it
+      const oldRoom = rooms[oldRoomId];
+      if (oldRoom && oldRoom.players[socket.id]) {
+        const playerData = oldRoom.players[socket.id];
+        delete oldRoom.players[socket.id];
 
-      // Leave old socket.io room and all adjacent rooms
-      leaveAdjacentRooms(socket, socket.currentRoomX, socket.currentRoomY);
+        // Notify old room players that this player left
+        socket.to(oldRoomId).emit('playerLeft', socket.id);
 
-      // Update player's room coordinates
-      socket.currentRoomX = roomData.roomX;
-      socket.currentRoomY = roomData.roomY;
-      playerData.roomX = roomData.roomX;
-      playerData.roomY = roomData.roomY;
+        // Leave old socket.io room and all adjacent rooms
+        leaveAdjacentRooms(socket, socket.currentRoomX, socket.currentRoomY);
 
-      // Update player position for the new room
-      playerData.ship.x = roomData.shipX;
-      playerData.ship.y = roomData.shipY;
+        // Update player's room coordinates
+        socket.currentRoomX = roomData.roomX;
+        socket.currentRoomY = roomData.roomY;
+        playerData.roomX = roomData.roomX;
+        playerData.roomY = roomData.roomY;
 
-      // Get or create new room and add player to it
-      const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
-      newRoom.players[socket.id] = playerData;
+        // Update player position for the new room
+        playerData.ship.x = roomData.shipX;
+        playerData.ship.y = roomData.shipY;
 
-      // Join new socket.io room and all adjacent rooms
-      joinAdjacentRooms(socket, roomData.roomX, roomData.roomY);
+        // Get or create new room and add player to it
+        const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
+        newRoom.players[socket.id] = playerData;
 
-      // Send players in adjacent rooms for seamless experience
-      const adjacentPlayers = getPlayersInAdjacentRooms(roomData.roomX, roomData.roomY);
-      socket.emit('currentPlayers', adjacentPlayers);
-      socket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
+        // Join new socket.io room and all adjacent rooms
+        joinAdjacentRooms(socket, roomData.roomX, roomData.roomY);
 
-      // Notify new room players about this player
-      socket.to(newRoomId).emit('newPlayer', playerData);
+        // Send players in adjacent rooms for seamless experience
+        const adjacentPlayers = getPlayersInAdjacentRooms(roomData.roomX, roomData.roomY);
+        socket.emit('currentPlayers', adjacentPlayers);
+        socket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
+
+        // Notify new room players about this player
+        socket.to(newRoomId).emit('newPlayer', playerData);
+      }
+    } catch (error) {
+      console.error(`Error changing room for player ${socket.id}:`, error);
+      socket.emit('roomChangeError', { message: 'Failed to change room' });
     }
   });
 

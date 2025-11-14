@@ -315,7 +315,7 @@ function create() {
     self.otherShips.add(otherShip);
   });
 
-  this.socket.on('disconnect', function (playerId) {
+  this.socket.on('playerLeft', function (playerId) {
     self.otherShips.getChildren().forEach(function (otherShip) {
       if (playerId === otherShip.playerId) {
         // Destruir jugador del barco
