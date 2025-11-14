@@ -3,8 +3,9 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io').listen(server);
 
-// Room-based structure: each room has its own players and bullets
+// Room-based structure: each room has ONE shared ship and multiple players (max 4)
 var rooms = {};
+const MAX_PLAYERS = 4;
 
 // Day/Night cycle - Server authoritative time
 var gameWorld = {
@@ -30,11 +31,39 @@ function getOrCreateRoom(roomX, roomY) {
   const roomId = getRoomId(roomX, roomY);
   if (!rooms[roomId]) {
     rooms[roomId] = {
-      players: {},
+      ship: null, // Shared ship for all players in room (created with first player)
+      players: {}, // Player avatars only
       bullets: []
     };
   }
   return rooms[roomId];
+}
+
+// Get player count in a room
+function getPlayerCount(room) {
+  return Object.keys(room.players).length;
+}
+
+// Create shared ship for a room
+function createShip(x, y) {
+  return {
+    x: x,
+    y: y,
+    rotation: 0,
+    velocityX: 0,
+    velocityY: 0,
+    health: 100,
+    damages: [],
+    lanternLit: false,
+    isAnchored: true,      // Critical: for wake particles sync
+    currentSpeed: 0,       // Critical: for wake particles intensity
+    targetSpeed: 0,        // Critical: for navigation level sync
+    steeringDirection: 0,  // Ship steering wheel position (-100 to +100)
+    cannons: {
+      leftAngle: 0,
+      rightAngle: 0
+    }
+  };
 }
 
 // Get all adjacent rooms (3x3 grid: current room + 8 neighbors)
@@ -118,6 +147,17 @@ io.on('connection', function (socket) {
   const roomId = getRoomId(initialRoomX, initialRoomY);
   const room = getOrCreateRoom(initialRoomX, initialRoomY);
 
+  // Validate max 4 players
+  const currentPlayerCount = getPlayerCount(room);
+  if (currentPlayerCount >= MAX_PLAYERS) {
+    console.log(`Server full: ${currentPlayerCount}/${MAX_PLAYERS} players. Rejecting ${socket.id}`);
+    socket.emit('serverFull', {
+      message: `Server is full (${MAX_PLAYERS}/${MAX_PLAYERS} players)`
+    });
+    socket.disconnect(true);
+    return;
+  }
+
   // Join the socket.io room and all adjacent rooms for seamless experience
   joinAdjacentRooms(socket, initialRoomX, initialRoomY);
 
@@ -125,30 +165,25 @@ io.on('connection', function (socket) {
   socket.currentRoomX = initialRoomX;
   socket.currentRoomY = initialRoomY;
 
-  const initialX = resolveInitialPosition("x");
-  const initialY = resolveInitialPosition("y");
+  // Create ship if this is the first player
+  const isFirstPlayer = currentPlayerCount === 0;
+  if (isFirstPlayer) {
+    const initialX = resolveInitialPosition("x");
+    const initialY = resolveInitialPosition("y");
+    room.ship = createShip(initialX, initialY);
+    console.log(`First player ${socket.id} created ship at (${initialX}, ${initialY})`);
+  } else {
+    console.log(`Player ${socket.id} joining existing ship (${currentPlayerCount + 1}/${MAX_PLAYERS})`);
+  }
 
+  // Create player avatar data only (ship is now shared)
   room.players[socket.id] = {
     playerId: socket.id,
     roomX: initialRoomX,
     roomY: initialRoomY,
-    ship: {
-      x: initialX,
-      y: initialY,
-      rotation: 0,
-      velocityX: 0,
-      velocityY: 0,
-      health: 100,
-      damages: [],
-      lanternLit: false,
-      cannons: {
-        leftAngle: 0,
-        rightAngle: 0
-      }
-    },
     player: {
-      x: 0,
-      y: 0,
+      x: 0, // Relative to ship
+      y: 0, // Relative to ship
       rotation: Math.PI,
       isControllingShip: false,
       isOnCannon: false,
@@ -156,8 +191,9 @@ io.on('connection', function (socket) {
     }
   };
 
-  // Send players in adjacent rooms for seamless experience
+  // Send shared ship FIRST, then players (ensures ship exists when creating avatars)
   const adjacentPlayers = getPlayersInAdjacentRooms(initialRoomX, initialRoomY);
+  socket.emit('sharedShip', room.ship); // Send the shared ship data FIRST
   socket.emit('currentPlayers', adjacentPlayers);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
 
@@ -172,45 +208,85 @@ io.on('connection', function (socket) {
 
     if (room && room.players[socket.id]) {
       delete room.players[socket.id];
+
+      // Check if this was the last player
+      const remainingPlayers = getPlayerCount(room);
+      if (remainingPlayers === 0 && room.ship) {
+        // Destroy ship when last player leaves
+        console.log(`Last player left room ${roomId}. Destroying ship.`);
+        room.ship = null;
+        io.to(roomId).emit('shipDestroyed');
+      }
+
       // Emit to players in the same room only
       io.to(roomId).emit('playerLeft', socket.id);
     }
   });
 
-  // when a player moves, update the player data
+  // when a player moves, update the player data and shared ship
   socket.on('playerMovement', function (movementData) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
-    if (room && room.players[socket.id] && movementData && movementData.ship && movementData.player) {
-      room.players[socket.id].ship.x = movementData.ship.x;
-      room.players[socket.id].ship.y = movementData.ship.y;
-      room.players[socket.id].ship.rotation = movementData.ship.rotation;
-      room.players[socket.id].ship.velocityX = movementData.ship.velocityX || 0;
-      room.players[socket.id].ship.velocityY = movementData.ship.velocityY || 0;
+    if (room && room.players[socket.id] && room.ship && movementData) {
+      // Update shared ship data (if ship data is provided)
+      if (movementData.ship) {
+        room.ship.x = movementData.ship.x;
+        room.ship.y = movementData.ship.y;
+        room.ship.rotation = movementData.ship.rotation;
+        room.ship.velocityX = movementData.ship.velocityX || 0;
+        room.ship.velocityY = movementData.ship.velocityY || 0;
 
-      // Sincronizar ángulos de los cañones
-      if (movementData.ship.cannons) {
-        room.players[socket.id].ship.cannons = movementData.ship.cannons;
+        // Sync critical properties for particles and game state
+        if (movementData.ship.isAnchored !== undefined) {
+          room.ship.isAnchored = movementData.ship.isAnchored;
+        }
+        if (movementData.ship.currentSpeed !== undefined) {
+          room.ship.currentSpeed = movementData.ship.currentSpeed;
+        }
+        if (movementData.ship.targetSpeed !== undefined) {
+          room.ship.targetSpeed = movementData.ship.targetSpeed;
+        }
+        if (movementData.ship.steeringDirection !== undefined) {
+          room.ship.steeringDirection = movementData.ship.steeringDirection;
+        }
+
+        // Sincronizar ángulos de los cañones
+        if (movementData.ship.cannons) {
+          room.ship.cannons = movementData.ship.cannons;
+        }
+
+        // Basic validation (anti-exploit, cooperative trust model)
+        const speed = Math.sqrt(room.ship.velocityX ** 2 + room.ship.velocityY ** 2);
+        if (speed > 400) {
+          console.warn(`Player ${socket.id} exceeded max speed: ${speed.toFixed(2)}`);
+          // Don't reject in coop mode, just log
+        }
+
+        // Broadcast ship update to all players in room
+        io.to(roomId).emit('shipMoved', room.ship);
       }
 
-      room.players[socket.id].player.x = movementData.player.x;
-      room.players[socket.id].player.y = movementData.player.y;
-      room.players[socket.id].player.rotation = movementData.player.rotation;
-      room.players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
-      room.players[socket.id].player.velocityX = movementData.player.velocityX || 0;
-      room.players[socket.id].player.velocityY = movementData.player.velocityY || 0;
+      // Update player avatar data
+      if (movementData.player) {
+        room.players[socket.id].player.x = movementData.player.x;
+        room.players[socket.id].player.y = movementData.player.y;
+        room.players[socket.id].player.rotation = movementData.player.rotation;
+        room.players[socket.id].player.isControllingShip = movementData.player.isControllingShip;
+        room.players[socket.id].player.velocityX = movementData.player.velocityX || 0;
+        room.players[socket.id].player.velocityY = movementData.player.velocityY || 0;
 
-      // Sincronizar estado del cañón
-      if (movementData.player.isOnCannon !== undefined) {
-        room.players[socket.id].player.isOnCannon = movementData.player.isOnCannon;
-      }
-      if (movementData.player.cannonSide !== undefined) {
-        room.players[socket.id].player.cannonSide = movementData.player.cannonSide;
-      }
+        // Sincronizar estado del cañón
+        if (movementData.player.isOnCannon !== undefined) {
+          room.players[socket.id].player.isOnCannon = movementData.player.isOnCannon;
+        }
+        if (movementData.player.cannonSide !== undefined) {
+          room.players[socket.id].player.cannonSide = movementData.player.cannonSide;
+        }
 
-      // Emit to players in the same room only
-      socket.to(roomId).emit('playerMoved', room.players[socket.id]);
+        // Broadcast player update to others in room
+        socket.to(roomId).emit('playerMoved', room.players[socket.id]);
+      }
     }
   });
 
@@ -232,9 +308,9 @@ io.on('connection', function (socket) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
-    if (room && room.players[socket.id]) {
-      // Add new damage to the damages array
-      room.players[socket.id].ship.damages.push({
+    if (room && room.ship) {
+      // Add new damage to the shared ship's damages array
+      room.ship.damages.push({
         x: damageData.x,
         y: damageData.y,
         id: damageData.id
@@ -242,9 +318,8 @@ io.on('connection', function (socket) {
 
       // Emit damage to all players in the same room
       io.to(roomId).emit('shipTookDamage', {
-        playerId: socket.id,
         damage: damageData,
-        health: room.players[socket.id].ship.health
+        health: room.ship.health
       });
     }
   });
@@ -254,10 +329,9 @@ io.on('connection', function (socket) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
-    if (room && room.players[socket.id]) {
-      room.players[socket.id].ship.health = healthData.health;
-      socket.to(roomId).emit('shipHealthChanged', {
-        playerId: socket.id,
+    if (room && room.ship) {
+      room.ship.health = healthData.health;
+      io.to(roomId).emit('shipHealthChanged', {
         health: healthData.health
       });
     }
@@ -290,19 +364,18 @@ io.on('connection', function (socket) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
-    if (room && room.players[socket.id]) {
-      // Toggle lantern state
-      room.players[socket.id].ship.lanternLit = !room.players[socket.id].ship.lanternLit;
+    if (room && room.ship) {
+      // Toggle lantern state on shared ship
+      room.ship.lanternLit = !room.ship.lanternLit;
 
       // Broadcast new state to all players in room
       io.to(roomId).emit('lanternToggled', {
-        playerId: socket.id,
-        lanternLit: room.players[socket.id].ship.lanternLit
+        lanternLit: room.ship.lanternLit
       });
     }
   });
 
-  // when a player changes room
+  // when ship changes room (all players move together with shared ship)
   socket.on('changeRoom', function (roomData) {
     try {
       // Validate room data
@@ -315,47 +388,75 @@ io.on('connection', function (socket) {
       const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
       const newRoomId = getRoomId(roomData.roomX, roomData.roomY);
 
-      console.log(`Player ${socket.id} changing from room ${oldRoomId} to ${newRoomId}`);
-
-      // Get old room and remove player from it
-      const oldRoom = rooms[oldRoomId];
-      if (oldRoom && oldRoom.players[socket.id]) {
-        const playerData = oldRoom.players[socket.id];
-        delete oldRoom.players[socket.id];
-
-        // Notify old room players that this player left
-        socket.to(oldRoomId).emit('playerLeft', socket.id);
-
-        // Leave old socket.io room and all adjacent rooms
-        leaveAdjacentRooms(socket, socket.currentRoomX, socket.currentRoomY);
-
-        // Update player's room coordinates
-        socket.currentRoomX = roomData.roomX;
-        socket.currentRoomY = roomData.roomY;
-        playerData.roomX = roomData.roomX;
-        playerData.roomY = roomData.roomY;
-
-        // Update player position for the new room
-        playerData.ship.x = roomData.shipX;
-        playerData.ship.y = roomData.shipY;
-
-        // Get or create new room and add player to it
-        const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
-        newRoom.players[socket.id] = playerData;
-
-        // Join new socket.io room and all adjacent rooms
-        joinAdjacentRooms(socket, roomData.roomX, roomData.roomY);
-
-        // Send players in adjacent rooms for seamless experience
-        const adjacentPlayers = getPlayersInAdjacentRooms(roomData.roomX, roomData.roomY);
-        socket.emit('currentPlayers', adjacentPlayers);
-        socket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
-
-        // Notify new room players about this player
-        socket.to(newRoomId).emit('newPlayer', playerData);
+      // Skip if already in target room
+      if (oldRoomId === newRoomId) {
+        return;
       }
+
+      console.log(`Ship changing from room ${oldRoomId} to ${newRoomId} (triggered by ${socket.id})`);
+
+      const oldRoom = rooms[oldRoomId];
+      if (!oldRoom || !oldRoom.ship) {
+        console.error(`Cannot change room: no ship in ${oldRoomId}`);
+        return;
+      }
+
+      // Move ALL players and the ship to new room
+      const playersToMove = Object.keys(oldRoom.players);
+      const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
+
+      // Move ship to new room
+      const ship = oldRoom.ship;
+      ship.x = roomData.shipX;
+      ship.y = roomData.shipY;
+      newRoom.ship = ship;
+      oldRoom.ship = null;
+
+      // Move all players to new room
+      playersToMove.forEach(playerId => {
+        const playerData = oldRoom.players[playerId];
+        const playerSocket = io.sockets.connected[playerId];
+
+        if (playerData && playerSocket) {
+          // Remove from old room
+          delete oldRoom.players[playerId];
+
+          // Leave old socket.io rooms
+          leaveAdjacentRooms(playerSocket, playerSocket.currentRoomX, playerSocket.currentRoomY);
+
+          // Update room coordinates
+          playerSocket.currentRoomX = roomData.roomX;
+          playerSocket.currentRoomY = roomData.roomY;
+          playerData.roomX = roomData.roomX;
+          playerData.roomY = roomData.roomY;
+
+          // Add to new room
+          newRoom.players[playerId] = playerData;
+
+          // Join new socket.io rooms
+          joinAdjacentRooms(playerSocket, roomData.roomX, roomData.roomY);
+
+          // Send updated data to this player
+          const adjacentPlayers = getPlayersInAdjacentRooms(roomData.roomX, roomData.roomY);
+          playerSocket.emit('currentPlayers', adjacentPlayers);
+          playerSocket.emit('sharedShip', newRoom.ship);
+          playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
+        }
+      });
+
+      // Notify old room that ship and players left
+      io.to(oldRoomId).emit('shipDestroyed');
+
+      // Notify new room about new ship and players
+      io.to(newRoomId).emit('sharedShip', newRoom.ship);
+      playersToMove.forEach(playerId => {
+        if (newRoom.players[playerId]) {
+          io.to(newRoomId).emit('newPlayer', newRoom.players[playerId]);
+        }
+      });
+
     } catch (error) {
-      console.error(`Error changing room for player ${socket.id}:`, error);
+      console.error(`Error changing room for ship:`, error);
       socket.emit('roomChangeError', { message: 'Failed to change room' });
     }
   });

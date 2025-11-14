@@ -83,13 +83,11 @@ function updateShip(self, ship, isControlled, input, inputEnabled = true) {
                 maxSteeringDirection
             );
         }
-
-        // Resetear dirección si está centrado
-        if ((self.steeringDirection >= -3 && self.steeringDirection <= 3) &&
-            !(input.keyA.isDown || input.keyD.isDown)) {
-            self.steeringDirection = 0;
-        }
     }
+
+    // Steering direction es mantenido por el servidor (server-authoritative)
+    // No aplicamos decay client-side para evitar race conditions con la sincronización
+    // El barco mantiene su giro hasta que alguien lo cambie manualmente desde el timón
 
     // SIEMPRE aplicar la velocidad angular basada en steeringDirection
     // (tanto si está en el timón como si no)

@@ -170,257 +170,222 @@ function create() {
   self.scene.add('UIScene', UIScene, true);
 
   // Groups
-  this.otherShips = this.physics.add.group();
+  this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
   this.otherBullets = this.physics.add.group();
+
+  // Handle server full event
+  this.socket.on('serverFull', function (data) {
+    alert(data.message || 'Server is full. Please try again later.');
+    console.error('Server is full');
+  });
+
+  // Handle shared ship data from server
+  this.socket.on('sharedShip', function (shipData) {
+    if (!self.ship) {
+      // Create my ship for the first time
+      self.ship = addShip(self, shipData);
+      self.ship.playerId = self.socket.id;
+
+      self.player = addPlayer(self, { x: 0, y: 0, rotation: Math.PI, isControllingShip: false }, self.ship);
+
+      setupShipCollisions(self, self.ship);
+      addShipWakeEmitters(self, self.ship);
+
+      // Create cannons for the ship
+      self.ship.cannons = createCannons(self, self.ship);
+      updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
+      updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
+
+      // Create lantern at ship center
+      self.lanternLit = false;
+      self.lantern = createLantern(self, self.ship, self.lanternLit);
+
+      // Initialize steering variable from server state
+      self.steeringDirection = shipData.steeringDirection || 0;
+    } else {
+      // Update existing ship position (for room transitions)
+      self.ship.setPosition(shipData.x, shipData.y);
+      self.ship.setRotation(shipData.rotation);
+      self.ship.health = shipData.health;
+      self.ship.damages = shipData.damages || [];
+      self.ship.lanternLit = shipData.lanternLit;
+      self.ship.isAnchored = shipData.isAnchored !== undefined ? shipData.isAnchored : true;
+      self.ship.currentSpeed = shipData.currentSpeed || 0;
+      self.ship.targetSpeed = shipData.targetSpeed || 0;
+      self.steeringDirection = shipData.steeringDirection || 0;
+    }
+  });
+
+  // Handle ship movement updates
+  this.socket.on('shipMoved', function (shipData) {
+    if (self.ship) {
+      // Update shared ship from server (only if not controlling it yourself)
+      // This prevents jitter from server updates overriding local physics
+      if (!self.player || !self.player.isControllingShip) {
+        // Smooth interpolation for position (lerp towards target)
+        const lerpFactor = 0.3; // Adjust for smoothness (0.1=slow, 0.5=fast)
+        const targetX = shipData.x;
+        const targetY = shipData.y;
+        const targetRot = shipData.rotation;
+
+        // Lerp position for smooth movement
+        const newX = Phaser.Math.Linear(self.ship.x, targetX, lerpFactor);
+        const newY = Phaser.Math.Linear(self.ship.y, targetY, lerpFactor);
+        self.ship.setPosition(newX, newY);
+
+        // Lerp rotation (handle wrapping)
+        let rotDiff = targetRot - self.ship.rotation;
+        if (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+        if (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+        const newRot = self.ship.rotation + rotDiff * lerpFactor;
+        self.ship.setRotation(newRot);
+      }
+
+      // Always sync critical properties (even if you're controlling - for consistency)
+      if (shipData.isAnchored !== undefined) {
+        self.ship.isAnchored = shipData.isAnchored;
+      }
+      if (shipData.currentSpeed !== undefined) {
+        self.ship.currentSpeed = shipData.currentSpeed;
+      }
+      if (shipData.targetSpeed !== undefined) {
+        self.ship.targetSpeed = shipData.targetSpeed;
+      }
+      if (shipData.steeringDirection !== undefined) {
+        self.steeringDirection = shipData.steeringDirection;
+      }
+
+      // Always sync non-physics data
+      if (shipData.cannons) {
+        self.ship.cannons.left.relativeAngle = shipData.cannons.leftAngle || 0;
+        self.ship.cannons.right.relativeAngle = shipData.cannons.rightAngle || 0;
+        updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
+        updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
+      }
+    }
+  });
+
+  // Handle ship destroyed event
+  this.socket.on('shipDestroyed', function () {
+    if (self.ship) {
+      console.log('Ship destroyed');
+      // Optional: cleanup, could respawn later
+    }
+  });
 
   this.socket.on('currentPlayers', function (players) {
     // Clear all existing other players when receiving fresh player list (e.g., room change)
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (otherShip.playerSprite) {
-        otherShip.playerSprite.destroy();
-      }
-      removeShipWakeEmitters(otherShip);
-      otherShip.destroy();
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      otherPlayer.destroy();
     });
-    self.otherShips.clear(true, true);
+    self.otherPlayers.clear(true, true);
 
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
-        // Create or update my ship and player
-        if (!self.ship) {
-          self.ship = addShip(self, players[id].ship);
-          self.ship.playerId = players[id].playerId;
-
-          self.player = addPlayer(self, players[id].player, self.ship);
-
-          setupShipCollisions(self, self.ship);
-
-          // Add wake emitters to ship
-          addShipWakeEmitters(self, self.ship);
-
-          // Create cannons for the ship
-          self.ship.cannons = createCannons(self, self.ship);
-          updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
-          updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
-
-          // Create lantern at ship center
-          self.lanternLit = false; // Track if lantern is lit (initially off)
-          self.lantern = createLantern(self, self.ship, self.lanternLit);
-
-          // Initialize steering variable
-          self.steeringDirection = 0;
-        } else {
-          // Update ship position (for room transition)
-          self.ship.setPosition(players[id].ship.x, players[id].ship.y);
-          self.ship.setRotation(players[id].ship.rotation);
+        // Update my player avatar (ship is handled separately by 'sharedShip' event)
+        if (!self.player) {
+          // Create player avatar if doesn't exist
+          if (self.ship) {
+            self.player = addPlayer(self, players[id].player, self.ship);
+          }
+        } else if (self.ship) {
+          // Update player position (for room transition)
           self.player.setPosition(
-            players[id].ship.x + players[id].player.x,
-            players[id].ship.y + players[id].player.y
+            self.ship.x + players[id].player.x,
+            self.ship.y + players[id].player.y
           );
         }
       } else {
-        // Create ships and players of others
-        // Calculate adjusted coordinates for cross-room rendering
-        const adjusted = getAdjustedCoordinates(players[id], self.currentRoomX, self.currentRoomY);
+        // Create other players' avatars (they share the same ship)
+        if (self.ship) {
+          const otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
+          otherPlayer.playerId = players[id].playerId;
+          otherPlayer.roomX = players[id].roomX;
+          otherPlayer.roomY = players[id].roomY;
 
-        // Only render if within distance threshold
-        if (self.ship && !shouldRenderPlayer(adjusted.x, adjusted.y, self.ship.x, self.ship.y)) {
-          return; // Skip rendering this player (too far)
+          // Initialize animation state
+          const playerVelX = players[id].player.velocityX || 0;
+          const playerVelY = players[id].player.velocityY || 0;
+          const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
+          const isMoving = playerSpeed > 10;
+
+          if (isMoving && !players[id].player.isControllingShip) {
+            otherPlayer.play('run');
+          } else {
+            otherPlayer.setFrame('tile000.png');
+          }
+
+          self.otherPlayers.add(otherPlayer);
         }
-
-        // Create ship with adjusted coordinates
-        const adjustedShipData = {
-          ...players[id].ship,
-          x: adjusted.x,
-          y: adjusted.y
-        };
-
-        const otherShip = addOtherShip(self, adjustedShipData);
-        otherShip.playerId = players[id].playerId;
-        otherShip.roomX = players[id].roomX; // Store room coordinates
-        otherShip.roomY = players[id].roomY;
-        otherShip.roomOffsetX = adjusted.offsetX;
-        otherShip.roomOffsetY = adjusted.offsetY;
-
-        const otherPlayer = addOtherPlayer(self, players[id].player, otherShip);
-        otherShip.playerSprite = otherPlayer;
-
-        // Add wake emitters to ship
-        addShipWakeEmitters(self, otherShip);
-
-        // Create cannons for other ships
-        otherShip.cannons = createCannons(self, otherShip);
-        updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
-        updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
-
-        // Create lantern for other ships
-        otherShip.lanternLit = players[id].ship.lanternLit || false;
-        otherShip.lantern = createLantern(self, otherShip, otherShip.lanternLit);
-
-        self.otherShips.add(otherShip);
       }
     });
   });
 
   this.socket.on('newPlayer', function (playerInfo) {
-    // Calculate adjusted coordinates for cross-room rendering
-    const adjusted = getAdjustedCoordinates(playerInfo, self.currentRoomX, self.currentRoomY);
+    // Create other player's avatar on the shared ship
+    if (self.ship) {
+      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship);
+      otherPlayer.playerId = playerInfo.playerId;
+      otherPlayer.roomX = playerInfo.roomX;
+      otherPlayer.roomY = playerInfo.roomY;
 
-    // Only render if within distance threshold
-    if (self.ship && !shouldRenderPlayer(adjusted.x, adjusted.y, self.ship.x, self.ship.y)) {
-      return; // Skip rendering this player (too far)
+      // Initialize animation state
+      const playerVelX = playerInfo.player.velocityX || 0;
+      const playerVelY = playerInfo.player.velocityY || 0;
+      const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
+      const isMoving = playerSpeed > 10;
+
+      if (isMoving && !playerInfo.player.isControllingShip) {
+        otherPlayer.play('run');
+      } else {
+        otherPlayer.setFrame('tile000.png');
+      }
+
+      self.otherPlayers.add(otherPlayer);
+      console.log(`New player joined: ${playerInfo.playerId}`);
     }
-
-    // Create ship with adjusted coordinates
-    const adjustedShipData = {
-      ...playerInfo.ship,
-      x: adjusted.x,
-      y: adjusted.y
-    };
-
-    const otherShip = addOtherShip(self, adjustedShipData);
-    otherShip.playerId = playerInfo.playerId;
-    otherShip.roomX = playerInfo.roomX; // Store room coordinates
-    otherShip.roomY = playerInfo.roomY;
-    otherShip.roomOffsetX = adjusted.offsetX;
-    otherShip.roomOffsetY = adjusted.offsetY;
-
-    const otherPlayer = addOtherPlayer(self, playerInfo.player, otherShip);
-    otherShip.playerSprite = otherPlayer;
-
-    // Inicializar estado de animación
-    const playerVelX = playerInfo.player.velocityX || 0;
-    const playerVelY = playerInfo.player.velocityY || 0;
-    const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
-    const isMoving = playerSpeed > 10;
-
-    if (isMoving && !playerInfo.player.isControllingShip) {
-      otherPlayer.play('run');
-    } else {
-      otherPlayer.setFrame('tile000.png');
-    }
-
-    // Agregar emisores de estela al barco
-    addShipWakeEmitters(self, otherShip);
-
-    // Create cannons for the new ship
-    otherShip.cannons = createCannons(self, otherShip);
-    updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
-    updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
-
-    // Create lantern for the new ship
-    otherShip.lanternLit = playerInfo.ship.lanternLit || false;
-    otherShip.lantern = createLantern(self, otherShip, otherShip.lanternLit);
-
-    self.otherShips.add(otherShip);
   });
 
   this.socket.on('playerLeft', function (playerId) {
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (playerId === otherShip.playerId) {
-        // Destruir jugador del barco
-        if (otherShip.playerSprite) {
-          otherShip.playerSprite.destroy();
-        }
-        // Limpiar emisores de estela
-        removeShipWakeEmitters(otherShip);
-        // Destruir barco
-        otherShip.destroy();
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (playerId === otherPlayer.playerId) {
+        // Destroy player avatar only (ship is shared)
+        otherPlayer.destroy();
+        console.log(`Player left: ${playerId}`);
       }
     });
   });
 
   this.socket.on('playerMoved', function (playerInfo) {
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (playerInfo.playerId === otherShip.playerId) {
-        // Apply room offset for cross-room rendering
-        const adjustedX = playerInfo.ship.x + (otherShip.roomOffsetX || 0);
-        const adjustedY = playerInfo.ship.y + (otherShip.roomOffsetY || 0);
-
-        // Check if player is still within render distance
-        if (self.ship && !shouldRenderPlayer(adjustedX, adjustedY, self.ship.x, self.ship.y)) {
-          // Player moved too far, remove from rendering
-          if (otherShip.playerSprite) {
-            otherShip.playerSprite.destroy();
-          }
-          removeShipWakeEmitters(otherShip);
-          otherShip.destroy();
-          return;
-        }
-
-        // Actualizar barco
-        otherShip.setRotation(playerInfo.ship.rotation);
-        otherShip.setPosition(adjustedX, adjustedY);
-
-        // Calcular y guardar currentSpeed para el sistema de partículas
-        const velocityX = playerInfo.ship.velocityX || 0;
-        const velocityY = playerInfo.ship.velocityY || 0;
-        otherShip.currentSpeed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
-
-        // Por ahora, asumimos que el ancla está levantada (el servidor podría enviarlo en el futuro)
-        otherShip.isAnchored = false;
-
-        // Actualizar jugador
-        if (otherShip.playerSprite) {
-          otherShip.playerSprite.setPosition(
-            adjustedX + playerInfo.player.x,
-            adjustedY + playerInfo.player.y
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (playerInfo.playerId === otherPlayer.playerId) {
+        // Update player avatar position (relative to shared ship)
+        if (self.ship) {
+          otherPlayer.setPosition(
+            self.ship.x + playerInfo.player.x,
+            self.ship.y + playerInfo.player.y
           );
-          otherShip.playerSprite.setRotation(playerInfo.player.rotation);
+          otherPlayer.setRotation(playerInfo.player.rotation);
 
-          // Sincronizar animación basada en velocidad del jugador
+          // Synchronize animation based on player velocity
           const playerVelX = playerInfo.player.velocityX || 0;
           const playerVelY = playerInfo.player.velocityY || 0;
           const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
           const isMoving = playerSpeed > 10;
 
           if (isMoving && !playerInfo.player.isControllingShip) {
-            // Jugador caminando - reproducir animación
-            if (!otherShip.playerSprite.anims.isPlaying ||
-                otherShip.playerSprite.anims.currentAnim.key !== 'run') {
-              otherShip.playerSprite.play('run');
+            // Player walking - play animation
+            if (!otherPlayer.anims.isPlaying ||
+                otherPlayer.anims.currentAnim.key !== 'run') {
+              otherPlayer.play('run');
             }
           } else {
-            // Jugador quieto o en el timón - detener animación
-            if (otherShip.playerSprite.anims.isPlaying) {
-              otherShip.playerSprite.stop();
-              otherShip.playerSprite.setFrame('tile000.png');
+            // Player idle or at helm - stop animation
+            if (otherPlayer.anims.isPlaying) {
+              otherPlayer.stop();
+              otherPlayer.setFrame('tile000.png');
             }
           }
-        }
-
-        // Actualizar cañones
-        if (otherShip.cannons && playerInfo.ship.cannons) {
-          otherShip.cannons.left.relativeAngle = playerInfo.ship.cannons.leftAngle || 0;
-          otherShip.cannons.right.relativeAngle = playerInfo.ship.cannons.rightAngle || 0;
-          updateCannonPosition(otherShip.cannons.left, otherShip, 'left');
-          updateCannonPosition(otherShip.cannons.right, otherShip, 'right');
-        }
-
-        // Actualizar farol
-        if (otherShip.lantern) {
-          updateLanternPosition(otherShip.lantern, otherShip);
-        }
-
-        // Actualizar roturas
-        if (otherShip.damages) {
-          otherShip.damages.forEach(damageSprite => {
-            const angle = otherShip.rotation;
-            const cosAngle = Math.cos(angle);
-            const sinAngle = Math.sin(angle);
-
-            // Encontrar el damage correspondiente
-            const damage = playerInfo.ship.damages.find(d => d.id === damageSprite.damageId);
-            if (damage) {
-              const rotatedX = damage.x * cosAngle - damage.y * sinAngle;
-              const rotatedY = damage.x * sinAngle + damage.y * cosAngle;
-
-              damageSprite.setPosition(
-                otherShip.x + rotatedX,
-                otherShip.y + rotatedY
-              );
-            }
-          });
         }
       }
     });
@@ -431,61 +396,31 @@ function create() {
     addBullet(self, creationData);
   });
 
-  // Evento cuando un barco recibe daño
+  // Event when shared ship takes damage
   this.socket.on('shipTookDamage', function (damageInfo) {
-    if (damageInfo.playerId === self.socket.id) {
-      // Es nuestro barco, ya creamos la rotura localmente
-      return;
-    }
+    if (self.ship) {
+      // Create damage sprite on shared ship
+      const damageSprite = self.add.rectangle(
+        self.ship.x + damageInfo.damage.x,
+        self.ship.y + damageInfo.damage.y,
+        10, 10, 0xff0000
+      );
+      damageSprite.setDepth(2);
+      damageSprite.damageId = damageInfo.damage.id;
 
-    // Es otro barco, crear la rotura
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (damageInfo.playerId === otherShip.playerId) {
-        const damageSprite = self.add.rectangle(
-          otherShip.x + damageInfo.damage.x,
-          otherShip.y + damageInfo.damage.y,
-          10, 10, 0xff0000
-        );
-        damageSprite.setDepth(2);
-        damageSprite.damageId = damageInfo.damage.id;
-        otherShip.damages.push(damageSprite);
+      if (!self.ship.damages) {
+        self.ship.damages = [];
       }
-    });
+      self.ship.damages.push(damageSprite);
+    }
   });
 
   this.socket.on('playerIsDead', function (playerInfo, deathData) {
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (playerInfo.playerId === otherShip.playerId) {
-
-        // console.log("HEARING PLAYER DEATH SOUND")
-
-        // // LOGICA DE VOLUMEN DEPENDIENDO DISTANCIA
-
-        // const distance = Phaser.Math.Distance.Between(self.ship.x, self.ship.y, deathData.x, deathData.y);
-
-        // // Define una función que ajusta el volumen en función de la distancia.
-        // function calculateVolume(distance, maxDistance) {
-        //   // Puedes ajustar esta fórmula según tus necesidades.
-        //   // En este caso, el volumen disminuirá linealmente a medida que la distancia aumenta.
-        //   return Math.max(0, 1 - distance / maxDistance);
-        // }
-
-        // const maxDistance = 1000; // La distancia máxima a la que quieres que el sonido sea audible.
-
-        // const volume = calculateVolume(distance, maxDistance);
-
-        // console.log("PLAYER DEATH VOLUME: ", 0.03 * volume)
-
-        // // Establece el volumen del sonido en función de la distancia.
-        // self.playerDeathSound.setVolume(0.03 * volume);
-
-        // self.playerDeathSound.play();
-
-        if (otherShip.playerSprite) {
-          otherShip.playerSprite.setTexture(playerInfo.sprite)
-          otherShip.playerSprite.setPosition(playerInfo.x, playerInfo.y)
-          otherShip.playerSprite.setRotation(playerInfo.rotation)
-        }
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (playerInfo.playerId === otherPlayer.playerId) {
+        otherPlayer.setTexture(playerInfo.sprite);
+        otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+        otherPlayer.setRotation(playerInfo.rotation);
       }
     });
   });
@@ -505,27 +440,18 @@ function create() {
 
   // Handle chat messages
   this.socket.on('playerSentMessage', function (messageData) {
-    const MAX_CHAT_DISTANCE = 550; // Distancia máxima para ver mensajes
+    const MAX_CHAT_DISTANCE = 550; // Max distance to see messages
 
-    // Si es mi propio mensaje, mostrarlo sobre mi jugador
+    // If it's my own message, show it above my player
     if (messageData.playerId === self.socket.id) {
       showChatBubble(self, self.player, messageData.message);
       return;
     }
 
-    // Buscar al jugador que envió el mensaje
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (messageData.playerId === otherShip.playerId) {
-        // Calcular distancia entre mi barco y el otro barco
-        const distance = Phaser.Math.Distance.Between(
-          self.ship.x, self.ship.y,
-          otherShip.x, otherShip.y
-        );
-
-        // Solo mostrar si está dentro del rango
-        if (distance <= MAX_CHAT_DISTANCE) {
-          showChatBubble(self, otherShip.playerSprite, messageData.message);
-        }
+    // Find the player who sent the message (all players are on the same ship now)
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (messageData.playerId === otherPlayer.playerId) {
+        showChatBubble(self, otherPlayer, messageData.message);
       }
     });
   });
@@ -539,21 +465,16 @@ function create() {
     };
   });
 
-  // Listen for lantern toggle from other players
+  // Listen for lantern toggle on shared ship
   this.socket.on('lanternToggled', function (data) {
-    if (data.playerId === self.socket.id) {
-      // My own lantern - already toggled locally
-      return;
-    }
-
-    // Find the other ship and toggle its lantern
-    self.otherShips.getChildren().forEach(function (otherShip) {
-      if (otherShip.playerId === data.playerId) {
-        otherShip.lanternLit = data.lanternLit;
-        // Update the visual state
-        updateLanternVisual(otherShip.lantern, otherShip.lanternLit);
+    // Update lantern state on shared ship
+    if (self.lanternLit !== data.lanternLit) {
+      self.lanternLit = data.lanternLit;
+      // Update the visual state
+      if (self.lantern) {
+        updateLanternVisual(self.lantern, self.lanternLit);
       }
-    });
+    }
   });
 
 }
@@ -911,11 +832,7 @@ function update(time, delta) {
 
     // ===== ACTUALIZAR EMISORES DE ESTELA =====
     updateShipWakeEmitters(this.ship);
-
-    // Actualizar emisores de estela para todos los otherShips
-    this.otherShips.getChildren().forEach(function (otherShip) {
-      updateShipWakeEmitters(otherShip);
-    });
+    // Note: Only one shared ship, so only one wake emitter
 
     // ===== UPDATE LIGHT MASK =====
     // Calculate darkness factor based on time of day
@@ -949,17 +866,7 @@ function update(time, delta) {
         lanternPositions.push({ x: camX, y: camY });
       }
 
-      // Add other ships' lanterns if lit
-      const self = this;
-      const zoom = this.cameras.main.zoom;
-      const cam = this.cameras.main;
-      this.otherShips.getChildren().forEach(function (otherShip) {
-        if (otherShip.lanternLit) {
-          const camX = (otherShip.x - cam.scrollX) * zoom + cam.width / 2 * (1 - zoom);
-          const camY = (otherShip.y - cam.scrollY) * zoom + cam.height / 2 * (1 - zoom);
-          lanternPositions.push({ x: camX, y: camY });
-        }
-      });
+      // Note: All players share the same ship, so only one lantern exists
 
       // Update the light mask in UIScene
       const uiScene = this.scene.get('UIScene');
@@ -975,10 +882,8 @@ function update(time, delta) {
     }
 
     // Actualizar burbujas de otros jugadores
-    this.otherShips.getChildren().forEach(function (otherShip) {
-      if (otherShip.playerSprite) {
-        updateChatBubblePosition(otherShip.playerSprite);
-      }
+    this.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      updateChatBubblePosition(otherPlayer);
     });
 
     // Calcular posición relativa del jugador al barco
@@ -1006,6 +911,10 @@ function update(time, delta) {
           rotation: this.ship.rotation,
           velocityX: this.ship.body.velocity.x,
           velocityY: this.ship.body.velocity.y,
+          isAnchored: this.ship.isAnchored,           // Critical for particles sync
+          currentSpeed: this.ship.currentSpeed,       // Critical for particles intensity
+          targetSpeed: this.ship.targetSpeed,         // Critical for navigation level
+          steeringDirection: this.steeringDirection,  // Ship steering wheel position
           cannons: {
             leftAngle: this.ship.cannons ? this.ship.cannons.left.relativeAngle : 0,
             rightAngle: this.ship.cannons ? this.ship.cannons.right.relativeAngle : 0

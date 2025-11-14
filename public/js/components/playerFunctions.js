@@ -18,6 +18,13 @@ function addPlayer(self, playerInfo, ship) {
     player.canMove = true; // Control de movimiento
     player.ship = ship; // Referencia al barco
 
+    // Coordenadas locales persistentes (relativas al barco)
+    player.localX = playerInfo.x;
+    player.localY = playerInfo.y;
+
+    // Rotación local persistente (relativa al barco)
+    player.lastRotation = Math.PI;
+
     // Jugador apunta inicialmente hacia arriba
     player.setRotation(Math.PI);
 
@@ -49,125 +56,112 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
     if (!player.isControllingShip && !player.isOnCannon) {
         // El jugador NO está en el timón ni en el cañón - puede caminar
 
+        // Usar coordenadas locales persistentes (NO recalcular desde world position)
+        let localX = player.localX;
+        let localY = player.localY;
+
+        // Variables para animación y rotación
+        let isMoving = false;
+        let playerRotation = player.rotation;
+
         // Solo procesar input WASD si inputEnabled = true
         if (inputEnabled) {
-            let playerVelX = 0;
-            let playerVelY = 0;
+            // Aplicar movimiento en coordenadas DEL MUNDO (absolutas)
+            let worldVelX = 0;
+            let worldVelY = 0;
 
-            // Input WASD
-            if (input.keyW.isDown) playerVelY -= playerSpeed;
-            if (input.keyS.isDown) playerVelY += playerSpeed;
-            if (input.keyA.isDown) playerVelX -= playerSpeed;
-            if (input.keyD.isDown) playerVelX += playerSpeed;
+            if (input.keyW.isDown) worldVelY -= playerSpeed; // NORTE (absoluto)
+            if (input.keyS.isDown) worldVelY += playerSpeed; // SUR (absoluto)
+            if (input.keyA.isDown) worldVelX -= playerSpeed; // OESTE (absoluto)
+            if (input.keyD.isDown) worldVelX += playerSpeed; // ESTE (absoluto)
 
             // Normalizar velocidad diagonal
-            if (playerVelX !== 0 && playerVelY !== 0) {
-                playerVelX *= 0.707;
-                playerVelY *= 0.707;
+            if (worldVelX !== 0 && worldVelY !== 0) {
+                worldVelX *= 0.707;
+                worldVelY *= 0.707;
             }
 
-            player.setVelocity(playerVelX, playerVelY);
+            // Convertir velocidad del mundo a velocidad LOCAL
+            const cosAngle = Math.cos(-ship.rotation);
+            const sinAngle = Math.sin(-ship.rotation);
+            const localVelX = worldVelX * cosAngle - worldVelY * sinAngle;
+            const localVelY = worldVelX * sinAngle + worldVelY * cosAngle;
 
-            // Play run animation if moving, stop if idle
-            if (playerVelX !== 0 || playerVelY !== 0) {
-                if (!player.anims.isPlaying || player.anims.currentAnim.key !== 'run') {
-                    player.play('run');
-                }
-            } else {
-                if (player.anims.isPlaying) {
-                    player.stop();
-                    player.setFrame('tile000.png');
+            // Aplicar movimiento directamente a coordenadas locales PERSISTENTES
+            localX += localVelX * deltaTime;
+            localY += localVelY * deltaTime;
+
+            // Determinar si está en movimiento
+            isMoving = (worldVelX !== 0 || worldVelY !== 0);
+
+            // Rotar jugador según dirección del input (en coordenadas ABSOLUTAS del mundo)
+            if (isMoving) {
+                const directionAngles = {
+                    "W":  Math.PI,                  // NORTE (absoluto)
+                    "S":  0,                        // SUR (absoluto)
+                    "A":  Math.PI / 2,              // OESTE (absoluto)
+                    "D": -Math.PI / 2,              // ESTE (absoluto)
+                    "WA": (3 * Math.PI) / 4,        // Noroeste
+                    "WD": -(3 * Math.PI) / 4,       // Noreste
+                    "SA": Math.PI / 4,              // Suroeste
+                    "SD": -Math.PI / 4              // Sureste
+                };
+
+                let combo = "";
+                if (input.keyW.isDown) combo += "W";
+                if (input.keyS.isDown) combo += "S";
+                if (input.keyA.isDown) combo += "A";
+                if (input.keyD.isDown) combo += "D";
+
+                const angle = directionAngles[combo];
+                if (angle !== undefined) {
+                    playerRotation = angle;
                 }
             }
+        }
 
-            const directionAngles = {
-                "W":  Math.PI,                  // Arriba
-                "S":  0,                        // Abajo
-                "A":  Math.PI / 2,              // Izquierda
-                "D": -Math.PI / 2,              // Derecha
-                "WA": (3 * Math.PI) / 4,        // Arriba-Izquierda
-                "WD": -(3 * Math.PI) / 4,       // Arriba-Derecha
-                "SA": Math.PI / 4,              // Abajo-Izquierda
-                "SD": -Math.PI / 4              // Abajo-Derecha
-            };
+        // Clamping: Mantener jugador dentro de los límites del barco
+        const shipBoundsWidth = 178 - 45;
+        const shipBoundsHeight = 463 - 200;
+        const maxX = shipBoundsWidth / 2 - 12;
+        const maxY = shipBoundsHeight / 2 - 7.5;
 
-            let combo = "";
-            if (input.keyW.isDown) combo += "W";
-            if (input.keyS.isDown) combo += "S";
-            if (input.keyA.isDown) combo += "A";
-            if (input.keyD.isDown) combo += "D";
+        localX = Phaser.Math.Clamp(localX, -maxX, maxX);
+        localY = Phaser.Math.Clamp(localY, -maxY, maxY);
 
-            const angle = directionAngles[combo];
-            if (angle !== undefined) {
-                player.setRotation(angle);
+        // Guardar coordenadas locales actualizadas (persistentes)
+        player.localX = localX;
+        player.localY = localY;
+
+        // Convertir coordenadas locales de vuelta a coordenadas del mundo
+        const cosAngleBack = Math.cos(ship.rotation);
+        const sinAngleBack = Math.sin(ship.rotation);
+        const worldX = localX * cosAngleBack - localY * sinAngleBack;
+        const worldY = localX * sinAngleBack + localY * cosAngleBack;
+
+        // Posicionar jugador ABSOLUTAMENTE (sin velocity propia)
+        player.setPosition(ship.x + worldX, ship.y + worldY);
+        player.setVelocity(0, 0); // Eliminar velocity propia (pegado al barco)
+
+        // Rotación del sprite siempre en coordenadas absolutas del mundo
+        // Mantiene la dirección en la que el jugador estaba caminando
+        if (isMoving) {
+            player.lastRotation = playerRotation;
+        }
+        // Aplicar rotación absoluta (sin agregar ship.rotation)
+        player.setRotation(player.lastRotation);
+
+        // Manejar animación
+        if (isMoving) {
+            if (!player.anims.isPlaying || player.anims.currentAnim.key !== 'run') {
+                player.play('run');
             }
         } else {
-            // Si input está deshabilitado, detener movimiento del jugador
-            player.setVelocity(0, 0);
-
-            // Stop animation when input disabled
             if (player.anims.isPlaying) {
                 player.stop();
                 player.setFrame('tile000.png');
             }
         }
-
-        // IMPORTANTE: Heredar movimiento del barco (SIEMPRE ejecutar)
-        // El jugador se mueve junto con el barco para mantener su posición relativa
-        player.x += ship.body.velocity.x * deltaTime;
-        player.y += ship.body.velocity.y * deltaTime;
-
-        // ROTACIÓN: Si el barco giró, rotar la posición del jugador alrededor del centro del barco
-        if (ship.previousRotation !== undefined) {
-            const rotationDelta = ship.rotation - ship.previousRotation;
-
-            if (rotationDelta !== 0) {
-                // Calcular posición relativa del jugador al barco
-                const dx = player.x - ship.x;
-                const dy = player.y - ship.y;
-
-                // Rotar el vector de posición relativa
-                const cos = Math.cos(rotationDelta);
-                const sin = Math.sin(rotationDelta);
-                const rotatedX = dx * cos - dy * sin;
-                const rotatedY = dx * sin + dy * cos;
-
-                // Actualizar posición del jugador
-                player.x = ship.x + rotatedX;
-                player.y = ship.y + rotatedY;
-
-                // También rotar el sprite visual del jugador para mantener orientación relativa al barco
-                player.rotation += rotationDelta;
-            }
-        }
-
-        // Mantener jugador dentro del barco (tamaño visual del sprite)
-        const shipBoundsWidth = 178 - 45;
-        const shipBoundsHeight = 463 - 200;
-
-        // Calcular posición relativa del jugador al barco
-        const dx = player.x - ship.x;
-        const dy = player.y - ship.y;
-
-        // Rotar el offset del jugador según la rotación del barco
-        const cosAngle = Math.cos(-ship.rotation);
-        const sinAngle = Math.sin(-ship.rotation);
-        const localX = dx * cosAngle - dy * sinAngle;
-        const localY = dx * sinAngle + dy * cosAngle;
-
-        // Limitar el movimiento
-        const maxX = shipBoundsWidth / 2 - 12;
-        const maxY = shipBoundsHeight / 2 - 7.5;
-        const clampedX = Phaser.Math.Clamp(localX, -maxX, maxX);
-        const clampedY = Phaser.Math.Clamp(localY, -maxY, maxY);
-
-        // Convertir de vuelta a coordenadas del mundo
-        const cosAngleBack = Math.cos(ship.rotation);
-        const sinAngleBack = Math.sin(ship.rotation);
-        const worldX = clampedX * cosAngleBack - clampedY * sinAngleBack;
-        const worldY = clampedX * sinAngleBack + clampedY * cosAngleBack;
-
-        player.setPosition(ship.x + worldX, ship.y + worldY);
 
     } else if (player.isOnCannon) {
         // El jugador ESTÁ en el cañón - no puede caminar
