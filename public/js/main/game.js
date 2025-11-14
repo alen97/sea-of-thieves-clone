@@ -472,35 +472,12 @@ function create() {
 
 ////////////////////////////////////////// UPDATE
 
-// Configuración de parámetros
-const accelerationRateForward = 0.001;  // Tasa de aumento de aceleración al ir hacia adelante
-const accelerationRateReverse = 0.01;   // Tasa de aumento de aceleración al ir en reversa
-
-const maxSpeedForward = 150;  // Velocidad máxima al ir hacia adelante
-const maxSpeedReverse = 200;  // Velocidad máxima al ir en reversa
-let acceleration = 0;
-let turnSpeed = 50;
-const friction = 0.99; // Factor de fricción para simular pérdida gradual de velocidad
-
-let isDrifting = false;  // Variable para rastrear si el jugador está realizando un drift
-const driftFactor = 0.8;  // Factor de deriva para reducir la velocidad durante el drift
-
 // Variables de control
 let steeringDirection = 0; // Rango de -100 a 100
-const maxSteeringDirection = 100;
-const steeringIncrement = 1; // Ajusta la sensibilidad del timón
-// Variables para el bloqueo de dirección
-let maxLeftSteering = 0;
-let maxRightSteering = 0;
-// Nivel de navegación
-let navigationLevel = 2; // 1: frenado, 2: nivel medio, 3: máxima velocidad
 
 // Variable para el estado del ancla
 let isAnchored = false;
 let targetSpeed = 0;
-
-let triggerShootLeft = false;
-let triggerShootRight = false;
 
 // Definir variables de cooldown
 let canShootLeft = true;
