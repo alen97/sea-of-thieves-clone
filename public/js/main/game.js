@@ -206,8 +206,6 @@ function create() {
       // Update existing ship position (for room transitions)
       self.ship.setPosition(shipData.x, shipData.y);
       self.ship.setRotation(shipData.rotation);
-      self.ship.health = shipData.health;
-      self.ship.damages = shipData.damages || [];
       self.ship.lanternLit = shipData.lanternLit;
       self.ship.isAnchored = shipData.isAnchored !== undefined ? shipData.isAnchored : true;
       self.ship.currentSpeed = shipData.currentSpeed || 0;
@@ -388,25 +386,6 @@ function create() {
   this.socket.on('newBullet', function (creationData) {
     console.log("PRE ADD BULLET ", creationData)
     addBullet(self, creationData);
-  });
-
-  // Event when shared ship takes damage
-  this.socket.on('shipTookDamage', function (damageInfo) {
-    if (self.ship) {
-      // Create damage sprite on shared ship
-      const damageSprite = self.add.rectangle(
-        self.ship.x + damageInfo.damage.x,
-        self.ship.y + damageInfo.damage.y,
-        10, 10, 0xff0000
-      );
-      damageSprite.setDepth(2);
-      damageSprite.damageId = damageInfo.damage.id;
-
-      if (!self.ship.damages) {
-        self.ship.damages = [];
-      }
-      self.ship.damages.push(damageSprite);
-    }
   });
 
   this.socket.on('playerIsDead', function (playerInfo, deathData) {
@@ -1063,22 +1042,6 @@ class UIScene extends Phaser.Scene {
     bitmapMask.invertAlpha = true; // Invert: white in mask = transparent in overlay
     this.dayNightOverlay.setMask(bitmapMask);
 
-    // Barra de salud del barco (parte superior central)
-    this.healthBarBg = this.add.rectangle(cameraX, 30, 204, 24, 0x000000)
-      .setScrollFactor(0)
-      .setDepth(100);
-
-    this.healthBarFill = this.add.rectangle(cameraX - 100, 30, 200, 20, 0x00ff00)
-      .setScrollFactor(0)
-      .setDepth(101)
-      .setOrigin(0, 0.5);
-
-    this.healthText = this.add.text(cameraX, 30, 'HP: 100%', {
-      fontSize: '14px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setScrollFactor(0).setDepth(102).setOrigin(0.5);
-
     // Indicador de timón - Barra horizontal minimalista
     const helmBarWidth = 425; // Ancho de la barra (con margen de 50px en cada lado)
     const helmBarY = cameraY + 350; // Posición en el viewport
@@ -1439,22 +1402,6 @@ class UIScene extends Phaser.Scene {
     } else {
       this.mapCells.forEach(cell => cell.rect.setVisible(false));
       this.playerIndicator.setVisible(false);
-    }
-
-    // Actualizar barra de salud
-    if (this.mainScene.ship) {
-      const healthPercent = Math.max(0, Math.min(100, this.mainScene.ship.health));
-      this.healthBarFill.width = (healthPercent / 100) * 200;
-      this.healthText.setText('HP: ' + Math.floor(healthPercent) + '%');
-
-      // Cambiar color según salud
-      if (healthPercent > 60) {
-        this.healthBarFill.setFillStyle(0x00ff00); // Verde
-      } else if (healthPercent > 30) {
-        this.healthBarFill.setFillStyle(0xffff00); // Amarillo
-      } else {
-        this.healthBarFill.setFillStyle(0xff0000); // Rojo
-      }
     }
 
     // Actualizar estado del jugador

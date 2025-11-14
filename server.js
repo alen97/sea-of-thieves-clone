@@ -52,8 +52,6 @@ function createShip(x, y) {
     rotation: 0,
     velocityX: 0,
     velocityY: 0,
-    health: 100,
-    damages: [],
     lanternLit: false,
     isAnchored: true,      // Critical: for wake particles sync
     currentSpeed: 0,       // Critical: for wake particles intensity
@@ -301,40 +299,6 @@ io.on('connection', function (socket) {
       room.bullets.push({ id: room.bullets.length });
       // Emit to all players in the same room
       io.to(roomId).emit('newBullet', creationData);
-    }
-  });
-
-  // when ship takes damage
-  socket.on('shipDamaged', function (damageData) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
-    const room = rooms[roomId];
-
-    if (room && room.ship) {
-      // Add new damage to the shared ship's damages array
-      room.ship.damages.push({
-        x: damageData.x,
-        y: damageData.y,
-        id: damageData.id
-      });
-
-      // Emit damage to all players in the same room
-      io.to(roomId).emit('shipTookDamage', {
-        damage: damageData,
-        health: room.ship.health
-      });
-    }
-  });
-
-  // when ship health updates
-  socket.on('shipHealthUpdate', function (healthData) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
-    const room = rooms[roomId];
-
-    if (room && room.ship) {
-      room.ship.health = healthData.health;
-      io.to(roomId).emit('shipHealthChanged', {
-        health: healthData.health
-      });
     }
   });
 

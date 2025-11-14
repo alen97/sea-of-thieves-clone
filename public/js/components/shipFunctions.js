@@ -12,8 +12,6 @@ function addShip(self, shipInfo) {
     ship.body.collideWorldBounds = false;
 
     // Estado del barco
-    ship.health = shipInfo.health || 100;
-    ship.damages = []; // Array de sprites de roturas
     ship.isAnchored = true; // Barco empieza con ancla puesta
     ship.currentSpeed = 0; // Velocidad actual (gradual)
 
@@ -35,21 +33,6 @@ function addOtherShip(self, shipInfo) {
 
     ship.playerId = shipInfo.playerId;
     ship.setRotation(shipInfo.rotation);
-    ship.damages = [];
-
-    // Agregar roturas si existen
-    if (shipInfo.damages && shipInfo.damages.length > 0) {
-        shipInfo.damages.forEach(damage => {
-            const damageSprite = self.add.rectangle(
-                shipInfo.x + damage.x,
-                shipInfo.y + damage.y,
-                10, 10, 0xff0000
-            );
-            damageSprite.setDepth(2);
-            damageSprite.damageId = damage.id;
-            ship.damages.push(damageSprite);
-        });
-    }
 
     return ship;
 }
@@ -115,44 +98,14 @@ function updateShip(self, ship, isControlled, input, inputEnabled = true) {
     const velocityY = Math.sin(shipAngle) * ship.currentSpeed;
 
     ship.setVelocity(velocityX, velocityY);
-
-    // Sistema de degradación de salud por roturas
-    if (ship.damages.length > 0) {
-        const healthLossPerFrame = (ship.damages.length * 0.5) / 60;
-        ship.health -= healthLossPerFrame;
-        ship.health = Math.max(0, ship.health);
-
-        // Emitir actualización de salud cada cierto tiempo
-        if (!self.lastHealthUpdate || Date.now() - self.lastHealthUpdate > 500) {
-            self.socket.emit('shipHealthUpdate', { health: ship.health });
-            self.lastHealthUpdate = Date.now();
-        }
-    }
 }
 
 function setupShipCollisions(self, ship) {
-    // Colisión de balas con el BARCO
+    // Colisión de balas con el BARCO (sin daño)
     self.physics.add.overlap(ship, self.otherBullets, function (shipObj, bullet) {
         if (shipObj.playerId !== bullet.shooterId) {
-            // Crear rotura en el punto de impacto
-            const damageId = Date.now() + Math.random();
-
-            // Crear sprite de rotura (cuadrado rojo)
-            const damageSprite = self.add.rectangle(bullet.x, bullet.y, 10, 10, 0xff0000);
-            damageSprite.setDepth(2);
-            damageSprite.damageId = damageId;
-
-            shipObj.damages.push(damageSprite);
-
-            // Emitir daño al servidor
-            self.socket.emit('shipDamaged', {
-                x: bullet.x - shipObj.x,
-                y: bullet.y - shipObj.y,
-                id: damageId
-            });
-
+            // Destruir bala al impactar (sin causar daño)
             bullet.destroy();
-            self.cameras.main.shake(200, 0.02);
         }
     }, null, self);
 }
