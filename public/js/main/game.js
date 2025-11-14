@@ -233,12 +233,9 @@ function create() {
         const newY = Phaser.Math.Linear(self.ship.y, targetY, lerpFactor);
         self.ship.setPosition(newX, newY);
 
-        // Lerp rotation (handle wrapping)
-        let rotDiff = targetRot - self.ship.rotation;
-        if (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
-        if (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
-        const newRot = self.ship.rotation + rotDiff * lerpFactor;
-        self.ship.setRotation(newRot);
+        // Don't lerp rotation - let angular velocity handle it
+        // Rotation is controlled by physics (setAngularVelocity in updateShip)
+        // Lerping rotation would override angular velocity and slow down turns
       }
 
       // Always sync critical properties (even if you're controlling - for consistency)
