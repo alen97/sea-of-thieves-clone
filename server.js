@@ -12,9 +12,9 @@ const MAX_PLAYERS = 4;
 
 // Modifier system constants
 const MODIFIER_TYPES = {
-  SPEED: { type: 'SPEED', color: 0xff0000, effect: 'speed', bonus: 0.5 }, // Red - +50% speed
-  TURNING: { type: 'TURNING', color: 0xffff00, effect: 'turning', bonus: 0.5 }, // Yellow - +50% turning
-  FIRE_RATE: { type: 'FIRE_RATE', color: 0x00ff00, effect: 'fireRate', bonus: 0.5 } // Green - +50% fire rate
+  SPEED: { type: 'SPEED', color: 0xff0000, effect: 'speed' },
+  TURNING: { type: 'TURNING', color: 0xffff00, effect: 'turning' },
+  FIRE_RATE: { type: 'FIRE_RATE', color: 0x00ff00, effect: 'fireRate' }
 };
 const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room
 const MODIFIER_SIZE = 8;

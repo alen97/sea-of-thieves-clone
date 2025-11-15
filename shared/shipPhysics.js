@@ -116,8 +116,8 @@ function updateShipPhysics(state, input, deltaTime = 1/60, modifiers = null) {
     let TURN_MULTIPLIER = 1.0;
 
     if (modifiers) {
-        if (modifiers.speed) SPEED_MULTIPLIER = 1.5; // +50% speed
-        if (modifiers.turning) TURN_MULTIPLIER = 1.5; // +50% turning
+        if (modifiers.speed) SPEED_MULTIPLIER = 1.5;
+        if (modifiers.turning) TURN_MULTIPLIER = 2.0;
     }
 
     // Calculate new steering
