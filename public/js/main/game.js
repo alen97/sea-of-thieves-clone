@@ -1317,6 +1317,19 @@ class UIScene extends Phaser.Scene {
     bitmapMask.invertAlpha = true; // Invert: white in mask = transparent in overlay
     this.dayNightOverlay.setMask(bitmapMask);
 
+    // Abyss Lantern overlay - violet tint when modifier is active
+    // This creates the "seeing through the abyss" effect
+    this.abyssOverlay = this.add.rectangle(
+      cameraX,
+      cameraY,
+      screenWidth,
+      screenHeight,
+      0x4B0082, // Deep violet/indigo color
+      0 // Initially invisible
+    );
+    this.abyssOverlay.setScrollFactor(0);
+    this.abyssOverlay.setDepth(2); // Above day/night overlay, below UI elements
+
     // Indicador de timón - Barra horizontal minimalista
     const helmBarWidth = 425; // Ancho de la barra (con margen de 50px en cada lado)
     const helmBarY = cameraY + 350; // Posición en el viewport
@@ -1656,6 +1669,21 @@ class UIScene extends Phaser.Scene {
       }
 
       this.dayNightOverlay.setFillStyle(color, alpha);
+    }
+
+    // ===== ACTUALIZAR ABYSS LANTERN OVERLAY =====
+    // Show violet overlay when Abyss Lantern modifier is active and lantern is lit
+    if (this.abyssOverlay) {
+      const hasAbyssLantern = this.mainScene.shipModifiers && this.mainScene.shipModifiers.bulletSpeed;
+      const lanternLit = this.mainScene.lanternLit;
+
+      if (hasAbyssLantern && lanternLit) {
+        // Show violet overlay with fixed alpha (same visibility day and night)
+        this.abyssOverlay.setAlpha(0.38);
+      } else {
+        // Hide overlay
+        this.abyssOverlay.setAlpha(0);
+      }
     }
 
     // ===== ACTUALIZAR MAPA =====
