@@ -89,7 +89,7 @@ function create() {
   // Fade in at the start
   this.tweens.add({
     targets: this.deepSeaAmbient,
-    volume: 0.15, // Target volume (15% to keep it ambient)
+    volume: 0.25, // Target volume (15% to keep it ambient)
     duration: 3000, // 3 second fade in
     ease: 'Sine.easeInOut'
   });
