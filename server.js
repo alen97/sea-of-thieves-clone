@@ -15,7 +15,7 @@ const MODIFIER_TYPES = {
   RIOS_WINDS: {
     id: 'rios_winds',
     name: "Río de la Plata's Winds",
-    lore: "The winds remember the sails that once danced here.",
+    lore: "Southern winds will push you in every direction.",
     type: 'RIOS_WINDS',
     color: 0x00CED1, // Dark Cyan - water in motion
     effect: 'speed',
@@ -24,8 +24,8 @@ const MODIFIER_TYPES = {
   },
   CAPTAINS_GUIDE: {
     id: 'captains_guide',
-    name: "Captain's Guide",
-    lore: "An old compass that points not north, but forward.",
+    name: "Captain's Wisdom",
+    lore: "An ancient hand guides your turns.",
     type: 'CAPTAINS_GUIDE',
     color: 0xFFD700, // Gold - navigator's light
     effect: 'turning',
