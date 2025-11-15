@@ -49,6 +49,9 @@ function preload() {
   // Ambient background music
   this.load.audio('deepSeaNoise', 'sounds/deep_sea_noise.mp3');
 
+  // Modifier potion sprite
+  this.load.image('potionModifier', 'assets/potion_modifier.png');
+
   this.load.image('bullet', 'assets/bullet.png');
   this.load.image('cannon', 'assets/cannon.png');
 
@@ -522,13 +525,21 @@ function create() {
 
     // Create visual modifiers
     modifiers.forEach(function (modifierData) {
-      const modifier = self.add.rectangle(
+      const modifier = self.add.sprite(
         modifierData.x,
         modifierData.y,
-        modifierData.size,
-        modifierData.size,
-        modifierData.color
+        'potionModifier'
       );
+
+      // Apply tint based on modifier type
+      // Yellow is the base sprite color (TURNING modifier)
+      if (modifierData.color === 0xff0000) { // SPEED - Red
+        modifier.setTint(0xff0000);
+      } else if (modifierData.color === 0x00ff00) { // FIRE_RATE - Purple/Violet
+        modifier.setTint(0x9400d3);
+      }
+      // No tint for TURNING (yellow - base sprite color)
+
       modifier.modifierId = modifierData.id;
       modifier.modifierType = modifierData.type;
       self.modifiers.add(modifier);
