@@ -1330,11 +1330,13 @@ class UIScene extends Phaser.Scene {
       screenWidth,
       screenHeight,
       0x7A00FF, // Bright violet (same as Abyss Lantern color)
-      0 // Initially invisible (controlled by alpha)
+      0.45 // Start with visible alpha for testing
     );
     this.abyssOverlay.setScrollFactor(0);
-    this.abyssOverlay.setDepth(2000); // Very high depth to ensure it's above everything except UI
-    this.abyssOverlay.setVisible(true); // Always visible, controlled by alpha instead
+    this.abyssOverlay.setDepth(10000); // Extremely high depth
+    this.abyssOverlay.setBlendMode(Phaser.BlendModes.NORMAL);
+    this.abyssOverlay.setAlpha(0); // Start invisible, will be controlled in update
+    console.log("Abyss overlay created at depth:", this.abyssOverlay.depth);
 
     // Indicador de timón - Barra horizontal minimalista
     const helmBarWidth = 425; // Ancho de la barra (con margen de 50px en cada lado)
@@ -1685,8 +1687,9 @@ class UIScene extends Phaser.Scene {
 
       if (hasAbyssLantern && lanternLit) {
         // Show violet overlay with strong alpha (same visibility day and night)
-        this.abyssOverlay.setAlpha(0.45);
-        this.abyssOverlay.setVisible(true);
+        this.abyssOverlay.setAlpha(0.5);
+        this.abyssOverlay.setFillStyle(0x7A00FF, 1.0);
+        console.log("Abyss overlay ACTIVE - alpha:", this.abyssOverlay.alpha, "visible:", this.abyssOverlay.visible, "depth:", this.abyssOverlay.depth);
       } else {
         // Hide overlay
         this.abyssOverlay.setAlpha(0);
