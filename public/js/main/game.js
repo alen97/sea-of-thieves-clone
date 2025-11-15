@@ -633,6 +633,9 @@ function update(time, delta) {
     // ===== ACTUALIZAR SHIP (client-side prediction with shared physics) =====
     if (this.player.isControllingShip && inputEnabled) {
       // Client prediction: run the same physics as server
+
+      this.ship.previousRotation = this.ship.rotation;
+
       const shipInput = {
         turnLeft: inputState.steering.left,
         turnRight: inputState.steering.right
@@ -689,6 +692,9 @@ function update(time, delta) {
         }
       });
     } else {
+
+   this.ship.previousRotation = this.ship.rotation;
+
    // Not controlling - still use shared physics but with no input
    const newState = updateShipPhysics(
      {

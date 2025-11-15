@@ -143,6 +143,14 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         player.setPosition(ship.x + worldX, ship.y + worldY);
         player.setVelocity(0, 0); // Eliminar velocity propia (pegado al barco)
 
+         // Ajustar rotación del jugador cuando el barco rota (solo si no está en movimiento)
+        if (ship.previousRotation !== undefined && !isMoving) {
+            const rotationDelta = ship.rotation - ship.previousRotation;
+            if (Math.abs(rotationDelta) > 0.001) {  // Umbral para evitar micro-ajustes
+                player.lastRotation += rotationDelta;
+            }
+        }
+
         // Rotación del sprite siempre en coordenadas absolutas del mundo
         // Mantiene la dirección en la que el jugador estaba caminando
         if (isMoving) {
