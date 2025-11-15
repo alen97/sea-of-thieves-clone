@@ -674,6 +674,10 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
   };
   const color = rarityColors[rarity] || '#FFFFFF';
 
+  // Calculate offset from ship position (so text follows ship)
+  const offsetX = x - scene.ship.x;
+  const offsetY = y - scene.ship.y;
+
   // Create main title text
   const titleText = scene.add.text(x, y - 40, name, {
     fontSize: '20px',
@@ -709,14 +713,38 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
     }
   }).setOrigin(0.5).setDepth(1000);
 
+  // Store offset data for updating position
+  titleText.shipOffsetX = offsetX;
+  titleText.shipOffsetY = offsetY - 40;
+  loreText.shipOffsetX = offsetX;
+  loreText.shipOffsetY = offsetY - 15;
+
+  // Track floating offset for animation
+  titleText.floatingOffset = 0;
+  loreText.floatingOffset = 0;
+
+  // Add to scene's floating texts list for position updates
+  if (!scene.floatingTexts) {
+    scene.floatingTexts = [];
+  }
+  scene.floatingTexts.push({ title: titleText, lore: loreText });
+
   // Fade in and float up animation
   titleText.setAlpha(0);
   loreText.setAlpha(0);
 
   scene.tweens.add({
-    targets: [titleText, loreText],
+    targets: titleText,
     alpha: 1,
-    y: '-=20',
+    floatingOffset: -20,
+    duration: 800,
+    ease: 'Sine.easeOut'
+  });
+
+  scene.tweens.add({
+    targets: loreText,
+    alpha: 1,
+    floatingOffset: -20,
     duration: 800,
     ease: 'Sine.easeOut'
   });
@@ -724,14 +752,24 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
   // Hold for a moment, then fade out
   scene.time.delayedCall(3500, () => {
     scene.tweens.add({
-      targets: [titleText, loreText],
+      targets: titleText,
       alpha: 0,
-      y: '-=30',
+      floatingOffset: -50,
+      duration: 1500,
+      ease: 'Sine.easeIn'
+    });
+
+    scene.tweens.add({
+      targets: loreText,
+      alpha: 0,
+      floatingOffset: -50,
       duration: 1500,
       ease: 'Sine.easeIn',
       onComplete: () => {
         titleText.destroy();
         loreText.destroy();
+        // Remove from floating texts list
+        scene.floatingTexts = scene.floatingTexts.filter(ft => ft.title !== titleText);
       }
     });
   });
@@ -787,6 +825,25 @@ function update(time, delta) {
     // ===== SISTEMA DE FAROL =====
     // Update lantern position to follow ship
     updateLanternPosition(this.lantern, this.ship);
+
+    // ===== FLOATING MODIFIER TEXTS =====
+    // Update floating text positions to follow ship
+    if (this.floatingTexts && this.floatingTexts.length > 0) {
+      this.floatingTexts.forEach(ft => {
+        if (ft.title && ft.title.active) {
+          ft.title.setPosition(
+            this.ship.x + ft.title.shipOffsetX,
+            this.ship.y + ft.title.shipOffsetY + ft.title.floatingOffset
+          );
+        }
+        if (ft.lore && ft.lore.active) {
+          ft.lore.setPosition(
+            this.ship.x + ft.lore.shipOffsetX,
+            this.ship.y + ft.lore.shipOffsetY + ft.lore.floatingOffset
+          );
+        }
+      });
+    }
 
     // Check if player is near lantern (center of ship)
     const canUseLantern = isNearLantern(this.player, this.ship);
