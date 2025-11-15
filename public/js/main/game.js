@@ -189,7 +189,8 @@ function create() {
   this.shipModifiers = {
     speed: false,
     turning: false,
-    fireRate: false
+    fireRate: false,
+    bulletSpeed: false
   };
 
   // Track modifiers in the order they were collected (for HUD display)
@@ -356,6 +357,13 @@ function create() {
             type: 'PIRATES_TENACITY',
             color: 0xDC143C,
             name: "Pirate's Tenacity"
+          });
+        }
+        if (shipData.modifiers.bulletSpeed) {
+          self.shipModifiersArray.push({
+            type: 'ABYSS_LANTERN',
+            color: 0x7A00FF,
+            name: "Lantern of the Abyss"
           });
         }
       }
@@ -686,7 +694,7 @@ function create() {
       self.lanternLit = data.lanternLit;
       // Update the visual state
       if (self.lantern) {
-        updateLanternVisual(self.lantern, self.lanternLit);
+        updateLanternVisual(self.lantern, self.lanternLit, self.shipModifiers.bulletSpeed);
       }
     }
   });
@@ -907,7 +915,7 @@ function update(time, delta) {
       this.lanternLit = !this.lanternLit;
 
       // Update lantern visual
-      updateLanternVisual(this.lantern, this.lanternLit);
+      updateLanternVisual(this.lantern, this.lanternLit, this.shipModifiers.bulletSpeed);
 
       // Play lantern sound with fade out
       const lanternSound = this.sound.add(this.lanternLit ? 'lanternLight' : 'lanternExtinguish');
@@ -1479,9 +1487,9 @@ class UIScene extends Phaser.Scene {
       return container;
     };
 
-    // Create 3 cells for up to 3 modifiers
+    // Create 4 cells for up to 4 modifiers
     this.modifierCells = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const cell = createModifierCell(
         modifierCellStartX + i * (modifierCellSize + modifierCellSpacing),
         modifierCellStartY
@@ -1552,6 +1560,24 @@ class UIScene extends Phaser.Scene {
 
     // Create a temporary Graphics object to draw circles
     const graphics = this.add.graphics();
+
+    // If Abyss Lantern modifier is active AND lantern is lit, illuminate entire map (night vision effect)
+    const hasAbyssLantern = this.mainScene.shipModifiers && this.mainScene.shipModifiers.bulletSpeed;
+    if (hasAbyssLantern && lanternPositions.length > 0) {
+      graphics.fillStyle(0xffffff, 1.0);
+      // Draw huge circle to reveal everything (night vision effect)
+      const nightVisionRadiusWorld = 10000; // Extra large radius for full map coverage
+      const nightVisionRadius = nightVisionRadiusWorld * mainZoom;
+      graphics.fillCircle(
+        this.mainScene.cameras.main.width / 2,
+        this.mainScene.cameras.main.height / 2,
+        nightVisionRadius
+      );
+      // Draw the graphics onto the RenderTexture
+      this.lightMask.draw(graphics, 0, 0);
+      graphics.destroy();
+      return;
+    }
 
     // If it's very bright (low darkness), draw a huge circle to reveal almost everything
     if (darknessFactor < 0.1) {

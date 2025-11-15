@@ -3,22 +3,37 @@
 // ========================================
 
 // Helper function to draw lantern graphics based on lit state
-function drawLanternGraphics(graphics, isLit) {
+function drawLanternGraphics(graphics, isLit, hasAbyssLantern = false) {
   graphics.clear();
 
   if (isLit) {
-    // Three concentric circles (orange/yellow gradient) when lit
-    // Outer circle (darkest orange)
-    graphics.fillStyle(0xFF6600, 0.4);
-    graphics.fillCircle(0, 0, 12);
+    if (hasAbyssLantern) {
+      // Violet/purple gradient when Abyss Lantern modifier is active
+      // Outer circle (dark violet)
+      graphics.fillStyle(0x4B0082, 0.4);
+      graphics.fillCircle(0, 0, 12);
 
-    // Middle circle
-    graphics.fillStyle(0xFF8800, 0.7);
-    graphics.fillCircle(0, 0, 8);
+      // Middle circle
+      graphics.fillStyle(0x6A00B8, 0.7);
+      graphics.fillCircle(0, 0, 8);
 
-    // Inner circle (brightest)
-    graphics.fillStyle(0xFFAA00, 1.0);
-    graphics.fillCircle(0, 0, 5);
+      // Inner circle (brightest violet)
+      graphics.fillStyle(0x7A00FF, 1.0);
+      graphics.fillCircle(0, 0, 5);
+    } else {
+      // Three concentric circles (orange/yellow gradient) when lit normally
+      // Outer circle (darkest orange)
+      graphics.fillStyle(0xFF6600, 0.4);
+      graphics.fillCircle(0, 0, 12);
+
+      // Middle circle
+      graphics.fillStyle(0xFF8800, 0.7);
+      graphics.fillCircle(0, 0, 8);
+
+      // Inner circle (brightest)
+      graphics.fillStyle(0xFFAA00, 1.0);
+      graphics.fillCircle(0, 0, 5);
+    }
   } else {
     // Single gray circle when unlit
     graphics.fillStyle(0x666666, 0.8);
@@ -39,7 +54,7 @@ function addBreathingAnimation(scene, lanternContainer) {
 }
 
 // Create the lantern visual
-function createLantern(self, ship, isLit = false) {
+function createLantern(self, ship, isLit = false, hasAbyssLantern = false) {
   const lanternContainer = self.add.container(ship.x, ship.y);
 
   const graphics = self.add.graphics();
@@ -49,7 +64,7 @@ function createLantern(self, ship, isLit = false) {
   lanternContainer.scene = self;
 
   // Draw initial state
-  drawLanternGraphics(graphics, isLit);
+  drawLanternGraphics(graphics, isLit, hasAbyssLantern);
 
   lanternContainer.add(graphics);
   lanternContainer.setDepth(2.3); // Above ship, below cannons
@@ -63,11 +78,11 @@ function createLantern(self, ship, isLit = false) {
 }
 
 // Update lantern visual when lit state changes
-function updateLanternVisual(lantern, isLit) {
+function updateLanternVisual(lantern, isLit, hasAbyssLantern = false) {
   if (!lantern || !lantern.graphics) return;
 
   // Update graphics
-  drawLanternGraphics(lantern.graphics, isLit);
+  drawLanternGraphics(lantern.graphics, isLit, hasAbyssLantern);
 
   // Remove existing tweens (breathing animation)
   if (lantern.scene && lantern.scene.tweens) {

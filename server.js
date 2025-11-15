@@ -41,6 +41,16 @@ const MODIFIER_TYPES = {
     effect: 'fireRate',
     bonus: 0.3,
     rarity: 'rare'
+  },
+  ABYSS_LANTERN: {
+    id: 'abyss_lantern',
+    name: "Lantern of the Abyss",
+    lore: "See the void with its own eyes.",
+    type: 'ABYSS_LANTERN',
+    color: 0x7A00FF, // Violeta abismal
+    effect: 'bulletSpeed',
+    bonus: 0.35,
+    rarity: 'epic'
   }
 };
 const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room
@@ -146,7 +156,8 @@ function applyModifier(ship, modifierType) {
     ship.modifiers = {
       speed: false,
       turning: false,
-      fireRate: false
+      fireRate: false,
+      bulletSpeed: false
     };
   }
 
@@ -183,7 +194,8 @@ function createShip(x, y) {
     modifiers: {
       speed: false,
       turning: false,
-      fireRate: false
+      fireRate: false,
+      bulletSpeed: false
     },
 
     // Server-side input management

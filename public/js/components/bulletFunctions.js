@@ -4,6 +4,12 @@ function addBullet(self, creationData) {
   console.log("CREATE BULLET!");
 
   const bullet = self.physics.add.sprite(creationData.x, creationData.y, 'bullet').setOrigin(0.5, 0.5).setDisplaySize(12, 12);
+
+  // Apply color tint if specified (for Abyss Lantern modifier)
+  if (creationData.color) {
+    bullet.setTint(creationData.color);
+  }
+
   const shoot = self.sound.add('shoot');
 
   // LOGICA DE VOLUMEN DEPENDIENDO DISTANCIA
