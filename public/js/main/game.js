@@ -715,9 +715,9 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
 
   // Store offset data for updating position
   titleText.shipOffsetX = offsetX;
-  titleText.shipOffsetY = offsetY - 120;
+  titleText.shipOffsetY = offsetY - 170;
   loreText.shipOffsetX = offsetX;
-  loreText.shipOffsetY = offsetY - 90;
+  loreText.shipOffsetY = offsetY - 140;
 
   // Track floating offset for animation
   titleText.floatingOffset = 0;
