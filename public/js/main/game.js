@@ -373,6 +373,18 @@ function create() {
   });
 
   this.socket.on('newPlayer', function (playerInfo) {
+    // Don't create a player for ourselves
+    if (playerInfo.playerId === self.socket.id) {
+      return;
+    }
+
+    // Check if player already exists - don't create duplicates
+    const existingPlayer = self.otherPlayers.getChildren().find(p => p.playerId === playerInfo.playerId);
+    if (existingPlayer) {
+      console.log(`Player ${playerInfo.playerId} already exists, skipping creation`);
+      return;
+    }
+
     // Create other player's avatar on the shared ship
     if (self.ship) {
       const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship);

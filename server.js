@@ -444,17 +444,31 @@ io.on('connection', function (socket) {
         }
       });
 
-      // Notify all players in adjacent rooms (who didn't move) about the new ship and players
+      // Notify players in adjacent rooms (who didn't move) about the new ship and players
       const adjacentRooms = getAdjacentRooms(roomData.roomX, roomData.roomY);
+
+      // Broadcast ship update to all adjacent rooms
       adjacentRooms.forEach(room => {
         io.to(room.roomId).emit('sharedShip', newRoom.ship);
       });
 
-      // Notify each player who moved to all rooms in the new area
-      playersToMove.forEach(playerId => {
-        if (newRoom.players[playerId]) {
-          adjacentRooms.forEach(room => {
-            io.to(room.roomId).emit('newPlayer', newRoom.players[playerId]);
+      // Get all sockets in adjacent rooms (excluding those who moved)
+      adjacentRooms.forEach(room => {
+        const roomData = rooms[room.roomId];
+        if (roomData && roomData.players) {
+          Object.keys(roomData.players).forEach(playerId => {
+            // Only notify players who DIDN'T move
+            if (!playersToMove.includes(playerId)) {
+              const playerSocket = io.sockets.connected[playerId];
+              if (playerSocket) {
+                // Send each moved player to this stationary player
+                playersToMove.forEach(movedPlayerId => {
+                  if (newRoom.players[movedPlayerId]) {
+                    playerSocket.emit('newPlayer', newRoom.players[movedPlayerId]);
+                  }
+                });
+              }
+            }
           });
         }
       });
