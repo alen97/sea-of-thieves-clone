@@ -307,9 +307,16 @@ function create() {
   });
 
   this.socket.on('currentPlayers', function (players) {
-    // Clear all existing other players when receiving fresh player list (e.g., room change)
+    // Instead of destroying all players, update existing ones and remove only those who left
+    const incomingPlayerIds = Object.keys(players)
+      .filter(id => players[id].playerId !== self.socket.id)
+      .map(id => players[id].playerId);
+
+    // Remove only players who are no longer in the list
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-      otherPlayer.destroy();
+      if (!incomingPlayerIds.includes(otherPlayer.playerId)) {
+        otherPlayer.destroy();
+      }
     });
 
     Object.keys(players).forEach(function (id) {
@@ -328,9 +335,21 @@ function create() {
           );
         }
       } else {
-        // Create other players' avatars (they share the same ship)
-        if (self.ship) {
-          const otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
+        // Find existing player or create new one
+        let otherPlayer = self.otherPlayers.getChildren().find(p => p.playerId === players[id].playerId);
+
+        if (otherPlayer && self.ship) {
+          // Update existing player - preserves animation state
+          otherPlayer.setPosition(
+            self.ship.x + players[id].player.x,
+            self.ship.y + players[id].player.y
+          );
+          otherPlayer.setRotation(players[id].player.rotation);
+          otherPlayer.roomX = players[id].roomX;
+          otherPlayer.roomY = players[id].roomY;
+        } else if (self.ship) {
+          // Create new player
+          otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
           otherPlayer.playerId = players[id].playerId;
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;

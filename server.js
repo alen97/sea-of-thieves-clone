@@ -434,11 +434,19 @@ io.on('connection', function (socket) {
         }
       });
 
-      // Notify new room about new ship and players
-      io.to(newRoomId).emit('sharedShip', newRoom.ship);
-      playersToMove.forEach(playerId => {
-        if (newRoom.players[playerId]) {
-          io.to(newRoomId).emit('newPlayer', newRoom.players[playerId]);
+      // Notify all adjacent rooms (including the new room) about the ship update
+      const adjacentRooms = getAdjacentRooms(roomData.roomX, roomData.roomY);
+      adjacentRooms.forEach(room => {
+        io.to(room.roomId).emit('sharedShip', newRoom.ship);
+      });
+
+      // Notify old room that ship has left (if there are still players there)
+      const oldAdjacentRooms = getAdjacentRooms(socket.currentRoomX, socket.currentRoomY);
+      oldAdjacentRooms.forEach(room => {
+        const roomData = rooms[room.roomId];
+        if (roomData && Object.keys(roomData.players).length > 0) {
+          // Send update about ship no longer being in the old room
+          io.to(room.roomId).emit('sharedShip', oldRoom.ship);
         }
       });
 
