@@ -46,6 +46,9 @@ function preload() {
 
   this.load.audio('enterGame', ['sounds/portalenter.ogg', 'sounds/portalenter.mp3']);
 
+  // Ambient background music
+  this.load.audio('deepSeaNoise', 'sounds/deep_sea_noise.mp3');
+
   this.load.image('bullet', 'assets/bullet.png');
   this.load.image('cannon', 'assets/cannon.png');
 
@@ -73,6 +76,44 @@ function create() {
   enterGame.setVolume(0.1)
   enterGame.play()
   game.sound.context.resume();
+
+  // Ambient deep sea noise with fade in/out transitions
+  this.deepSeaAmbient = this.sound.add('deepSeaNoise', {
+    loop: false, // We'll handle looping manually for fade effects
+    volume: 0 // Start at 0 for fade in
+  });
+
+  // Fade in at the start
+  this.tweens.add({
+    targets: this.deepSeaAmbient,
+    volume: 0.15, // Target volume (15% to keep it ambient)
+    duration: 3000, // 3 second fade in
+    ease: 'Sine.easeInOut'
+  });
+
+  // Play the ambient sound
+  this.deepSeaAmbient.play();
+
+  // When the sound completes, fade out, then fade in and restart
+  this.deepSeaAmbient.on('complete', () => {
+    // Fade out
+    this.tweens.add({
+      targets: this.deepSeaAmbient,
+      volume: 0,
+      duration: 2000, // 2 second fade out
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        // Restart the sound and fade in
+        this.deepSeaAmbient.play();
+        this.tweens.add({
+          targets: this.deepSeaAmbient,
+          volume: 0.15,
+          duration: 2000, // 2 second fade in
+          ease: 'Sine.easeInOut'
+        });
+      }
+    });
+  });
 
   let { width, height } = this.sys.game.canvas;
 
