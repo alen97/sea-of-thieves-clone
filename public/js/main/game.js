@@ -525,56 +525,60 @@ function create() {
 
     // Create visual modifiers as floating bottles
     modifiers.forEach(function (modifierData, index) {
-      // Create aura/glow effect behind the bottle
-      const aura = self.add.circle(
-        modifierData.x,
-        modifierData.y,
-        20, // Radius
-        0x9400d3, // Purple/violet color
-        0.3 // Alpha for subtle glow
-      );
+      // Create container for the entire modifier (glow + bottle)
+      const modifierContainer = self.add.container(modifierData.x, modifierData.y);
 
-      // Pulse animation for the aura
-      self.tweens.add({
-        targets: aura,
-        scale: 1.3,
-        alpha: 0.15,
-        duration: 1800 + (index * 100),
-        ease: 'Sine.easeInOut',
-        yoyo: true,
-        repeat: -1,
-        delay: index * 120
-      });
+      // Create glow/shine effect with graphics object
+      const glowGraphics = self.add.graphics();
 
-      const modifier = self.add.sprite(
-        modifierData.x,
-        modifierData.y,
-        'potionModifier'
-      );
+      // Draw concentric circles for gradient glow effect (centered at 0,0)
+      glowGraphics.fillStyle(0x9400d3, 0.15);
+      glowGraphics.fillCircle(0, 0, 18);
+
+      glowGraphics.fillStyle(0x9400d3, 0.25);
+      glowGraphics.fillCircle(0, 0, 12);
+
+      glowGraphics.fillStyle(0xbb88ff, 0.35);
+      glowGraphics.fillCircle(0, 0, 6);
+
+      // Create the bottle sprite (centered at 0,0)
+      const bottleSprite = self.add.sprite(0, 0, 'potionModifier');
 
       // Apply tint based on modifier type
-      // Yellow is the base sprite color (TURNING modifier)
       if (modifierData.color === 0xff0000) { // SPEED - Red
-        modifier.setTint(0xff0000);
+        bottleSprite.setTint(0xff0000);
       } else if (modifierData.color === 0x00ff00) { // FIRE_RATE - Purple/Violet
-        modifier.setTint(0x9400d3);
+        bottleSprite.setTint(0x9400d3);
       }
       // No tint for TURNING (yellow - base sprite color)
 
+      // Add all elements to container (glow first, then bottle on top)
+      modifierContainer.add([glowGraphics, bottleSprite]);
+
+      // Breathing animation (like lantern) - uniform scale
+      self.tweens.add({
+        targets: modifierContainer,
+        scale: { from: 1.0, to: 1.15 },
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
       // Add floating bobbing animation
       self.tweens.add({
-        targets: [modifier, aura],
+        targets: modifierContainer,
         y: modifierData.y + 8, // Float up and down 8 pixels
-        duration: 1500 + (index * 200), // Slightly different duration for each
+        duration: 1500 + (index * 200),
         ease: 'Sine.easeInOut',
         yoyo: true,
-        repeat: -1, // Infinite loop
-        delay: index * 100 // Stagger the start times
+        repeat: -1,
+        delay: index * 100
       });
 
       // Add subtle rotation for floating effect
       self.tweens.add({
-        targets: modifier,
+        targets: modifierContainer,
         angle: 10,
         duration: 2000 + (index * 150),
         ease: 'Sine.easeInOut',
@@ -583,11 +587,10 @@ function create() {
         delay: index * 150
       });
 
-      // Store aura reference with modifier for cleanup
-      modifier.aura = aura;
-      modifier.modifierId = modifierData.id;
-      modifier.modifierType = modifierData.type;
-      self.modifiers.add(modifier);
+      // Store metadata on container
+      modifierContainer.modifierId = modifierData.id;
+      modifierContainer.modifierType = modifierData.type;
+      self.modifiers.add(modifierContainer);
     });
 
     console.log(`Spawned ${modifiers.length} modifiers in room`);
@@ -598,10 +601,7 @@ function create() {
     // Remove the modifier visually
     self.modifiers.getChildren().forEach(function (modifier) {
       if (modifier.modifierId === data.modifierId) {
-        // Destroy the aura first if it exists
-        if (modifier.aura) {
-          modifier.aura.destroy();
-        }
+        // Destroy the container (automatically destroys all children)
         modifier.destroy();
       }
     });
