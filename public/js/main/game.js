@@ -534,7 +534,7 @@ function create() {
         modifierData.y,
         18,
         0x9400d3,
-        0.15
+        0.04
       );
       glowLayers.push(glow1);
 
@@ -544,7 +544,7 @@ function create() {
         modifierData.y,
         12,
         0x9400d3,
-        0.25
+        0.08
       );
       glowLayers.push(glow2);
 
@@ -554,14 +554,14 @@ function create() {
         modifierData.y,
         6,
         0xbb88ff,
-        0.35
+        0.12
       );
       glowLayers.push(glow3);
 
-      // Pulse animation for all glow layers
+      // Subtle pulse animation for all glow layers
       self.tweens.add({
         targets: glowLayers,
-        alpha: '-=0.1',
+        alpha: '-=0.04',
         duration: 2000 + (index * 100),
         ease: 'Sine.easeInOut',
         yoyo: true,
