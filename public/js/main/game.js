@@ -1328,7 +1328,7 @@ class UIScene extends Phaser.Scene {
       0 // Initially invisible
     );
     this.abyssOverlay.setScrollFactor(0);
-    this.abyssOverlay.setDepth(2); // Above day/night overlay, below UI elements
+    this.abyssOverlay.setDepth(1001); // Above all other overlays and effects
 
     // Indicador de timón - Barra horizontal minimalista
     const helmBarWidth = 425; // Ancho de la barra (con margen de 50px en cada lado)
@@ -1679,7 +1679,7 @@ class UIScene extends Phaser.Scene {
 
       if (hasAbyssLantern && lanternLit) {
         // Show violet overlay with fixed alpha (same visibility day and night)
-        this.abyssOverlay.setAlpha(0.38);
+        this.abyssOverlay.setAlpha(0.5);
       } else {
         // Hide overlay
         this.abyssOverlay.setAlpha(0);
