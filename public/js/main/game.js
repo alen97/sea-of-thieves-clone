@@ -665,15 +665,16 @@ let rightCannonLastShot = 0;
 
 // Show floating text when collecting a modifier (Dark Souls style)
 function showModifierPickupText(scene, x, y, name, lore, color) {
-  // Calculate offset from ship position (so text follows ship)
-  const offsetX = x - scene.ship.x;
-  const offsetY = y - scene.ship.y;
+  // Position text centered over the ship (not over the modifier pickup location)
+  // This ensures text is always centered regardless of ship rotation
+  const shipX = scene.ship.x;
+  const shipY = scene.ship.y;
 
   // Convert hex color (0x00CED1) to CSS string (#00CED1)
   const cssColor = '#' + color.toString(16).padStart(6, '0');
 
-  // Create main title text (positioned higher up)
-  const titleText = scene.add.text(x, y - 120, name, {
+  // Create main title text (centered above ship)
+  const titleText = scene.add.text(shipX, shipY - 120, name, {
     fontSize: '20px',
     fontFamily: 'Georgia, serif',
     fill: cssColor,    // Use modifier's unique color
@@ -689,8 +690,8 @@ function showModifierPickupText(scene, x, y, name, lore, color) {
     }
   }).setOrigin(0.5).setDepth(1000);
 
-  // Create lore text (positioned higher up)
-  const loreText = scene.add.text(x, y - 90, lore, {
+  // Create lore text (centered above ship)
+  const loreText = scene.add.text(shipX, shipY - 90, lore, {
     fontSize: '14px',
     fontFamily: 'Georgia, serif',
     fill: '#B0B0B0',    // Warm gray - contemplative/memory feeling
@@ -707,11 +708,11 @@ function showModifierPickupText(scene, x, y, name, lore, color) {
     }
   }).setOrigin(0.5).setDepth(1000);
 
-  // Store offset data for updating position
-  titleText.shipOffsetX = offsetX;
-  titleText.shipOffsetY = offsetY - 170;
-  loreText.shipOffsetX = offsetX;
-  loreText.shipOffsetY = offsetY - 140;
+  // Store offset data for updating position (fixed offset from ship center)
+  titleText.shipOffsetX = 0; // Always centered on ship
+  titleText.shipOffsetY = -120;
+  loreText.shipOffsetX = 0; // Always centered on ship
+  loreText.shipOffsetY = -90;
 
   // Track floating offset for animation
   titleText.floatingOffset = 0;
