@@ -523,8 +523,8 @@ function create() {
     // Clear existing modifiers
     self.modifiers.clear(true, true);
 
-    // Create visual modifiers
-    modifiers.forEach(function (modifierData) {
+    // Create visual modifiers as floating bottles
+    modifiers.forEach(function (modifierData, index) {
       const modifier = self.add.sprite(
         modifierData.x,
         modifierData.y,
@@ -539,6 +539,28 @@ function create() {
         modifier.setTint(0x9400d3);
       }
       // No tint for TURNING (yellow - base sprite color)
+
+      // Add floating bobbing animation
+      self.tweens.add({
+        targets: modifier,
+        y: modifierData.y + 8, // Float up and down 8 pixels
+        duration: 1500 + (index * 200), // Slightly different duration for each
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1, // Infinite loop
+        delay: index * 100 // Stagger the start times
+      });
+
+      // Add subtle rotation for floating effect
+      self.tweens.add({
+        targets: modifier,
+        angle: 10,
+        duration: 2000 + (index * 150),
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        delay: index * 150
+      });
 
       modifier.modifierId = modifierData.id;
       modifier.modifierType = modifierData.type;
