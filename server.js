@@ -410,6 +410,10 @@ io.on('connection', function (socket) {
           // Remove from old room data
           delete oldRoom.players[playerId];
 
+          // Move socket from old Socket.IO room to new one
+          playerSocket.leave(oldRoomId);
+          playerSocket.join(newRoomId);
+
           // Update room coordinates
           playerSocket.currentRoomX = roomData.roomX;
           playerSocket.currentRoomY = roomData.roomY;
@@ -418,12 +422,12 @@ io.on('connection', function (socket) {
 
           // Add to new room data
           newRoom.players[playerId] = playerData;
+
+          // Notify this player about the room change
+          playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
+          playerSocket.emit('sharedShip', newRoom.ship);
         }
       });
-
-      // Notify ALL players on the ship about the room change
-      io.to(oldRoomId).emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
-      io.to(oldRoomId).emit('sharedShip', newRoom.ship);
 
       console.log(`Moved ${playersOnShip.length} players from ${oldRoomId} to ${newRoomId}`);
 
