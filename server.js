@@ -3,9 +3,17 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io').listen(server);
 
+// Load shared physics module
+const shipPhysics = require('./shared/shipPhysics.js');
+
 // Room-based structure: each room has ONE shared ship and multiple players (max 4)
 var rooms = {};
 const MAX_PLAYERS = 4;
+
+// Server tick configuration
+const SERVER_TICK_RATE = 60; // Hz
+const SERVER_TICK_INTERVAL = 1000 / SERVER_TICK_RATE; // ms
+const DELTA_TIME = 1 / SERVER_TICK_RATE; // seconds
 
 // Day/Night cycle - Server authoritative time
 var gameWorld = {
@@ -47,20 +55,29 @@ function getPlayerCount(room) {
 // Create shared ship for a room
 function createShip(x, y) {
   return {
+    // Physics state
     x: x,
     y: y,
     rotation: 0,
     velocityX: 0,
     velocityY: 0,
+    angularVelocity: 0,
+    currentSpeed: 0,
+    steeringDirection: 0,  // -100 to +100
+    isAnchored: true,
+
+    // Visual/gameplay state
     lanternLit: false,
-    isAnchored: true,      // Critical: for wake particles sync
-    currentSpeed: 0,       // Critical: for wake particles intensity
-    targetSpeed: 0,        // Critical: for navigation level sync
-    steeringDirection: 0,  // Ship steering wheel position (-100 to +100)
+    targetSpeed: 0,
     cannons: {
       leftAngle: 0,
       rightAngle: 0
-    }
+    },
+
+    // Server-side input management
+    pendingInputs: [],     // Queue of unprocessed inputs
+    lastProcessedInput: 0, // Sequence number of last processed input
+    controllingPlayer: null // Socket ID of player controlling ship
   };
 }
 
@@ -221,51 +238,57 @@ io.on('connection', function (socket) {
     }
   });
 
-  // when a player moves, update the player data and shared ship
+  // Handle ship control inputs (NEW: Input-based, not state-based)
+  socket.on('shipInput', function (inputData) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.ship && inputData) {
+      // Set controlling player
+      if (inputData.isControlling) {
+        room.ship.controllingPlayer = socket.id;
+      } else if (room.ship.controllingPlayer === socket.id) {
+        room.ship.controllingPlayer = null;
+      }
+
+      // Queue input for processing in tick loop
+      if (inputData.isControlling && inputData.steering) {
+        room.ship.pendingInputs.push({
+          sequence: inputData.sequence,
+          turnLeft: inputData.steering.left,
+          turnRight: inputData.steering.right,
+          timestamp: Date.now()
+        });
+      }
+
+      // Update non-physics state (anchor, cannons, etc.)
+      if (inputData.anchor !== undefined) {
+        room.ship.isAnchored = inputData.anchor;
+      }
+      if (inputData.cannons) {
+        room.ship.cannons = inputData.cannons;
+      }
+    }
+  });
+
+  // Handle anchor toggle
+  socket.on('anchorToggle', function (data) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.ship && data) {
+      room.ship.isAnchored = data.isAnchored;
+      console.log(`Player ${socket.id} toggled anchor: ${data.isAnchored ? 'DOWN' : 'UP'}`);
+    }
+  });
+
+  // Handle player avatar movement (still client-authoritative for now)
   socket.on('playerMovement', function (movementData) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
-    if (room && room.players[socket.id] && room.ship && movementData) {
-      // Update shared ship data (if ship data is provided)
-      if (movementData.ship) {
-        room.ship.x = movementData.ship.x;
-        room.ship.y = movementData.ship.y;
-        room.ship.rotation = movementData.ship.rotation;
-        room.ship.velocityX = movementData.ship.velocityX || 0;
-        room.ship.velocityY = movementData.ship.velocityY || 0;
-
-        // Sync critical properties for particles and game state
-        if (movementData.ship.isAnchored !== undefined) {
-          room.ship.isAnchored = movementData.ship.isAnchored;
-        }
-        if (movementData.ship.currentSpeed !== undefined) {
-          room.ship.currentSpeed = movementData.ship.currentSpeed;
-        }
-        if (movementData.ship.targetSpeed !== undefined) {
-          room.ship.targetSpeed = movementData.ship.targetSpeed;
-        }
-        if (movementData.ship.steeringDirection !== undefined) {
-          room.ship.steeringDirection = movementData.ship.steeringDirection;
-        }
-
-        // Sincronizar ángulos de los cañones
-        if (movementData.ship.cannons) {
-          room.ship.cannons = movementData.ship.cannons;
-        }
-
-        // Basic validation (anti-exploit, cooperative trust model)
-        const speed = Math.sqrt(room.ship.velocityX ** 2 + room.ship.velocityY ** 2);
-        if (speed > 400) {
-          console.warn(`Player ${socket.id} exceeded max speed: ${speed.toFixed(2)}`);
-          // Don't reject in coop mode, just log
-        }
-
-        // Broadcast ship update to all players in room
-        io.to(roomId).emit('shipMoved', room.ship);
-      }
-
-      // Update player avatar data
+    if (room && room.players[socket.id] && movementData) {
+      // Update player avatar data only
       if (movementData.player) {
         room.players[socket.id].player.x = movementData.player.x;
         room.players[socket.id].player.y = movementData.player.y;
@@ -468,6 +491,103 @@ function resolveInitialPosition(axis) {
   }
 
 }
+
+// ===== SERVER TICK LOOP (60Hz) =====
+// Authoritative physics simulation
+setInterval(function() {
+  // Process physics for all rooms
+  Object.keys(rooms).forEach(roomId => {
+    const room = rooms[roomId];
+
+    if (!room || !room.ship) return;
+
+    // Get the ship's controlling player input (if any)
+    let shipInput = {
+      turnLeft: false,
+      turnRight: false
+    };
+
+    // Process pending inputs from controlling player
+    if (room.ship.controllingPlayer && room.ship.pendingInputs.length > 0) {
+      // Process all pending inputs (in order)
+      room.ship.pendingInputs.forEach(input => {
+        shipInput = {
+          turnLeft: input.turnLeft,
+          turnRight: input.turnRight
+        };
+
+        // Update ship state using shared physics
+        const newState = shipPhysics.updateShipPhysics(
+          {
+            x: room.ship.x,
+            y: room.ship.y,
+            rotation: room.ship.rotation,
+            steeringDirection: room.ship.steeringDirection,
+            currentSpeed: room.ship.currentSpeed,
+            isAnchored: room.ship.isAnchored
+          },
+          shipInput,
+          DELTA_TIME
+        );
+
+        // Apply new state
+        room.ship.x = newState.x;
+        room.ship.y = newState.y;
+        room.ship.rotation = newState.rotation;
+        room.ship.steeringDirection = newState.steeringDirection;
+        room.ship.currentSpeed = newState.currentSpeed;
+        room.ship.velocityX = newState.velocityX;
+        room.ship.velocityY = newState.velocityY;
+        room.ship.angularVelocity = newState.angularVelocity;
+
+        // Track last processed input
+        room.ship.lastProcessedInput = input.sequence;
+      });
+
+      // Clear processed inputs
+      room.ship.pendingInputs = [];
+    } else {
+      // No controlling player - still update physics with no input
+      const newState = shipPhysics.updateShipPhysics(
+        {
+          x: room.ship.x,
+          y: room.ship.y,
+          rotation: room.ship.rotation,
+          steeringDirection: room.ship.steeringDirection,
+          currentSpeed: room.ship.currentSpeed,
+          isAnchored: room.ship.isAnchored
+        },
+        shipInput,
+        DELTA_TIME
+      );
+
+      // Apply new state
+      room.ship.x = newState.x;
+      room.ship.y = newState.y;
+      room.ship.rotation = newState.rotation;
+      room.ship.steeringDirection = newState.steeringDirection;
+      room.ship.currentSpeed = newState.currentSpeed;
+      room.ship.velocityX = newState.velocityX;
+      room.ship.velocityY = newState.velocityY;
+      room.ship.angularVelocity = newState.angularVelocity;
+    }
+
+    // Broadcast authoritative ship state to all players in room
+    io.to(roomId).emit('shipMoved', {
+      x: room.ship.x,
+      y: room.ship.y,
+      rotation: room.ship.rotation,
+      velocityX: room.ship.velocityX,
+      velocityY: room.ship.velocityY,
+      steeringDirection: room.ship.steeringDirection,
+      currentSpeed: room.ship.currentSpeed,
+      isAnchored: room.ship.isAnchored,
+      targetSpeed: room.ship.targetSpeed,
+      lastProcessedInput: room.ship.lastProcessedInput, // For client reconciliation
+      cannons: room.ship.cannons
+    });
+  });
+}, SERVER_TICK_INTERVAL);
 
 // Day/Night cycle update loop - broadcasts time to all clients every second
 setInterval(function() {

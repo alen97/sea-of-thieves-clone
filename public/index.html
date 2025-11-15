@@ -9,7 +9,18 @@
     <body>
         <script src="/socket.io/socket.io.js"></script>
         <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-        <script src="js/main/game.js"></script>
+
+        <!-- Shared Physics (Client & Server) -->
+        <script src="shared/shipPhysics.js"></script>
+        <script src="shared/playerPhysics.js"></script>
+
+        <!-- Systems (organized game logic) -->
+        <script src="js/systems/InputSystem.js"></script>
+        <script src="js/systems/HelmSystem.js"></script>
+        <script src="js/systems/AnchorSystem.js"></script>
+        <script src="js/systems/CannonSystem.js"></script>
+
+        <!-- Components (legacy - will be refactored) -->
         <script src="js/components/shipFunctions.js"></script>
         <script src="js/components/playerFunctions.js"></script>
         <script src="js/components/bulletFunctions.js"></script>
@@ -17,6 +28,9 @@
         <script src="js/components/particleFunctions.js"></script>
         <script src="js/components/lanternFunctions.js"></script>
         <script src="js/components/chatFunctions.js"></script>
+
+        <!-- Main Game -->
+        <script src="js/main/game.js"></script>
 
     </body>
 

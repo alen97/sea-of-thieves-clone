@@ -40,7 +40,6 @@ function addOtherShip(self, shipInfo) {
 function updateShip(self, ship, isControlled, input, inputEnabled = true) {
     // Variables globales de física del barco
     const constantSpeed = 100; // Velocidad constante del barco
-    const turnSpeed = 5; // Velocidad de giro (reducida para navegación más suave)
     const maxSteeringDirection = 100;
     const steeringIncrement = 1;
 
@@ -78,11 +77,6 @@ function updateShip(self, ship, isControlled, input, inputEnabled = true) {
     // El servidor sincroniza con otros jugadores, pero no sobrescribe al controlador activo
     // Auto-centrado aplicado solo cuando el jugador está en el timón para navegación más natural
 
-    // SIEMPRE aplicar la velocidad angular basada en steeringDirection
-    // (tanto si está en el timón como si no)
-    const angularVelocity = self.steeringDirection / maxSteeringDirection * turnSpeed;
-    ship.setAngularVelocity(angularVelocity);
-
     // Calcular dirección del barco
     const shipAngle = ship.rotation - Math.PI / 2;
 
@@ -90,9 +84,6 @@ function updateShip(self, ship, isControlled, input, inputEnabled = true) {
     if (ship.isAnchored) {
         // Ancla bajada - desacelerar gradualmente hacia 0
         ship.currentSpeed *= 0.995;
-
-        // También reducir la velocidad angular con ancla
-        ship.setAngularVelocity(angularVelocity * 0.995);
     } else {
         // Sin ancla - acelerar gradualmente hacia velocidad constante
         // Factor más bajo = aceleración más lenta

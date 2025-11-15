@@ -136,6 +136,11 @@ function create() {
   this.lastSentCannonRight = 0;
   this.lastNetworkSendTime = 0;
 
+  // Client prediction & input buffering
+  this.inputSequence = 0; // Incrementing sequence number for each input
+  this.pendingInputs = []; // Buffer of unacknowledged inputs
+  this.lastServerState = null; // Last received authoritative state
+
   // Day/Night cycle - synchronized from server
   this.gameTime = {
     currentTime: 0,
@@ -145,6 +150,12 @@ function create() {
 
   // Crear una escena de "UI" que se superpondrá a la escena principal
   self.scene.add('UIScene', UIScene, true);
+
+  // Initialize game systems
+  this.inputSystem = new InputSystem(this);
+  this.helmSystem = new HelmSystem(this);
+  this.anchorSystem = new AnchorSystem(this);
+  this.cannonSystem = new CannonSystem(this);
 
   // Groups
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
@@ -194,39 +205,85 @@ function create() {
   // Handle ship movement updates
   this.socket.on('shipMoved', function (shipData) {
     if (self.ship) {
-      // Update shared ship from server (only if not controlling it yourself)
-      // This prevents jitter from server updates overriding local physics
+      // Store server state for reconciliation
+      self.lastServerState = shipData;
+
       if (!self.player || !self.player.isControllingShip) {
-        // Smooth interpolation for position (lerp towards target)
-        const lerpFactor = 0.3; // Adjust for smoothness (0.1=slow, 0.5=fast)
-        const targetX = shipData.x;
-        const targetY = shipData.y;
-        const targetRot = shipData.rotation;
-
-        // Lerp position for smooth movement
-        const newX = Phaser.Math.Linear(self.ship.x, targetX, lerpFactor);
-        const newY = Phaser.Math.Linear(self.ship.y, targetY, lerpFactor);
+        // Not controlling - accept server state with lerp
+        const lerpFactor = 0.3;
+        const newX = Phaser.Math.Linear(self.ship.x, shipData.x, lerpFactor);
+        const newY = Phaser.Math.Linear(self.ship.y, shipData.y, lerpFactor);
         self.ship.setPosition(newX, newY);
+        self.ship.setRotation(shipData.rotation);
 
-        // Don't lerp rotation - let angular velocity handle it
-        // Rotation is controlled by physics (setAngularVelocity in updateShip)
-        // Lerping rotation would override angular velocity and slow down turns
+        // Update velocity and physics state
+        self.ship.currentSpeed = shipData.currentSpeed;
+        self.ship.isAnchored = shipData.isAnchored;
+        self.steeringDirection = shipData.steeringDirection;
+      } else {
+        // Controlling ship - reconcile with prediction
+        // Remove acknowledged inputs
+        if (shipData.lastProcessedInput) {
+          self.pendingInputs = self.pendingInputs.filter(
+            input => input.sequence > shipData.lastProcessedInput
+          );
+        }
+
+        // Check for prediction error (mismatch between client and server)
+        const POSITION_THRESHOLD = 5; // pixels
+        const ROTATION_THRESHOLD = 0.1; // radians (~5.7 degrees)
+
+        const posError = Math.sqrt(
+          Math.pow(self.ship.x - shipData.x, 2) +
+          Math.pow(self.ship.y - shipData.y, 2)
+        );
+        const rotError = Math.abs(self.ship.rotation - shipData.rotation);
+
+        if (posError > POSITION_THRESHOLD || rotError > ROTATION_THRESHOLD) {
+          // Significant mismatch - reconcile!
+          console.log(`Reconciling: posError=${posError.toFixed(2)}, rotError=${rotError.toFixed(2)}`);
+
+          // Step 1: Rewind to server state
+          self.ship.setPosition(shipData.x, shipData.y);
+          self.ship.setRotation(shipData.rotation);
+          self.ship.currentSpeed = shipData.currentSpeed;
+          self.steeringDirection = shipData.steeringDirection;
+
+          // Step 2: Replay pending inputs to re-predict
+          self.pendingInputs.forEach(input => {
+            const newState = updateShipPhysics(
+              {
+                x: self.ship.x,
+                y: self.ship.y,
+                rotation: self.ship.rotation,
+                steeringDirection: self.steeringDirection,
+                currentSpeed: self.ship.currentSpeed,
+                isAnchored: self.ship.isAnchored
+              },
+              {
+                turnLeft: input.turnLeft,
+                turnRight: input.turnRight
+              },
+              1/60 // Assume 60Hz for replay
+            );
+
+            // Apply replayed state
+            self.ship.setPosition(newState.x, newState.y);
+            self.ship.setRotation(newState.rotation);
+            self.ship.currentSpeed = newState.currentSpeed;
+            self.steeringDirection = newState.steeringDirection;
+          });
+
+          console.log(`Reconciliation complete. Replayed ${self.pendingInputs.length} inputs.`);
+        }
       }
 
-      // Always sync critical properties (even if you're controlling - for consistency)
+      // Always sync non-physics properties
       if (shipData.isAnchored !== undefined) {
         self.ship.isAnchored = shipData.isAnchored;
       }
-      if (shipData.currentSpeed !== undefined) {
-        self.ship.currentSpeed = shipData.currentSpeed;
-      }
       if (shipData.targetSpeed !== undefined) {
         self.ship.targetSpeed = shipData.targetSpeed;
-      }
-
-      // Client-side prediction: Only sync steeringDirection if NOT controlling the helm
-      if (shipData.steeringDirection !== undefined && !self.player.isControllingShip) {
-        self.steeringDirection = shipData.steeringDirection;
       }
 
       // Client-side prediction: Only sync cannon angles if NOT mounted on that specific cannon
@@ -454,50 +511,36 @@ function update(time, delta) {
   if (this.ship && this.player) {
 
     // ===== INPUT =====
+    const inputEnabled = !this.chatMode;
+    const inputState = this.inputSystem.getInputState(inputEnabled);
+
+    // Legacy input object for compatibility with old functions
     const input = {
-      keyW: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      keyA: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      keyS: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      keyD: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-      keyE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-      keyLeft: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-      keyRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-      keyPlus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
-      keyMinus: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS),
-      keyM: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M),
-      keySpace: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+      keyW: this.inputSystem.keys.W,
+      keyA: this.inputSystem.keys.A,
+      keyS: this.inputSystem.keys.S,
+      keyD: this.inputSystem.keys.D,
+      keyE: this.inputSystem.keys.E,
+      keyLeft: this.inputSystem.keys.LEFT,
+      keyRight: this.inputSystem.keys.RIGHT,
+      keyPlus: this.inputSystem.keys.PLUS,
+      keyMinus: this.inputSystem.keys.MINUS,
+      keyM: this.inputSystem.keys.M,
+      keySpace: this.inputSystem.keys.SPACE
     };
 
-    // Guardar estado de JustDown para E (solo se puede llamar una vez por frame)
-    const keyEJustPressed = Phaser.Input.Keyboard.JustDown(input.keyE);
-
-    // Si el chat está activo, deshabilitar solo el input del jugador (no el update completo)
-    const inputEnabled = !this.chatMode;
-
     // Toggle mapa con M
-    if (inputEnabled && Phaser.Input.Keyboard.JustDown(input.keyM)) {
+    if (inputState.map) {
       this.mapVisible = !this.mapVisible;
       console.log(`Map ${this.mapVisible ? 'shown' : 'hidden'}`);
     }
 
     // ===== SISTEMA DE ZOOM =====
-    // Zoom con teclas +/- (cada tap hace un cambio mayor)
-    if (inputEnabled && Phaser.Input.Keyboard.JustDown(input.keyPlus)) {
+    if (inputState.zoomIn) {
       this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
     }
-    if (inputEnabled && Phaser.Input.Keyboard.JustDown(input.keyMinus)) {
+    if (inputState.zoomOut) {
       this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
-    }
-
-    // Zoom con rueda del mouse
-    if (inputEnabled) {
-      this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-        if (deltaY > 0) {
-          this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
-        } else if (deltaY < 0) {
-          this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
-        }
-      });
     }
 
     // Aplicar zoom suave
@@ -536,7 +579,7 @@ function update(time, delta) {
     }
 
     // Toggle lantern with E
-    if (inputEnabled && keyEJustPressed && canUseLantern && !this.player.isControllingShip) {
+    if (inputEnabled && inputState.interact && canUseLantern && !this.player.isControllingShip) {
       // Toggle local state
       this.lanternLit = !this.lanternLit;
 
@@ -562,204 +605,111 @@ function update(time, delta) {
       this.socket.emit('toggleLantern');
     }
 
-    // ===== SISTEMA DE TIMÓN =====
-    const helmOffset = 125;
-    const angle = this.ship.rotation - Math.PI / 2;
-    const helmX = this.ship.x - Math.cos(angle) * helmOffset;
-    const helmY = this.ship.y - Math.sin(angle) * helmOffset;
+    // ===== SISTEMA DE TIMÓN (usando HelmSystem) =====
+    this.helmSystem.update(this.player, this.ship, inputState.interact && inputEnabled);
+    const canUseHelm = this.helmSystem.isNearHelm(this.player, this.ship);
 
-    const distanceToHelm = Phaser.Math.Distance.Between(this.player.x, this.player.y, helmX, helmY);
-    const canUseHelm = distanceToHelm < 15;
+    // ===== SISTEMA DE ANCLA (usando AnchorSystem) =====
+    this.anchorSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm);
+    const canUseAnchor = this.anchorSystem.isNearAnchor(this.player, this.ship);
 
-    // Indicador de timón
-    if (!this.helmIndicator) {
-      this.helmIndicator = this.add.text(0, 0, 'Presiona E para manejar', {
-        fontSize: '12px',
-        fill: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 5, y: 3 }
-      }).setDepth(10).setOrigin(0.5);
-    }
-
-    if (canUseHelm && !this.player.isControllingShip) {
-      this.helmIndicator.setPosition(helmX, helmY - 20);
-      this.helmIndicator.setVisible(true);
-    } else {
-      this.helmIndicator.setVisible(false);
-    }
-
-    // Toggle timón con E
-    if (inputEnabled && keyEJustPressed && canUseHelm) {
-      this.player.isControllingShip = !this.player.isControllingShip;
-
-      // Cambiar cámara
-      if (this.player.isControllingShip) {
-        this.cameras.main.startFollow(this.ship, 1, 1);
-      } else {
-        this.cameras.main.startFollow(this.player, 1, 1);
-      }
-    }
-
-    // ===== SISTEMA DE ANCLA =====
-    const anchorOffset = 115;
-    const anchorAngle = this.ship.rotation - Math.PI / 2;
-    const anchorX = this.ship.x + Math.cos(anchorAngle) * anchorOffset;
-    const anchorY = this.ship.y + Math.sin(anchorAngle) * anchorOffset;
-
-    const distanceToAnchor = Phaser.Math.Distance.Between(this.player.x, this.player.y, anchorX, anchorY);
-    const canUseAnchor = distanceToAnchor < 15;
-
-    // Indicador de ancla
-    if (!this.anchorIndicator) {
-      this.anchorIndicator = this.add.text(0, 0, '', {
-        fontSize: '12px',
-        fill: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 5, y: 3 }
-      }).setDepth(10).setOrigin(0.5);
-    }
-
-    // Actualizar texto del indicador según estado del ancla
-    const anchorText = this.ship.isAnchored ? 'Presiona E para levantar ancla' : 'Presiona E para bajar ancla';
-    this.anchorIndicator.setText(anchorText);
-
-    if (canUseAnchor) {
-      this.anchorIndicator.setPosition(anchorX, anchorY - 20);
-      this.anchorIndicator.setVisible(true);
-    } else {
-      this.anchorIndicator.setVisible(false);
-    }
-
-    // Toggle ancla con E (solo si NO estás cerca del timón para evitar conflictos)
-    if (inputEnabled && keyEJustPressed && canUseAnchor && !canUseHelm) {
-      this.ship.isAnchored = !this.ship.isAnchored;
-
-      // Play anchor sound with fade out
-      const anchorSound = this.sound.add(this.ship.isAnchored ? 'anchorDrop' : 'anchorRise');
-      anchorSound.setVolume(0.2);
-      anchorSound.play();
-
-      // Fade out after 2 seconds (duration: 800ms)
-      this.time.delayedCall(2000, () => {
-        this.tweens.add({
-          targets: anchorSound,
-          volume: 0,
-          duration: 1400,
-          onComplete: () => anchorSound.stop()
-        });
-      });
-
-      if (!this.ship.isAnchored) {
-        const currentSpeed = Math.sqrt(this.ship.body.velocity.x ** 2 + this.ship.body.velocity.y ** 2);
-        this.ship.targetSpeed = currentSpeed;
-      }
-    }
-
-    // ===== SISTEMA DE CAÑONES =====
-    // Actualizar posición de los cañones
+    // ===== SISTEMA DE CAÑONES (usando CannonSystem) =====
     if (this.ship.cannons) {
-      updateCannonPosition(this.ship.cannons.left, this.ship, 'left');
-      updateCannonPosition(this.ship.cannons.right, this.ship, 'right');
-    }
-
-    // Verificar proximidad a los cañones
-    const canUseLeftCannon = isNearCannon(this.player, this.ship.cannons.left);
-    const canUseRightCannon = isNearCannon(this.player, this.ship.cannons.right);
-
-    // Indicador de cañón (único indicador para ambos cañones)
-    if (!this.cannonIndicator) {
-      this.cannonIndicator = this.add.text(0, 0, '', {
-        fontSize: '12px',
-        fill: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 5, y: 3 }
-      }).setDepth(10).setOrigin(0.5);
-    }
-
-    // Mostrar indicador según el estado
-    if (this.player.isOnCannon) {
-      // Montado en cañón: mostrar cooldown solo si está recargando
-      const isLeftCannon = this.player.cannonSide === 'left';
-      const canShoot = isLeftCannon ? canShootLeft : canShootRight;
-      const currentCannon = isLeftCannon ? this.ship.cannons.left : this.ship.cannons.right;
-
-      if (!canShoot) {
-        const lastShot = isLeftCannon ? leftCannonLastShot : rightCannonLastShot;
-        const timeRemaining = Math.ceil((cooldownTime - (time - lastShot)) / 1000);
-        this.cannonIndicator.setText(`Recargando... (${timeRemaining}s)`);
-        this.cannonIndicator.setPosition(currentCannon.x, currentCannon.y - 30);
-        this.cannonIndicator.setVisible(true);
-      } else {
-        this.cannonIndicator.setVisible(false);
-      }
-    } else if (canUseLeftCannon && !canUseHelm && !canUseAnchor) {
-      // Cerca del cañón izquierdo
-      this.cannonIndicator.setText('Presiona E para usar cañón');
-      this.cannonIndicator.setPosition(this.ship.cannons.left.x, this.ship.cannons.left.y - 20);
-      this.cannonIndicator.setVisible(true);
-    } else if (canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon) {
-      // Cerca del cañón derecho
-      this.cannonIndicator.setText('Presiona E para usar cañón');
-      this.cannonIndicator.setPosition(this.ship.cannons.right.x, this.ship.cannons.right.y - 20);
-      this.cannonIndicator.setVisible(true);
-    } else {
-      this.cannonIndicator.setVisible(false);
-    }
-
-    // Montar/desmontar cañón con E
-    if (inputEnabled && keyEJustPressed) {
-      if (this.player.isOnCannon) {
-        // Desmontar
-        dismountCannon(this.player);
-        this.cameras.main.startFollow(this.player, 1, 1);
-      } else if (canUseLeftCannon && !canUseHelm && !canUseAnchor) {
-        // Montar cañón izquierdo
-        mountCannon(this.player, this.ship.cannons.left, 'left');
-        this.cameras.main.startFollow(this.ship.cannons.left, 1, 1);
-      } else if (canUseRightCannon && !canUseHelm && !canUseAnchor && !canUseLeftCannon) {
-        // Montar cañón derecho
-        mountCannon(this.player, this.ship.cannons.right, 'right');
-        this.cameras.main.startFollow(this.ship.cannons.right, 1, 1);
-      }
-    }
-
-    // Controles del cañón (cuando está montado)
-    if (this.player.isOnCannon && inputEnabled) {
-      const currentCannon = this.player.cannonSide === 'left' ? this.ship.cannons.left : this.ship.cannons.right;
-
-      // Rotar cañón con A/D
-      updateCannonRotation(currentCannon, input.keyA, input.keyD, delta);
-
-      // Disparar con W
-      if (Phaser.Input.Keyboard.JustDown(input.keySpace)) {
-        if (canShootLeft && this.player.cannonSide === 'left') {
-          fireCannonball(this, currentCannon, this.ship, this.socket);
-          canShootLeft = false;
-          leftCannonLastShot = time;
-          this.time.addEvent({
-            delay: cooldownTime,
-            callback: () => { canShootLeft = true; },
-            callbackScope: this
-          });
-        } else if (canShootRight && this.player.cannonSide === 'right') {
-          fireCannonball(this, currentCannon, this.ship, this.socket);
-          canShootRight = false;
-          rightCannonLastShot = time;
-          this.time.addEvent({
-            delay: cooldownTime,
-            callback: () => { canShootRight = true; },
-            callbackScope: this
-          });
-        }
-      }
+      this.cannonSystem.update(
+        this.player,
+        this.ship,
+        this.ship.cannons,
+        inputState,
+        deltaTime,
+        time,
+        canUseHelm,
+        canUseAnchor
+      );
     }
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled);
 
-    // ===== ACTUALIZAR SHIP (física independiente) =====
-    updateShip(this, this.ship, this.player.isControllingShip, input, inputEnabled);
+    // ===== ACTUALIZAR SHIP (client-side prediction with shared physics) =====
+    if (this.player.isControllingShip && inputEnabled) {
+      // Client prediction: run the same physics as server
+      const shipInput = {
+        turnLeft: inputState.steering.left,
+        turnRight: inputState.steering.right
+      };
 
+      // Buffer this input
+      this.inputSequence++;
+      const inputPacket = {
+        sequence: this.inputSequence,
+        turnLeft: shipInput.turnLeft,
+        turnRight: shipInput.turnRight,
+        timestamp: Date.now()
+      };
+      this.pendingInputs.push(inputPacket);
+
+      // Limit buffer size (safety)
+      if (this.pendingInputs.length > 100) {
+        this.pendingInputs.shift();
+      }
+
+      // Run prediction using shared physics
+      const newState = updateShipPhysics(
+        {
+          x: this.ship.x,
+          y: this.ship.y,
+          rotation: this.ship.rotation,
+          steeringDirection: this.steeringDirection,
+          currentSpeed: this.ship.currentSpeed,
+          isAnchored: this.ship.isAnchored
+        },
+        shipInput,
+        deltaTime
+      );
+
+      // Apply predicted state
+      this.ship.setPosition(newState.x, newState.y);
+      this.ship.setRotation(newState.rotation);
+      this.ship.setVelocity(newState.velocityX, newState.velocityY);
+      this.ship.currentSpeed = newState.currentSpeed;
+      this.steeringDirection = newState.steeringDirection;
+
+      // Send input to server
+      this.socket.emit('shipInput', {
+        sequence: this.inputSequence,
+        isControlling: true,
+        steering: {
+          left: shipInput.turnLeft,
+          right: shipInput.turnRight
+        },
+        anchor: this.ship.isAnchored,
+        cannons: {
+          leftAngle: this.ship.cannons ? this.ship.cannons.left.relativeAngle : 0,
+          rightAngle: this.ship.cannons ? this.ship.cannons.right.relativeAngle : 0
+        }
+      });
+    } else {
+   // Not controlling - still use shared physics but with no input
+   const newState = updateShipPhysics(
+     {
+       x: this.ship.x,
+       y: this.ship.y,
+       rotation: this.ship.rotation,
+       steeringDirection: this.steeringDirection,
+       currentSpeed: this.ship.currentSpeed,
+       isAnchored: this.ship.isAnchored
+     },
+     { turnLeft: false, turnRight: false }, // No input
+     deltaTime
+   );
+
+   // Apply state
+   this.ship.setPosition(newState.x, newState.y);
+   this.ship.setRotation(newState.rotation);
+   this.ship.setVelocity(newState.velocityX, newState.velocityY);
+   this.ship.currentSpeed = newState.currentSpeed;
+   this.steeringDirection = newState.steeringDirection;
+ }
     // ===== ACTUALIZAR EMISORES DE ESTELA =====
     updateShipWakeEmitters(this.ship);
     // Note: Only one shared ship, so only one wake emitter
