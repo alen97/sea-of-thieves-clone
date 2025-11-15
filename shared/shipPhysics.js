@@ -107,9 +107,19 @@ function calculateVelocity(rotation, speed) {
  * @param {Object} state - Current ship state
  * @param {Object} input - Player input {turnLeft, turnRight}
  * @param {number} deltaTime - Time step in seconds
+ * @param {Object} modifiers - Optional modifiers {speed: boolean, turning: boolean}
  * @returns {Object} New ship state
  */
-function updateShipPhysics(state, input, deltaTime = 1/60) {
+function updateShipPhysics(state, input, deltaTime = 1/60, modifiers = null) {
+    // Apply modifiers to constants if provided
+    let SPEED_MULTIPLIER = 1.0;
+    let TURN_MULTIPLIER = 1.0;
+
+    if (modifiers) {
+        if (modifiers.speed) SPEED_MULTIPLIER = 1.2; // +20% speed
+        if (modifiers.turning) TURN_MULTIPLIER = 1.2; // +20% turning
+    }
+
     // Calculate new steering
     const newSteering = calculateSteering(
         state.steeringDirection,
@@ -117,17 +127,23 @@ function updateShipPhysics(state, input, deltaTime = 1/60) {
         input.turnRight
     );
 
-    // Calculate angular velocity
-    const angularVelocity = calculateAngularVelocity(
-        newSteering,
-        state.isAnchored
-    );
+    // Calculate angular velocity with modifier
+    const baseAngularVelocity =
+        (newSteering / SHIP_CONSTANTS.MAX_STEERING_DIRECTION) *
+        SHIP_CONSTANTS.TURN_SPEED * TURN_MULTIPLIER; // Apply turning modifier here
+
+    const angularVelocity = state.isAnchored
+        ? baseAngularVelocity * SHIP_CONSTANTS.ANCHOR_ANGULAR_DAMPING
+        : baseAngularVelocity;
 
     // Calculate new rotation
     const newRotation = state.rotation + angularVelocity * deltaTime;
 
-    // Calculate new speed
-    const newSpeed = calculateSpeed(state.currentSpeed, state.isAnchored);
+    // Calculate new speed with modifier
+    const targetSpeed = SHIP_CONSTANTS.CONSTANT_SPEED * SPEED_MULTIPLIER; // Apply speed modifier here
+    const newSpeed = state.isAnchored
+        ? state.currentSpeed * SHIP_CONSTANTS.ANCHOR_DECELERATION_FACTOR
+        : state.currentSpeed + (targetSpeed - state.currentSpeed) * SHIP_CONSTANTS.ACCELERATION_FACTOR;
 
     // Calculate velocity
     const velocity = calculateVelocity(newRotation, newSpeed);

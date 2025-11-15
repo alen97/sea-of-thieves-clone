@@ -142,11 +142,19 @@ class CannonSystem {
      * Check if cannon can shoot
      * @param {string} side - 'left' or 'right'
      * @param {number} currentTime - Current time in ms
+     * @param {Object} modifiers - Optional ship modifiers {fireRate: boolean}
      * @returns {boolean}
      */
-    canShoot(side, currentTime) {
+    canShoot(side, currentTime, modifiers = null) {
         const lastShot = side === 'left' ? this.leftLastShot : this.rightLastShot;
-        return (currentTime - lastShot) >= this.cooldownTime;
+
+        // Apply fire rate modifier (-20% cooldown = fires 25% faster)
+        let effectiveCooldown = this.cooldownTime;
+        if (modifiers && modifiers.fireRate) {
+            effectiveCooldown = this.cooldownTime * 0.8; // 3000ms -> 2400ms
+        }
+
+        return (currentTime - lastShot) >= effectiveCooldown;
     }
 
     /**
@@ -155,11 +163,12 @@ class CannonSystem {
      * @param {Object} ship - Ship sprite
      * @param {Object} socket - Socket.io instance
      * @param {number} currentTime - Current time in ms
+     * @param {Object} modifiers - Optional ship modifiers
      * @returns {boolean} Was fire successful
      */
-    fireCannon(cannon, ship, socket, currentTime) {
+    fireCannon(cannon, ship, socket, currentTime, modifiers = null) {
         if (!cannon || !ship) return false;
-        if (!this.canShoot(cannon.side, currentTime)) return false;
+        if (!this.canShoot(cannon.side, currentTime, modifiers)) return false;
 
         // Update last shot time
         if (cannon.side === 'left') {
@@ -210,18 +219,26 @@ class CannonSystem {
      * @param {number} currentTime - Current time in ms
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearAnchor - Is player near anchor
+     * @param {Object} modifiers - Optional ship modifiers
      */
-    updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor) {
+    updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor, modifiers = null) {
         const indicator = this.getIndicator();
 
         if (player.isOnCannon) {
             // Mounted: show cooldown if reloading
             const cannon = player.cannonSide === 'left' ? cannons.left : cannons.right;
-            const canShoot = this.canShoot(player.cannonSide, currentTime);
+            const canShoot = this.canShoot(player.cannonSide, currentTime, modifiers);
 
             if (!canShoot) {
                 const lastShot = player.cannonSide === 'left' ? this.leftLastShot : this.rightLastShot;
-                const timeRemaining = Math.ceil((this.cooldownTime - (currentTime - lastShot)) / 1000);
+
+                // Calculate effective cooldown with modifier
+                let effectiveCooldown = this.cooldownTime;
+                if (modifiers && modifiers.fireRate) {
+                    effectiveCooldown = this.cooldownTime * 0.8;
+                }
+
+                const timeRemaining = Math.ceil((effectiveCooldown - (currentTime - lastShot)) / 1000);
                 indicator.setText(`Recargando... (${timeRemaining}s)`);
                 indicator.setPosition(cannon.x, cannon.y - 30);
                 indicator.setVisible(true);
@@ -281,14 +298,15 @@ class CannonSystem {
      * @param {number} currentTime - Current time in ms
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearAnchor - Is player near anchor
+     * @param {Object} modifiers - Optional ship modifiers
      */
-    update(player, ship, cannons, input, deltaTime, currentTime, nearHelm, nearAnchor) {
+    update(player, ship, cannons, input, deltaTime, currentTime, nearHelm, nearAnchor, modifiers = null) {
         // Update cannon positions
         this.updateCannonPosition(cannons.left, ship);
         this.updateCannonPosition(cannons.right, ship);
 
         // Update indicator
-        this.updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor);
+        this.updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor, modifiers);
 
         // Handle mount/dismount
         this.handleInteraction(player, cannons, input.interact, nearHelm, nearAnchor);
@@ -303,7 +321,7 @@ class CannonSystem {
 
             // Handle firing
             if (input.fire) {
-                this.fireCannon(cannon, ship, this.scene.socket, currentTime);
+                this.fireCannon(cannon, ship, this.scene.socket, currentTime, modifiers);
             }
         }
     }

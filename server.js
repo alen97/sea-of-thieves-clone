@@ -594,7 +594,7 @@ setInterval(function() {
           turnRight: input.turnRight
         };
 
-        // Update ship state using shared physics
+        // Update ship state using shared physics (with modifiers)
         const newState = shipPhysics.updateShipPhysics(
           {
             x: room.ship.x,
@@ -605,7 +605,8 @@ setInterval(function() {
             isAnchored: room.ship.isAnchored
           },
           shipInput,
-          DELTA_TIME
+          DELTA_TIME,
+          room.ship.modifiers // Pass modifiers to physics calculation
         );
 
         // Apply new state
@@ -625,7 +626,7 @@ setInterval(function() {
       // Clear processed inputs
       room.ship.pendingInputs = [];
     } else {
-      // No controlling player - still update physics with no input
+      // No controlling player - still update physics with no input (with modifiers)
       const newState = shipPhysics.updateShipPhysics(
         {
           x: room.ship.x,
@@ -636,7 +637,8 @@ setInterval(function() {
           isAnchored: room.ship.isAnchored
         },
         shipInput,
-        DELTA_TIME
+        DELTA_TIME,
+        room.ship.modifiers // Pass modifiers to physics calculation
       );
 
       // Apply new state
@@ -648,23 +650,6 @@ setInterval(function() {
       room.ship.velocityX = newState.velocityX;
       room.ship.velocityY = newState.velocityY;
       room.ship.angularVelocity = newState.angularVelocity;
-    }
-
-    // Apply modifier effects to ship physics
-    if (room.ship.modifiers) {
-      // Speed modifier: +20% speed
-      if (room.ship.modifiers.speed) {
-        room.ship.currentSpeed *= 1.2;
-        room.ship.velocityX *= 1.2;
-        room.ship.velocityY *= 1.2;
-      }
-
-      // Turning modifier: +20% angular velocity
-      if (room.ship.modifiers.turning) {
-        room.ship.angularVelocity *= 1.2;
-      }
-
-      // Fire rate modifier is applied when shooting (handled in cannon code)
     }
 
     // Check for modifier collisions

@@ -698,7 +698,8 @@ function update(time, delta) {
         deltaTime,
         time,
         canUseHelm,
-        canUseAnchor
+        canUseAnchor,
+        this.shipModifiers // Pass modifiers for fire rate
       );
     }
 
