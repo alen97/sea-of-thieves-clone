@@ -525,52 +525,79 @@ function create() {
 
     // Create visual modifiers as floating bottles
     modifiers.forEach(function (modifierData, index) {
-      // Create container for the entire modifier (glow + bottle)
-      const modifierContainer = self.add.container(modifierData.x, modifierData.y);
+      // Create glow/shine effect with multiple layered circles for gradient
+      const glowLayers = [];
 
-      // Create glow/shine effect with multiple layered circles (centered at 0,0)
-      const glow1 = self.add.circle(0, 0, 18, 0x9400d3, 0.15);
-      const glow2 = self.add.circle(0, 0, 12, 0x9400d3, 0.25);
-      const glow3 = self.add.circle(0, 0, 6, 0xbb88ff, 0.35);
+      // Outer glow (most diffuse)
+      const glow1 = self.add.circle(
+        modifierData.x,
+        modifierData.y,
+        18,
+        0x9400d3,
+        0.15
+      );
+      glowLayers.push(glow1);
 
-      // Create the bottle sprite (centered at 0,0)
-      const bottleSprite = self.add.sprite(0, 0, 'potionModifier');
+      // Middle glow
+      const glow2 = self.add.circle(
+        modifierData.x,
+        modifierData.y,
+        12,
+        0x9400d3,
+        0.25
+      );
+      glowLayers.push(glow2);
 
-      // Apply tint based on modifier type
-      if (modifierData.color === 0xff0000) { // SPEED - Red
-        bottleSprite.setTint(0xff0000);
-      } else if (modifierData.color === 0x00ff00) { // FIRE_RATE - Purple/Violet
-        bottleSprite.setTint(0x9400d3);
-      }
-      // No tint for TURNING (yellow - base sprite color)
+      // Inner glow (brighter)
+      const glow3 = self.add.circle(
+        modifierData.x,
+        modifierData.y,
+        6,
+        0xbb88ff,
+        0.35
+      );
+      glowLayers.push(glow3);
 
-      // Add all elements to container (glow layers first, then bottle on top)
-      modifierContainer.add([glow1, glow2, glow3, bottleSprite]);
-
-      // Breathing animation (like lantern) - uniform scale
+      // Pulse animation for all glow layers
       self.tweens.add({
-        targets: modifierContainer,
-        scale: { from: 1.0, to: 1.15 },
-        duration: 1000,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
-
-      // Add floating bobbing animation
-      self.tweens.add({
-        targets: modifierContainer,
-        y: modifierData.y + 8, // Float up and down 8 pixels
-        duration: 1500 + (index * 200),
+        targets: glowLayers,
+        alpha: '-=0.1',
+        duration: 2000 + (index * 100),
         ease: 'Sine.easeInOut',
         yoyo: true,
         repeat: -1,
-        delay: index * 100
+        delay: index * 120
+      });
+
+      const modifier = self.add.sprite(
+        modifierData.x,
+        modifierData.y,
+        'potionModifier'
+      );
+
+      // Apply tint based on modifier type
+      // Yellow is the base sprite color (TURNING modifier)
+      if (modifierData.color === 0xff0000) { // SPEED - Red
+        modifier.setTint(0xff0000);
+      } else if (modifierData.color === 0x00ff00) { // FIRE_RATE - Purple/Violet
+        modifier.setTint(0x9400d3);
+      }
+      // No tint for TURNING (yellow - base sprite color)
+
+      // Add floating bobbing animation
+      self.tweens.add({
+        targets: [modifier, ...glowLayers],
+        y: modifierData.y + 8, // Float up and down 8 pixels
+        duration: 1500 + (index * 200), // Slightly different duration for each
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1, // Infinite loop
+        delay: index * 100 // Stagger the start times
       });
 
       // Add subtle rotation for floating effect
       self.tweens.add({
-        targets: modifierContainer,
+        targets: modifier,
         angle: 10,
         duration: 2000 + (index * 150),
         ease: 'Sine.easeInOut',
@@ -579,10 +606,11 @@ function create() {
         delay: index * 150
       });
 
-      // Store metadata on container
-      modifierContainer.modifierId = modifierData.id;
-      modifierContainer.modifierType = modifierData.type;
-      self.modifiers.add(modifierContainer);
+      // Store glow layers reference with modifier for cleanup
+      modifier.glowLayers = glowLayers;
+      modifier.modifierId = modifierData.id;
+      modifier.modifierType = modifierData.type;
+      self.modifiers.add(modifier);
     });
 
     console.log(`Spawned ${modifiers.length} modifiers in room`);
@@ -593,7 +621,10 @@ function create() {
     // Remove the modifier visually
     self.modifiers.getChildren().forEach(function (modifier) {
       if (modifier.modifierId === data.modifierId) {
-        // Destroy the container (automatically destroys all children)
+        // Destroy all glow layers first if they exist
+        if (modifier.glowLayers) {
+          modifier.glowLayers.forEach(layer => layer.destroy());
+        }
         modifier.destroy();
       }
     });
