@@ -525,6 +525,27 @@ function create() {
 
     // Create visual modifiers as floating bottles
     modifiers.forEach(function (modifierData, index) {
+      // Create aura/glow effect behind the bottle
+      const aura = self.add.circle(
+        modifierData.x,
+        modifierData.y,
+        20, // Radius
+        0x9400d3, // Purple/violet color
+        0.3 // Alpha for subtle glow
+      );
+
+      // Pulse animation for the aura
+      self.tweens.add({
+        targets: aura,
+        scale: 1.3,
+        alpha: 0.15,
+        duration: 1800 + (index * 100),
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        delay: index * 120
+      });
+
       const modifier = self.add.sprite(
         modifierData.x,
         modifierData.y,
@@ -542,7 +563,7 @@ function create() {
 
       // Add floating bobbing animation
       self.tweens.add({
-        targets: modifier,
+        targets: [modifier, aura],
         y: modifierData.y + 8, // Float up and down 8 pixels
         duration: 1500 + (index * 200), // Slightly different duration for each
         ease: 'Sine.easeInOut',
@@ -562,6 +583,8 @@ function create() {
         delay: index * 150
       });
 
+      // Store aura reference with modifier for cleanup
+      modifier.aura = aura;
       modifier.modifierId = modifierData.id;
       modifier.modifierType = modifierData.type;
       self.modifiers.add(modifier);
@@ -575,6 +598,10 @@ function create() {
     // Remove the modifier visually
     self.modifiers.getChildren().forEach(function (modifier) {
       if (modifier.modifierId === data.modifierId) {
+        // Destroy the aura first if it exists
+        if (modifier.aura) {
+          modifier.aura.destroy();
+        }
         modifier.destroy();
       }
     });
