@@ -665,15 +665,6 @@ let rightCannonLastShot = 0;
 
 // Show floating text when collecting a modifier (Dark Souls style)
 function showModifierPickupText(scene, x, y, name, lore, rarity) {
-  // Rarity colors
-  const rarityColors = {
-    common: '#D4AF37',    // Gold
-    rare: '#87CEEB',      // Sky blue
-    epic: '#9370DB',      // Purple
-    legendary: '#FF6347'  // Tomato red
-  };
-  const color = rarityColors[rarity] || '#FFFFFF';
-
   // Calculate offset from ship position (so text follows ship)
   const offsetX = x - scene.ship.x;
   const offsetY = y - scene.ship.y;
@@ -682,7 +673,7 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
   const titleText = scene.add.text(x, y - 120, name, {
     fontSize: '20px',
     fontFamily: 'Georgia, serif',
-    fill: color,
+    fill: '#D4AF37',    // Pale gold - discovery/treasure feeling
     stroke: '#000000',
     strokeThickness: 4,
     align: 'center',
@@ -699,7 +690,7 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
   const loreText = scene.add.text(x, y - 90, lore, {
     fontSize: '14px',
     fontFamily: 'Georgia, serif',
-    fill: '#CCCCCC',
+    fill: '#B0B0B0',    // Warm gray - contemplative/memory feeling
     stroke: '#000000',
     strokeThickness: 3,
     align: 'center',
