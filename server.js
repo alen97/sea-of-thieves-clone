@@ -173,8 +173,8 @@ io.on('connection', function (socket) {
     return;
   }
 
-  // Join the socket.io room and all adjacent rooms for seamless experience
-  joinAdjacentRooms(socket, initialRoomX, initialRoomY);
+  // Join the socket.io room for this ship
+  socket.join(roomId);
 
   // Store room info in socket
   socket.currentRoomX = initialRoomX;
@@ -207,9 +207,8 @@ io.on('connection', function (socket) {
   };
 
   // Send shared ship FIRST, then players (ensures ship exists when creating avatars)
-  const adjacentPlayers = getPlayersInAdjacentRooms(initialRoomX, initialRoomY);
   socket.emit('sharedShip', room.ship); // Send the shared ship data FIRST
-  socket.emit('currentPlayers', adjacentPlayers);
+  socket.emit('currentPlayers', room.players);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
 
   // Update other players in the same room about the new player
@@ -375,9 +374,7 @@ io.on('connection', function (socket) {
         return;
       }
 
-      const oldRoomX = socket.currentRoomX;
-      const oldRoomY = socket.currentRoomY;
-      const oldRoomId = getRoomId(oldRoomX, oldRoomY);
+      const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
       const newRoomId = getRoomId(roomData.roomX, roomData.roomY);
 
       // Skip if already in target room
@@ -393,8 +390,8 @@ io.on('connection', function (socket) {
         return;
       }
 
-      // Move ALL players and the ship to new room
-      const playersToMove = Object.keys(oldRoom.players);
+      // Get all players on the ship (they all move together)
+      const playersOnShip = Object.keys(oldRoom.players);
       const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
 
       // Move ship to new room
@@ -404,17 +401,14 @@ io.on('connection', function (socket) {
       newRoom.ship = ship;
       oldRoom.ship = null;
 
-      // Move all players to new room
-      playersToMove.forEach(playerId => {
+      // Move all players to new room and update their coordinates
+      playersOnShip.forEach(playerId => {
         const playerData = oldRoom.players[playerId];
         const playerSocket = io.sockets.connected[playerId];
 
         if (playerData && playerSocket) {
-          // Remove from old room
+          // Remove from old room data
           delete oldRoom.players[playerId];
-
-          // Leave old socket.io rooms
-          leaveAdjacentRooms(playerSocket, playerSocket.currentRoomX, playerSocket.currentRoomY);
 
           // Update room coordinates
           playerSocket.currentRoomX = roomData.roomX;
@@ -422,56 +416,16 @@ io.on('connection', function (socket) {
           playerData.roomX = roomData.roomX;
           playerData.roomY = roomData.roomY;
 
-          // Add to new room
+          // Add to new room data
           newRoom.players[playerId] = playerData;
-
-          // Join new socket.io rooms
-          joinAdjacentRooms(playerSocket, roomData.roomX, roomData.roomY);
-
-          // Send room changed event first
-          playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
         }
       });
 
-      // After all players have been moved, send complete state to everyone
-      playersToMove.forEach(playerId => {
-        const playerSocket = io.sockets.connected[playerId];
-        if (playerSocket) {
-          // Send updated data to this player with ALL players in adjacent rooms
-          const adjacentPlayers = getPlayersInAdjacentRooms(roomData.roomX, roomData.roomY);
-          playerSocket.emit('currentPlayers', adjacentPlayers);
-          playerSocket.emit('sharedShip', newRoom.ship);
-        }
-      });
+      // Notify ALL players on the ship about the room change
+      io.to(oldRoomId).emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
+      io.to(oldRoomId).emit('sharedShip', newRoom.ship);
 
-      // Notify players in adjacent rooms (who didn't move) about the new ship and players
-      const adjacentRooms = getAdjacentRooms(roomData.roomX, roomData.roomY);
-
-      // Broadcast ship update to all adjacent rooms
-      adjacentRooms.forEach(room => {
-        io.to(room.roomId).emit('sharedShip', newRoom.ship);
-      });
-
-      // Get all sockets in adjacent rooms (excluding those who moved)
-      adjacentRooms.forEach(room => {
-        const roomData = rooms[room.roomId];
-        if (roomData && roomData.players) {
-          Object.keys(roomData.players).forEach(playerId => {
-            // Only notify players who DIDN'T move
-            if (!playersToMove.includes(playerId)) {
-              const playerSocket = io.sockets.connected[playerId];
-              if (playerSocket) {
-                // Send each moved player to this stationary player
-                playersToMove.forEach(movedPlayerId => {
-                  if (newRoom.players[movedPlayerId]) {
-                    playerSocket.emit('newPlayer', newRoom.players[movedPlayerId]);
-                  }
-                });
-              }
-            }
-          });
-        }
-      });
+      console.log(`Moved ${playersOnShip.length} players from ${oldRoomId} to ${newRoomId}`);
 
     } catch (error) {
       console.error(`Error changing room for ship:`, error);
