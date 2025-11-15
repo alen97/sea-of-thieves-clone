@@ -192,6 +192,9 @@ function create() {
     fireRate: false
   };
 
+  // Track modifiers in the order they were collected (for HUD display)
+  this.shipModifiersArray = [];
+
   // Handle server full event
   this.socket.on('serverFull', function (data) {
     alert(data.message || 'Server is full. Please try again later.');
@@ -330,6 +333,31 @@ function create() {
       // Sync modifier state from server
       if (shipData.modifiers) {
         self.shipModifiers = shipData.modifiers;
+
+        // Build shipModifiersArray from synced modifiers
+        // (Note: order won't be preserved for mid-game joins, uses fixed order)
+        self.shipModifiersArray = [];
+        if (shipData.modifiers.speed) {
+          self.shipModifiersArray.push({
+            type: 'RIOS_WINDS',
+            color: 0x00CED1,
+            name: "Río de la Plata's Winds"
+          });
+        }
+        if (shipData.modifiers.turning) {
+          self.shipModifiersArray.push({
+            type: 'CAPTAINS_WISDOM',
+            color: 0xFFD700,
+            name: "Captain's Wisdom"
+          });
+        }
+        if (shipData.modifiers.fireRate) {
+          self.shipModifiersArray.push({
+            type: 'PIRATES_TENACITY',
+            color: 0xDC143C,
+            name: "Pirate's Tenacity"
+          });
+        }
       }
     }
   });
@@ -606,6 +634,17 @@ function create() {
 
     // Update local ship modifiers state
     self.shipModifiers = data.shipModifiers;
+
+    // Add to modifiers array (for HUD display in order)
+    // Only add if not already in array (avoid duplicates)
+    const existingIndex = self.shipModifiersArray.findIndex(m => m.type === data.modifierType);
+    if (existingIndex === -1) {
+      self.shipModifiersArray.push({
+        type: data.modifierType,
+        color: data.modifierColor,
+        name: data.modifierName
+      });
+    }
 
     // Show floating text with modifier name and lore
     if (modifierPosition && data.modifierName && data.modifierLore) {
@@ -1407,58 +1446,48 @@ class UIScene extends Phaser.Scene {
     this.chatCounter.setOrigin(1, 0.5);
     this.chatCounter.setVisible(false);
 
-    // ===== MODIFIER INDICATORS (Manuscripts/Scrolls) =====
-    const modifierY = cameraY - 350; // Top of screen
-    const modifierWidth = 50;
-    const modifierHeight = 30;
-    const modifierSpacing = 60;
+    // ===== MODIFIER INDICATORS (Square Cells with Colored Circles) =====
+    const cellSize = 50; // Outer cell size
+    const cellSpacing = 10; // Space between cells
+    const cellStartX = cameraX - 380; // Left side of screen
+    const cellStartY = cameraY - 350; // Top of screen
 
-    // Helper function to create manuscript/scroll SVG indicator
-    const createManuscriptIndicator = (x, y, borderColor, initial) => {
+    // Helper function to create a single cell (outer border, inner white square, colored circle)
+    const createModifierCell = (x, y) => {
       const container = this.add.container(x, y);
       container.setScrollFactor(0);
       container.setDepth(2020);
 
-      // Parchment background (old paper color)
-      const bg = this.add.rectangle(0, 0, modifierWidth, modifierHeight, 0xF4E4C1, 1);
-      bg.setStrokeStyle(3, borderColor, 1); // Colored border
+      // Outer cell with white border (initially transparent background)
+      const outerCell = this.add.rectangle(0, 0, cellSize, cellSize, 0x000000, 0);
+      outerCell.setStrokeStyle(2, 0xFFFFFF, 1); // White border
 
-      // Initial letter in center
-      const text = this.add.text(0, 0, initial, {
-        fontSize: '18px',
-        fontFamily: 'Georgia, serif',
-        fill: '#2B1810', // Dark brown ink
-        fontStyle: 'bold'
-      }).setOrigin(0.5);
+      // Inner white square (slightly smaller)
+      const innerSquareSize = cellSize * 0.6; // 60% of cell size
+      const innerSquare = this.add.rectangle(0, 0, innerSquareSize, innerSquareSize, 0xFFFFFF, 1);
 
-      container.add([bg, text]);
+      // Colored circle (will be updated based on modifier)
+      const circleRadius = innerSquareSize * 0.4; // 40% of inner square
+      const coloredCircle = this.add.circle(0, 0, circleRadius, 0xFFFFFF, 1);
+
+      container.add([outerCell, innerSquare, coloredCircle]);
       container.setVisible(false);
+
+      // Store references for updating
+      container.coloredCircle = coloredCircle;
+
       return container;
     };
 
-    // Speed modifier indicator (Cyan)
-    this.speedModifierIndicator = createManuscriptIndicator(
-      cameraX - modifierSpacing,
-      modifierY,
-      0x00CED1, // Dark Cyan
-      'W' // Winds
-    );
-
-    // Turning modifier indicator (Gold)
-    this.turningModifierIndicator = createManuscriptIndicator(
-      cameraX,
-      modifierY,
-      0xFFD700, // Gold
-      'G' // Guide
-    );
-
-    // Fire rate modifier indicator (Crimson)
-    this.fireRateModifierIndicator = createManuscriptIndicator(
-      cameraX + modifierSpacing,
-      modifierY,
-      0xDC143C, // Crimson
-      'T' // Tenacity
-    );
+    // Create 3 cells for up to 3 modifiers
+    this.modifierCells = [];
+    for (let i = 0; i < 3; i++) {
+      const cell = createModifierCell(
+        cellStartX + i * (cellSize + cellSpacing),
+        cellStartY
+      );
+      this.modifierCells.push(cell);
+    }
 
     // Registrar teclas una sola vez
     this.keyT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);
@@ -1765,10 +1794,23 @@ class UIScene extends Phaser.Scene {
     }
 
     // ===== UPDATE MODIFIER INDICATORS =====
-    if (this.mainScene.shipModifiers) {
-      this.speedModifierIndicator.setVisible(this.mainScene.shipModifiers.speed);
-      this.turningModifierIndicator.setVisible(this.mainScene.shipModifiers.turning);
-      this.fireRateModifierIndicator.setVisible(this.mainScene.shipModifiers.fireRate);
+    // Update cells based on shipModifiersArray (shows items in order collected)
+    if (this.mainScene.shipModifiersArray) {
+      const modifiers = this.mainScene.shipModifiersArray;
+
+      // Update each cell
+      for (let i = 0; i < this.modifierCells.length; i++) {
+        const cell = this.modifierCells[i];
+
+        if (i < modifiers.length) {
+          // Show cell and update color
+          cell.setVisible(true);
+          cell.coloredCircle.setFillStyle(modifiers[i].color, 1);
+        } else {
+          // Hide empty cells
+          cell.setVisible(false);
+        }
+      }
     }
   }
 
