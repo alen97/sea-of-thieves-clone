@@ -145,10 +145,6 @@ function create() {
   var self = this;
   this.socket = io();
 
-  // Entity interpolation system for smooth multiplayer movement
-  this.shipInterpolation = new EntityInterpolationSystem(3, 100);
-  this.playerInterpolations = new Map(); // Map<playerId, EntityInterpolationSystem>
-
   // Room tracking
   this.currentRoomX = 0;
   this.currentRoomY = 0;
@@ -242,15 +238,14 @@ function create() {
       self.lastServerState = shipData;
 
       if (!self.player || !self.player.isControllingShip) {
-        // Not controlling - use interpolation system for smooth movement
-        self.shipInterpolation.addSnapshot({
-          x: shipData.x,
-          y: shipData.y,
-          rotation: shipData.rotation,
-          timestamp: Date.now()
-        });
+        // Not controlling - accept server state with lerp
+        const lerpFactor = 0.3;
+        const newX = Phaser.Math.Linear(self.ship.x, shipData.x, lerpFactor);
+        const newY = Phaser.Math.Linear(self.ship.y, shipData.y, lerpFactor);
+        self.ship.setPosition(newX, newY);
+        self.ship.setRotation(shipData.rotation);
 
-        // Update velocity and physics state (non-interpolated)
+        // Update velocity and physics state
         self.ship.currentSpeed = shipData.currentSpeed;
         self.ship.isAnchored = shipData.isAnchored;
         self.steeringDirection = shipData.steeringDirection;
@@ -455,8 +450,6 @@ function create() {
       if (playerId === otherPlayer.playerId) {
         // Destroy player avatar only (ship is shared)
         otherPlayer.destroy();
-        // Clean up interpolation system for this player
-        self.playerInterpolations.delete(playerId);
         console.log(`Player left: ${playerId}`);
       }
     });
@@ -465,22 +458,13 @@ function create() {
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerInfo.playerId === otherPlayer.playerId) {
-        // Update player avatar position using interpolation
+        // Update player avatar position (relative to shared ship)
         if (self.ship) {
-          // Create interpolation system for this player if it doesn't exist
-          if (!self.playerInterpolations.has(playerInfo.playerId)) {
-            self.playerInterpolations.set(playerInfo.playerId, new EntityInterpolationSystem(3, 100));
-          }
-
-          const interpolation = self.playerInterpolations.get(playerInfo.playerId);
-
-          // Add snapshot with absolute world position (ship pos + relative pos)
-          interpolation.addSnapshot({
-            x: self.ship.x + playerInfo.player.x,
-            y: self.ship.y + playerInfo.player.y,
-            rotation: playerInfo.player.rotation,
-            timestamp: Date.now()
-          });
+          otherPlayer.setPosition(
+            self.ship.x + playerInfo.player.x,
+            self.ship.y + playerInfo.player.y
+          );
+          otherPlayer.setRotation(playerInfo.player.rotation);
 
           // Synchronize animation based on received isMoving state
           const isMoving = playerInfo.player.isMoving || false;
@@ -681,29 +665,6 @@ function update(time, delta) {
   const deltaTime = delta / 1000; // Convertir a segundos
 
   if (this.ship && this.player) {
-
-    // ===== SHIP INTERPOLATION =====
-    // Apply interpolated state when not controlling the ship
-    if ((!this.player || !this.player.isControllingShip) && this.shipInterpolation.hasData()) {
-      const interpolatedState = this.shipInterpolation.getInterpolatedState();
-      if (interpolatedState) {
-        this.ship.setPosition(interpolatedState.x, interpolatedState.y);
-        this.ship.setRotation(interpolatedState.rotation);
-      }
-    }
-
-    // ===== OTHER PLAYERS INTERPOLATION =====
-    // Apply interpolated state to all other players
-    this.otherPlayers.getChildren().forEach((otherPlayer) => {
-      const interpolation = this.playerInterpolations.get(otherPlayer.playerId);
-      if (interpolation && interpolation.hasData()) {
-        const interpolatedState = interpolation.getInterpolatedState();
-        if (interpolatedState) {
-          otherPlayer.setPosition(interpolatedState.x, interpolatedState.y);
-          otherPlayer.setRotation(interpolatedState.rotation);
-        }
-      }
-    });
 
     // ===== INPUT =====
     const inputEnabled = !this.chatMode;
