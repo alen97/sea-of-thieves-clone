@@ -525,12 +525,12 @@ function create() {
 
     // Create visual modifiers as floating bottles
     modifiers.forEach(function (modifierData, index) {
-      // Create aura/glow effect behind the bottle
+      // Create aura/glow effect behind the bottle (using modifier's color)
       const aura = self.add.circle(
         modifierData.x,
         modifierData.y,
         20, // Radius
-        0x9400d3, // Purple/violet color
+        modifierData.color, // Use modifier's unique color
         0.3 // Alpha for subtle glow
       );
 
@@ -552,14 +552,8 @@ function create() {
         'potionModifier'
       );
 
-      // Apply tint based on modifier type
-      // Yellow is the base sprite color (TURNING modifier)
-      if (modifierData.color === 0xff0000) { // SPEED - Red
-        modifier.setTint(0xff0000);
-      } else if (modifierData.color === 0x00ff00) { // FIRE_RATE - Purple/Violet
-        modifier.setTint(0x9400d3);
-      }
-      // No tint for TURNING (yellow - base sprite color)
+      // Apply tint based on modifier color from server
+      modifier.setTint(modifierData.color);
 
       // Add floating bobbing animation
       self.tweens.add({
@@ -596,9 +590,12 @@ function create() {
 
   // Handle modifier collection
   this.socket.on('modifierCollected', function (data) {
-    // Remove the modifier visually
+    // Find the modifier to get its position before destroying
+    let modifierPosition = null;
     self.modifiers.getChildren().forEach(function (modifier) {
       if (modifier.modifierId === data.modifierId) {
+        modifierPosition = { x: modifier.x, y: modifier.y };
+
         // Destroy the aura first if it exists
         if (modifier.aura) {
           modifier.aura.destroy();
@@ -610,7 +607,12 @@ function create() {
     // Update local ship modifiers state
     self.shipModifiers = data.shipModifiers;
 
-    console.log(`Collected ${data.modifierType} modifier!`);
+    // Show floating text with modifier name and lore
+    if (modifierPosition && data.modifierName && data.modifierLore) {
+      showModifierPickupText(self, modifierPosition.x, modifierPosition.y, data.modifierName, data.modifierLore, data.modifierRarity);
+    }
+
+    console.log(`Collected "${data.modifierName}" modifier!`);
   });
 
   // Handle chat messages
@@ -660,6 +662,80 @@ let canShootRight = true;
 const cooldownTime = 3000;
 let leftCannonLastShot = 0;
 let rightCannonLastShot = 0;
+
+// Show floating text when collecting a modifier (Dark Souls style)
+function showModifierPickupText(scene, x, y, name, lore, rarity) {
+  // Rarity colors
+  const rarityColors = {
+    common: '#D4AF37',    // Gold
+    rare: '#87CEEB',      // Sky blue
+    epic: '#9370DB',      // Purple
+    legendary: '#FF6347'  // Tomato red
+  };
+  const color = rarityColors[rarity] || '#FFFFFF';
+
+  // Create main title text
+  const titleText = scene.add.text(x, y - 40, name, {
+    fontSize: '20px',
+    fontFamily: 'Georgia, serif',
+    fill: color,
+    stroke: '#000000',
+    strokeThickness: 4,
+    align: 'center',
+    shadow: {
+      offsetX: 2,
+      offsetY: 2,
+      color: '#000000',
+      blur: 4,
+      fill: true
+    }
+  }).setOrigin(0.5).setDepth(1000);
+
+  // Create lore text
+  const loreText = scene.add.text(x, y - 15, lore, {
+    fontSize: '14px',
+    fontFamily: 'Georgia, serif',
+    fill: '#CCCCCC',
+    stroke: '#000000',
+    strokeThickness: 3,
+    align: 'center',
+    wordWrap: { width: 400 },
+    shadow: {
+      offsetX: 1,
+      offsetY: 1,
+      color: '#000000',
+      blur: 3,
+      fill: true
+    }
+  }).setOrigin(0.5).setDepth(1000);
+
+  // Fade in and float up animation
+  titleText.setAlpha(0);
+  loreText.setAlpha(0);
+
+  scene.tweens.add({
+    targets: [titleText, loreText],
+    alpha: 1,
+    y: '-=20',
+    duration: 800,
+    ease: 'Sine.easeOut'
+  });
+
+  // Hold for a moment, then fade out
+  scene.time.delayedCall(3500, () => {
+    scene.tweens.add({
+      targets: [titleText, loreText],
+      alpha: 0,
+      y: '-=30',
+      duration: 1500,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        titleText.destroy();
+        loreText.destroy();
+      }
+    });
+  });
+}
 
 function update(time, delta) {
   const deltaTime = delta / 1000; // Convertir a segundos

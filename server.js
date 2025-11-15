@@ -12,9 +12,36 @@ const MAX_PLAYERS = 4;
 
 // Modifier system constants
 const MODIFIER_TYPES = {
-  SPEED: { type: 'SPEED', color: 0xff0000, effect: 'speed' },
-  TURNING: { type: 'TURNING', color: 0xffff00, effect: 'turning' },
-  FIRE_RATE: { type: 'FIRE_RATE', color: 0x00ff00, effect: 'fireRate' }
+  RIOS_WINDS: {
+    id: 'rios_winds',
+    name: "Río de la Plata's Winds",
+    lore: "The winds remember the sails that once danced here.",
+    type: 'RIOS_WINDS',
+    color: 0x87CEEB, // Sky blue (celeste)
+    effect: 'speed',
+    bonus: 0.2,
+    rarity: 'rare'
+  },
+  OLD_CAPTAINS_RUDDER: {
+    id: 'old_captains_rudder',
+    name: "Old Captain's Rudder",
+    lore: "An ancient hand guides your turns, steady but firm.",
+    type: 'OLD_CAPTAINS_RUDDER',
+    color: 0xCD853F, // Peru brown (madera)
+    effect: 'turning',
+    bonus: 0.25,
+    rarity: 'common'
+  },
+  TIDEBREAKER_HARPOON: {
+    id: 'tidebreaker_harpoon',
+    name: "Tidebreaker Harpoon",
+    lore: "Forged from driftwood and lightning, it thirsts for motion.",
+    type: 'TIDEBREAKER_HARPOON',
+    color: 0x4682B4, // Steel blue
+    effect: 'fireRate',
+    bonus: 0.3,
+    rarity: 'rare'
+  }
 };
 const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room
 const MODIFIER_SIZE = 8;
@@ -74,14 +101,20 @@ function spawnModifiersInRoom(room, roomX, roomY) {
     if (Math.random() < MODIFIER_SPAWN_CHANCE) {
       const modifier = {
         id: `${roomX},${roomY}_${modifierType.type}_${Date.now()}`,
+        modifierId: modifierType.id,
         type: modifierType.type,
+        name: modifierType.name,
+        lore: modifierType.lore,
+        rarity: modifierType.rarity,
         color: modifierType.color,
+        effect: modifierType.effect,
+        bonus: modifierType.bonus,
         x: Math.random() * (WORLD_WIDTH - 100) + 50, // Random position with margin
         y: Math.random() * (WORLD_HEIGHT - 100) + 50,
         size: MODIFIER_SIZE
       };
       room.modifiers.push(modifier);
-      console.log(`Spawned ${modifierType.type} modifier in room (${roomX}, ${roomY}) at (${Math.floor(modifier.x)}, ${Math.floor(modifier.y)})`);
+      console.log(`Spawned "${modifierType.name}" modifier in room (${roomX}, ${roomY}) at (${Math.floor(modifier.x)}, ${Math.floor(modifier.y)})`);
     }
   });
 }
@@ -665,6 +698,9 @@ setInterval(function() {
       io.to(roomId).emit('modifierCollected', {
         modifierId: collision.modifier.id,
         modifierType: collision.modifier.type,
+        modifierName: collision.modifier.name,
+        modifierLore: collision.modifier.lore,
+        modifierRarity: collision.modifier.rarity,
         shipModifiers: room.ship.modifiers
       });
     }
