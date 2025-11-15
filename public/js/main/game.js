@@ -529,17 +529,17 @@ function create() {
       const aura = self.add.circle(
         modifierData.x,
         modifierData.y,
-        12, // Smaller radius for subtlety
+        20, // Radius
         0x9400d3, // Purple/violet color
-        0.15 // Lower alpha for more subtle glow
+        0.3 // Alpha for subtle glow
       );
 
-      // Subtle pulse animation for the aura
+      // Pulse animation for the aura
       self.tweens.add({
         targets: aura,
-        scale: 1.15,
-        alpha: 0.08,
-        duration: 2000 + (index * 100),
+        scale: 1.3,
+        alpha: 0.15,
+        duration: 1800 + (index * 100),
         ease: 'Sine.easeInOut',
         yoyo: true,
         repeat: -1,
