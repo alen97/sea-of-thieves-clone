@@ -688,6 +688,14 @@ function update(time, delta) {
       });
     } else {
 
+    // Enviar rotación de cañones si el jugador está montado en uno
+    if (this.player.isOnCannon && this.ship.cannons) {
+      this.socket.emit('cannonRotation', {
+        leftAngle: this.ship.cannons.left.relativeAngle,
+        rightAngle: this.ship.cannons.right.relativeAngle
+      });
+    }
+
    this.ship.previousRotation = this.ship.rotation;
 
    // Not controlling - still use shared physics but with no input

@@ -451,6 +451,17 @@ io.on('connection', function (socket) {
     }
   });
 
+  socket.on('cannonRotation', function(data) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+    if (room && room.ship && data) {
+      room.ship.cannons = {
+        leftAngle: data.leftAngle || 0,
+        rightAngle: data.rightAngle || 0
+      };
+    }
+  });
+
 });
 
 function resolveInitialPosition(axis) {
