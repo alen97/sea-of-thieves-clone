@@ -1447,10 +1447,10 @@ class UIScene extends Phaser.Scene {
     this.chatCounter.setVisible(false);
 
     // ===== MODIFIER INDICATORS (Square Cells with Colored Circles) =====
-    const cellSize = 50; // Outer cell size
-    const cellSpacing = 10; // Space between cells
-    const cellStartX = cameraX - 380; // Left side of screen
-    const cellStartY = cameraY - 350; // Top of screen
+    const modifierCellSize = 50; // Outer cell size
+    const modifierCellSpacing = 10; // Space between cells
+    const modifierCellStartX = cameraX - 380; // Left side of screen
+    const modifierCellStartY = cameraY - 350; // Top of screen
 
     // Helper function to create a single cell (outer border, inner white square, colored circle)
     const createModifierCell = (x, y) => {
@@ -1459,11 +1459,11 @@ class UIScene extends Phaser.Scene {
       container.setDepth(2020);
 
       // Outer cell with white border (initially transparent background)
-      const outerCell = this.add.rectangle(0, 0, cellSize, cellSize, 0x000000, 0);
+      const outerCell = this.add.rectangle(0, 0, modifierCellSize, modifierCellSize, 0x000000, 0);
       outerCell.setStrokeStyle(2, 0xFFFFFF, 1); // White border
 
       // Inner white square (slightly smaller)
-      const innerSquareSize = cellSize * 0.6; // 60% of cell size
+      const innerSquareSize = modifierCellSize * 0.6; // 60% of cell size
       const innerSquare = this.add.rectangle(0, 0, innerSquareSize, innerSquareSize, 0xFFFFFF, 1);
 
       // Colored circle (will be updated based on modifier)
@@ -1483,8 +1483,8 @@ class UIScene extends Phaser.Scene {
     this.modifierCells = [];
     for (let i = 0; i < 3; i++) {
       const cell = createModifierCell(
-        cellStartX + i * (cellSize + cellSpacing),
-        cellStartY
+        modifierCellStartX + i * (modifierCellSize + modifierCellSpacing),
+        modifierCellStartY
       );
       this.modifierCells.push(cell);
     }
