@@ -525,20 +525,43 @@ function create() {
 
     // Create visual modifiers as floating bottles
     modifiers.forEach(function (modifierData, index) {
-      // Create aura/glow effect behind the bottle
-      const aura = self.add.circle(
+      // Create glow/shine effect with multiple layered circles for gradient
+      const glowLayers = [];
+
+      // Outer glow (most diffuse)
+      const glow1 = self.add.circle(
         modifierData.x,
         modifierData.y,
-        12, // Smaller radius for subtlety
-        0x9400d3, // Purple/violet color
-        0.15 // Lower alpha for more subtle glow
+        18,
+        0x9400d3,
+        0.04
       );
+      glowLayers.push(glow1);
 
-      // Subtle pulse animation for the aura
+      // Middle glow
+      const glow2 = self.add.circle(
+        modifierData.x,
+        modifierData.y,
+        12,
+        0x9400d3,
+        0.08
+      );
+      glowLayers.push(glow2);
+
+      // Inner glow (brighter)
+      const glow3 = self.add.circle(
+        modifierData.x,
+        modifierData.y,
+        6,
+        0xbb88ff,
+        0.12
+      );
+      glowLayers.push(glow3);
+
+      // Subtle pulse animation for all glow layers
       self.tweens.add({
-        targets: aura,
-        scale: 1.15,
-        alpha: 0.08,
+        targets: glowLayers,
+        alpha: '-=0.04',
         duration: 2000 + (index * 100),
         ease: 'Sine.easeInOut',
         yoyo: true,
@@ -563,7 +586,7 @@ function create() {
 
       // Add floating bobbing animation
       self.tweens.add({
-        targets: [modifier, aura],
+        targets: [modifier, ...glowLayers],
         y: modifierData.y + 8, // Float up and down 8 pixels
         duration: 1500 + (index * 200), // Slightly different duration for each
         ease: 'Sine.easeInOut',
@@ -583,8 +606,8 @@ function create() {
         delay: index * 150
       });
 
-      // Store aura reference with modifier for cleanup
-      modifier.aura = aura;
+      // Store glow layers reference with modifier for cleanup
+      modifier.glowLayers = glowLayers;
       modifier.modifierId = modifierData.id;
       modifier.modifierType = modifierData.type;
       self.modifiers.add(modifier);
@@ -598,9 +621,9 @@ function create() {
     // Remove the modifier visually
     self.modifiers.getChildren().forEach(function (modifier) {
       if (modifier.modifierId === data.modifierId) {
-        // Destroy the aura first if it exists
-        if (modifier.aura) {
-          modifier.aura.destroy();
+        // Destroy all glow layers first if they exist
+        if (modifier.glowLayers) {
+          modifier.glowLayers.forEach(layer => layer.destroy());
         }
         modifier.destroy();
       }
