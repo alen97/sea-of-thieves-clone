@@ -296,7 +296,7 @@ class CannonSystem {
         // Update cannon rotation if mounted
         if (player.isOnCannon) {
             const cannon = player.cannonSide === 'left' ? cannons.left : cannons.right;
-            this.updateCannonRotation(cannon, input.aim, deltaTime);
+            this.updateCannonRotation(cannon, input.steering, deltaTime);
 
             // Apply visual rotation change
             this.updateCannonPosition(cannon, ship);

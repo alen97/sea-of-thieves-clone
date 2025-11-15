@@ -180,9 +180,7 @@ function create() {
       addShipWakeEmitters(self, self.ship);
 
       // Create cannons for the ship
-      self.ship.cannons = createCannons(self, self.ship);
-      updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
-      updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
+      self.ship.cannons = self.cannonSystem.createCannons(self.ship)
 
       // Create lantern at ship center
       self.lanternLit = false;
@@ -296,9 +294,6 @@ function create() {
         if (!self.player.isOnCannon || self.player.cannonSide !== 'right') {
           self.ship.cannons.right.relativeAngle = shipData.cannons.rightAngle || 0;
         }
-        // Always update visual position (rotation is already set above)
-        updateCannonPosition(self.ship.cannons.left, self.ship, 'left');
-        updateCannonPosition(self.ship.cannons.right, self.ship, 'right');
       }
     }
   });

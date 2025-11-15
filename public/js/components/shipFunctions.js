@@ -37,66 +37,6 @@ function addOtherShip(self, shipInfo) {
     return ship;
 }
 
-function updateShip(self, ship, isControlled, input, inputEnabled = true) {
-    // Variables globales de física del barco
-    const constantSpeed = 100; // Velocidad constante del barco
-    const maxSteeringDirection = 100;
-    const steeringIncrement = 1;
-
-    // Guardar la rotación anterior para calcular el cambio
-    ship.previousRotation = ship.rotation;
-
-    // El barco SIEMPRE mantiene su velocidad/rotación independientemente
-
-    if (inputEnabled && isControlled && input) {
-        // El jugador está en el timón - puede MODIFICAR la dirección del timón
-
-        // Control de dirección (A/D) - Modifica el steeringDirection
-        if (input.keyA.isDown) {
-            self.steeringDirection = Phaser.Math.Clamp(
-                self.steeringDirection - steeringIncrement,
-                -maxSteeringDirection,
-                maxSteeringDirection
-            );
-        } else if (input.keyD.isDown) {
-            self.steeringDirection = Phaser.Math.Clamp(
-                self.steeringDirection + steeringIncrement,
-                -maxSteeringDirection,
-                maxSteeringDirection
-            );
-        }
-
-        // Auto-centrado: resetear dirección si está cerca del centro y no se presiona A/D
-        if ((self.steeringDirection >= -5 && self.steeringDirection <= 5) &&
-            !(input.keyA.isDown || input.keyD.isDown)) {
-            self.steeringDirection = 0;
-        }
-    }
-
-    // Client-side prediction: el jugador que controla el timón tiene autoridad sobre steeringDirection
-    // El servidor sincroniza con otros jugadores, pero no sobrescribe al controlador activo
-    // Auto-centrado aplicado solo cuando el jugador está en el timón para navegación más natural
-
-    // Calcular dirección del barco
-    const shipAngle = ship.rotation - Math.PI / 2;
-
-    // Aplicar aceleración/desaceleración gradual
-    if (ship.isAnchored) {
-        // Ancla bajada - desacelerar gradualmente hacia 0
-        ship.currentSpeed *= 0.995;
-    } else {
-        // Sin ancla - acelerar gradualmente hacia velocidad constante
-        // Factor más bajo = aceleración más lenta
-        ship.currentSpeed += (constantSpeed - ship.currentSpeed) * 0.003;
-    }
-
-    // Aplicar la velocidad actual en la dirección del barco
-    const velocityX = Math.cos(shipAngle) * ship.currentSpeed;
-    const velocityY = Math.sin(shipAngle) * ship.currentSpeed;
-
-    ship.setVelocity(velocityX, velocityY);
-}
-
 function setupShipCollisions(self, ship) {
     // Colisión de balas con el BARCO (sin daño)
     self.physics.add.overlap(ship, self.otherBullets, function (shipObj, bullet) {
