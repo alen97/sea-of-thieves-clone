@@ -588,6 +588,7 @@ function create() {
       modifier.modifierId = modifierData.id;
       modifier.modifierType = modifierData.type;
       self.modifiers.add(modifier);
+      self.modifiers.add(aura); // Add aura to group so it gets cleared too
     });
 
     console.log(`Spawned ${modifiers.length} modifiers in room`);
