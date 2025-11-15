@@ -609,7 +609,7 @@ function create() {
 
     // Show floating text with modifier name and lore
     if (modifierPosition && data.modifierName && data.modifierLore) {
-      showModifierPickupText(self, modifierPosition.x, modifierPosition.y, data.modifierName, data.modifierLore, data.modifierRarity);
+      showModifierPickupText(self, modifierPosition.x, modifierPosition.y, data.modifierName, data.modifierLore, data.modifierColor);
     }
 
     console.log(`Collected "${data.modifierName}" modifier!`);
@@ -664,16 +664,19 @@ let leftCannonLastShot = 0;
 let rightCannonLastShot = 0;
 
 // Show floating text when collecting a modifier (Dark Souls style)
-function showModifierPickupText(scene, x, y, name, lore, rarity) {
+function showModifierPickupText(scene, x, y, name, lore, color) {
   // Calculate offset from ship position (so text follows ship)
   const offsetX = x - scene.ship.x;
   const offsetY = y - scene.ship.y;
+
+  // Convert hex color (0x00CED1) to CSS string (#00CED1)
+  const cssColor = '#' + color.toString(16).padStart(6, '0');
 
   // Create main title text (positioned higher up)
   const titleText = scene.add.text(x, y - 120, name, {
     fontSize: '20px',
     fontFamily: 'Georgia, serif',
-    fill: '#D4AF37',    // Pale gold - discovery/treasure feeling
+    fill: cssColor,    // Use modifier's unique color
     stroke: '#000000',
     strokeThickness: 4,
     align: 'center',
@@ -1403,46 +1406,58 @@ class UIScene extends Phaser.Scene {
     this.chatCounter.setOrigin(1, 0.5);
     this.chatCounter.setVisible(false);
 
-    // ===== MODIFIER INDICATORS =====
+    // ===== MODIFIER INDICATORS (Manuscripts/Scrolls) =====
     const modifierY = cameraY - 350; // Top of screen
-    const modifierSize = 20;
-    const modifierSpacing = 30;
+    const modifierWidth = 50;
+    const modifierHeight = 30;
+    const modifierSpacing = 60;
 
-    // Speed modifier indicator (red)
-    this.speedModifierIndicator = this.add.rectangle(
+    // Helper function to create manuscript/scroll SVG indicator
+    const createManuscriptIndicator = (x, y, borderColor, initial) => {
+      const container = this.add.container(x, y);
+      container.setScrollFactor(0);
+      container.setDepth(2020);
+
+      // Parchment background (old paper color)
+      const bg = this.add.rectangle(0, 0, modifierWidth, modifierHeight, 0xF4E4C1, 1);
+      bg.setStrokeStyle(3, borderColor, 1); // Colored border
+
+      // Initial letter in center
+      const text = this.add.text(0, 0, initial, {
+        fontSize: '18px',
+        fontFamily: 'Georgia, serif',
+        fill: '#2B1810', // Dark brown ink
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      container.add([bg, text]);
+      container.setVisible(false);
+      return container;
+    };
+
+    // Speed modifier indicator (Cyan)
+    this.speedModifierIndicator = createManuscriptIndicator(
       cameraX - modifierSpacing,
       modifierY,
-      modifierSize,
-      modifierSize,
-      0xff0000
+      0x00CED1, // Dark Cyan
+      'W' // Winds
     );
-    this.speedModifierIndicator.setScrollFactor(0);
-    this.speedModifierIndicator.setDepth(2020);
-    this.speedModifierIndicator.setVisible(false);
 
-    // Turning modifier indicator (yellow)
-    this.turningModifierIndicator = this.add.rectangle(
+    // Turning modifier indicator (Gold)
+    this.turningModifierIndicator = createManuscriptIndicator(
       cameraX,
       modifierY,
-      modifierSize,
-      modifierSize,
-      0xffff00
+      0xFFD700, // Gold
+      'G' // Guide
     );
-    this.turningModifierIndicator.setScrollFactor(0);
-    this.turningModifierIndicator.setDepth(2020);
-    this.turningModifierIndicator.setVisible(false);
 
-    // Fire rate modifier indicator (green)
-    this.fireRateModifierIndicator = this.add.rectangle(
+    // Fire rate modifier indicator (Crimson)
+    this.fireRateModifierIndicator = createManuscriptIndicator(
       cameraX + modifierSpacing,
       modifierY,
-      modifierSize,
-      modifierSize,
-      0x00ff00
+      0xDC143C, // Crimson
+      'T' // Tenacity
     );
-    this.fireRateModifierIndicator.setScrollFactor(0);
-    this.fireRateModifierIndicator.setDepth(2020);
-    this.fireRateModifierIndicator.setVisible(false);
 
     // Registrar teclas una sola vez
     this.keyT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);

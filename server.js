@@ -17,27 +17,27 @@ const MODIFIER_TYPES = {
     name: "Río de la Plata's Winds",
     lore: "The winds remember the sails that once danced here.",
     type: 'RIOS_WINDS',
-    color: 0x87CEEB, // Sky blue (celeste)
+    color: 0x00CED1, // Dark Cyan - water in motion
     effect: 'speed',
     bonus: 0.2,
     rarity: 'rare'
   },
-  OLD_CAPTAINS_RUDDER: {
-    id: 'old_captains_rudder',
-    name: "Old Captain's Rudder",
-    lore: "An ancient hand guides your turns, steady but firm.",
-    type: 'OLD_CAPTAINS_RUDDER',
-    color: 0xCD853F, // Peru brown (madera)
+  CAPTAINS_GUIDE: {
+    id: 'captains_guide',
+    name: "Captain's Guide",
+    lore: "An old compass that points not north, but forward.",
+    type: 'CAPTAINS_GUIDE',
+    color: 0xFFD700, // Gold - navigator's light
     effect: 'turning',
     bonus: 0.25,
     rarity: 'common'
   },
-  TIDEBREAKER_HARPOON: {
-    id: 'tidebreaker_harpoon',
-    name: "Tidebreaker Harpoon",
-    lore: "Forged from driftwood and lightning, it thirsts for motion.",
-    type: 'TIDEBREAKER_HARPOON',
-    color: 0x4682B4, // Steel blue
+  PIRATES_TENACITY: {
+    id: 'pirates_tenacity',
+    name: "Pirate's Tenacity",
+    lore: "Those who persist are never truly defeated.",
+    type: 'PIRATES_TENACITY',
+    color: 0xDC143C, // Crimson - relentless fire
     effect: 'fireRate',
     bonus: 0.3,
     rarity: 'rare'
@@ -701,6 +701,7 @@ setInterval(function() {
         modifierName: collision.modifier.name,
         modifierLore: collision.modifier.lore,
         modifierRarity: collision.modifier.rarity,
+        modifierColor: collision.modifier.color,
         shipModifiers: room.ship.modifiers
       });
     }
