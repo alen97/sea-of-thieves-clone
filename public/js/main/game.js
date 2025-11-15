@@ -160,6 +160,14 @@ function create() {
   // Groups
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
   this.otherBullets = this.physics.add.group();
+  this.modifiers = this.add.group(); // Power-ups in the current room
+
+  // Track active ship modifiers
+  this.shipModifiers = {
+    speed: false,
+    turning: false,
+    fireRate: false
+  };
 
   // Handle server full event
   this.socket.on('serverFull', function (data) {
@@ -294,6 +302,11 @@ function create() {
         if (!self.player.isOnCannon || self.player.cannonSide !== 'right') {
           self.ship.cannons.right.relativeAngle = shipData.cannons.rightAngle || 0;
         }
+      }
+
+      // Sync modifier state from server
+      if (shipData.modifiers) {
+        self.shipModifiers = shipData.modifiers;
       }
     }
   });
@@ -480,6 +493,43 @@ function create() {
 
     console.log(`Changed to room (${roomData.roomX}, ${roomData.roomY})`);
     console.log(`Visited rooms: ${self.visitedRooms.size}`);
+  });
+
+  // Handle modifiers in room
+  this.socket.on('roomModifiers', function (modifiers) {
+    // Clear existing modifiers
+    self.modifiers.clear(true, true);
+
+    // Create visual modifiers
+    modifiers.forEach(function (modifierData) {
+      const modifier = self.add.rectangle(
+        modifierData.x,
+        modifierData.y,
+        modifierData.size,
+        modifierData.size,
+        modifierData.color
+      );
+      modifier.modifierId = modifierData.id;
+      modifier.modifierType = modifierData.type;
+      self.modifiers.add(modifier);
+    });
+
+    console.log(`Spawned ${modifiers.length} modifiers in room`);
+  });
+
+  // Handle modifier collection
+  this.socket.on('modifierCollected', function (data) {
+    // Remove the modifier visually
+    self.modifiers.getChildren().forEach(function (modifier) {
+      if (modifier.modifierId === data.modifierId) {
+        modifier.destroy();
+      }
+    });
+
+    // Update local ship modifiers state
+    self.shipModifiers = data.shipModifiers;
+
+    console.log(`Collected ${data.modifierType} modifier!`);
   });
 
   // Handle chat messages
@@ -1147,6 +1197,47 @@ class UIScene extends Phaser.Scene {
     this.chatCounter.setOrigin(1, 0.5);
     this.chatCounter.setVisible(false);
 
+    // ===== MODIFIER INDICATORS =====
+    const modifierY = cameraY - 350; // Top of screen
+    const modifierSize = 20;
+    const modifierSpacing = 30;
+
+    // Speed modifier indicator (red)
+    this.speedModifierIndicator = this.add.rectangle(
+      cameraX - modifierSpacing,
+      modifierY,
+      modifierSize,
+      modifierSize,
+      0xff0000
+    );
+    this.speedModifierIndicator.setScrollFactor(0);
+    this.speedModifierIndicator.setDepth(2020);
+    this.speedModifierIndicator.setVisible(false);
+
+    // Turning modifier indicator (yellow)
+    this.turningModifierIndicator = this.add.rectangle(
+      cameraX,
+      modifierY,
+      modifierSize,
+      modifierSize,
+      0xffff00
+    );
+    this.turningModifierIndicator.setScrollFactor(0);
+    this.turningModifierIndicator.setDepth(2020);
+    this.turningModifierIndicator.setVisible(false);
+
+    // Fire rate modifier indicator (green)
+    this.fireRateModifierIndicator = this.add.rectangle(
+      cameraX + modifierSpacing,
+      modifierY,
+      modifierSize,
+      modifierSize,
+      0x00ff00
+    );
+    this.fireRateModifierIndicator.setScrollFactor(0);
+    this.fireRateModifierIndicator.setDepth(2020);
+    this.fireRateModifierIndicator.setVisible(false);
+
     // Registrar teclas una sola vez
     this.keyT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);
     this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
@@ -1449,6 +1540,13 @@ class UIScene extends Phaser.Scene {
           this.mainScene.chatMode = false;
         }
       }
+    }
+
+    // ===== UPDATE MODIFIER INDICATORS =====
+    if (this.mainScene.shipModifiers) {
+      this.speedModifierIndicator.setVisible(this.mainScene.shipModifiers.speed);
+      this.turningModifierIndicator.setVisible(this.mainScene.shipModifiers.turning);
+      this.fireRateModifierIndicator.setVisible(this.mainScene.shipModifiers.fireRate);
     }
   }
 

@@ -10,6 +10,15 @@ const shipPhysics = require('./shared/shipPhysics.js');
 var rooms = {};
 const MAX_PLAYERS = 4;
 
+// Modifier system constants
+const MODIFIER_TYPES = {
+  SPEED: { type: 'SPEED', color: 0xff0000, effect: 'speed', bonus: 0.2 }, // Red - +20% speed
+  TURNING: { type: 'TURNING', color: 0xffff00, effect: 'turning', bonus: 0.2 }, // Yellow - +20% turning
+  FIRE_RATE: { type: 'FIRE_RATE', color: 0x00ff00, effect: 'fireRate', bonus: 0.2 } // Green - +20% fire rate
+};
+const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room
+const MODIFIER_SIZE = 8;
+
 // Server tick configuration
 const SERVER_TICK_RATE = 60; // Hz
 const SERVER_TICK_INTERVAL = 1000 / SERVER_TICK_RATE; // ms
@@ -41,8 +50,12 @@ function getOrCreateRoom(roomX, roomY) {
     rooms[roomId] = {
       ship: null, // Shared ship for all players in room (created with first player)
       players: {}, // Player avatars only
-      bullets: []
+      bullets: [],
+      modifiers: [] // Power-ups that spawn in the room
     };
+
+    // Spawn modifiers with a chance
+    spawnModifiersInRoom(rooms[roomId], roomX, roomY);
   }
   return rooms[roomId];
 }
@@ -50,6 +63,65 @@ function getOrCreateRoom(roomX, roomY) {
 // Get player count in a room
 function getPlayerCount(room) {
   return Object.keys(room.players).length;
+}
+
+// Spawn modifiers in a room with a probability
+function spawnModifiersInRoom(room, roomX, roomY) {
+  const modifierTypesArray = Object.values(MODIFIER_TYPES);
+
+  // Each modifier type has a chance to spawn
+  modifierTypesArray.forEach(modifierType => {
+    if (Math.random() < MODIFIER_SPAWN_CHANCE) {
+      const modifier = {
+        id: `${roomX},${roomY}_${modifierType.type}_${Date.now()}`,
+        type: modifierType.type,
+        color: modifierType.color,
+        x: Math.random() * (WORLD_WIDTH - 100) + 50, // Random position with margin
+        y: Math.random() * (WORLD_HEIGHT - 100) + 50,
+        size: MODIFIER_SIZE
+      };
+      room.modifiers.push(modifier);
+      console.log(`Spawned ${modifierType.type} modifier in room (${roomX}, ${roomY}) at (${Math.floor(modifier.x)}, ${Math.floor(modifier.y)})`);
+    }
+  });
+}
+
+// Check if ship collides with a modifier
+function checkModifierCollisions(ship, room) {
+  if (!ship || !room.modifiers) return null;
+
+  const shipRadius = 50; // Approximate ship collision radius
+
+  for (let i = 0; i < room.modifiers.length; i++) {
+    const modifier = room.modifiers[i];
+    const dx = ship.x - modifier.x;
+    const dy = ship.y - modifier.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < shipRadius + modifier.size) {
+      // Collision detected!
+      return { modifier, index: i };
+    }
+  }
+
+  return null;
+}
+
+// Apply modifier effect to ship
+function applyModifier(ship, modifierType) {
+  if (!ship.modifiers) {
+    ship.modifiers = {
+      speed: false,
+      turning: false,
+      fireRate: false
+    };
+  }
+
+  const typeInfo = MODIFIER_TYPES[modifierType];
+  if (typeInfo) {
+    ship.modifiers[typeInfo.effect] = true;
+    console.log(`Applied ${modifierType} modifier to ship`);
+  }
 }
 
 // Create shared ship for a room
@@ -72,6 +144,13 @@ function createShip(x, y) {
     cannons: {
       leftAngle: 0,
       rightAngle: 0
+    },
+
+    // Modifier state
+    modifiers: {
+      speed: false,
+      turning: false,
+      fireRate: false
     },
 
     // Server-side input management
@@ -210,6 +289,7 @@ io.on('connection', function (socket) {
   socket.emit('sharedShip', room.ship); // Send the shared ship data FIRST
   socket.emit('currentPlayers', room.players);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
+  socket.emit('roomModifiers', room.modifiers); // Send modifiers in the room
 
   // Update other players in the same room about the new player
   socket.to(roomId).emit('newPlayer', room.players[socket.id]);
@@ -426,6 +506,7 @@ io.on('connection', function (socket) {
           // Notify this player about the room change
           playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
           playerSocket.emit('sharedShip', newRoom.ship);
+          playerSocket.emit('roomModifiers', newRoom.modifiers); // Send modifiers in the new room
         }
       });
 
@@ -569,6 +650,40 @@ setInterval(function() {
       room.ship.angularVelocity = newState.angularVelocity;
     }
 
+    // Apply modifier effects to ship physics
+    if (room.ship.modifiers) {
+      // Speed modifier: +20% speed
+      if (room.ship.modifiers.speed) {
+        room.ship.currentSpeed *= 1.2;
+        room.ship.velocityX *= 1.2;
+        room.ship.velocityY *= 1.2;
+      }
+
+      // Turning modifier: +20% angular velocity
+      if (room.ship.modifiers.turning) {
+        room.ship.angularVelocity *= 1.2;
+      }
+
+      // Fire rate modifier is applied when shooting (handled in cannon code)
+    }
+
+    // Check for modifier collisions
+    const collision = checkModifierCollisions(room.ship, room);
+    if (collision) {
+      // Apply the modifier to the ship
+      applyModifier(room.ship, collision.modifier.type);
+
+      // Remove the modifier from the room
+      room.modifiers.splice(collision.index, 1);
+
+      // Notify all clients in the room
+      io.to(roomId).emit('modifierCollected', {
+        modifierId: collision.modifier.id,
+        modifierType: collision.modifier.type,
+        shipModifiers: room.ship.modifiers
+      });
+    }
+
     // Broadcast authoritative ship state to all players in room
     io.to(roomId).emit('shipMoved', {
       x: room.ship.x,
@@ -581,7 +696,8 @@ setInterval(function() {
       isAnchored: room.ship.isAnchored,
       targetSpeed: room.ship.targetSpeed,
       lastProcessedInput: room.ship.lastProcessedInput, // For client reconciliation
-      cannons: room.ship.cannons
+      cannons: room.ship.cannons,
+      modifiers: room.ship.modifiers // Include active modifiers
     });
   });
 }, SERVER_TICK_INTERVAL);
