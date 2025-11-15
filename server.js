@@ -48,9 +48,68 @@ const MODIFIER_TYPES = {
     lore: "See the void with its own eyes.",
     type: 'ABYSS_LANTERN',
     color: 0x7A00FF, // Violeta abismal
-    effect: 'bulletSpeed',
-    bonus: 0.35,
-    rarity: 'epic'
+    effect: 'abyssVision', // Only provides abyss vision, not bullet speed
+    bonus: 1.0, // No numeric bonus, just enables abyss world
+    rarity: 'legendary',
+    isAbyssal: false // Found in normal world
+  },
+
+  // ===== ABYSSAL MODIFIERS (only visible with Abyss Lantern active) =====
+
+  TEMPEST_ABYSS: {
+    id: 'tempest_abyss',
+    name: "Tempest of the Abyss",
+    lore: "The abyss commands the storm.",
+    type: 'TEMPEST_ABYSS',
+    color: 0x7A00FF, // Violet
+    effect: 'speed',
+    bonus: 0.4, // +40% speed
+    rarity: 'epic',
+    isAbyssal: true
+  },
+  ETHEREAL_HELM: {
+    id: 'ethereal_helm',
+    name: "Ethereal Helm",
+    lore: "Steer through dimensions.",
+    type: 'ETHEREAL_HELM',
+    color: 0x7A00FF, // Violet
+    effect: 'turning',
+    bonus: 0.5, // +50% turning
+    rarity: 'epic',
+    isAbyssal: true
+  },
+  ENDLESS_BARRAGE: {
+    id: 'endless_barrage',
+    name: "Endless Barrage",
+    lore: "The void reloads your cannons.",
+    type: 'ENDLESS_BARRAGE',
+    color: 0x7A00FF, // Violet
+    effect: 'fireRate',
+    bonus: 0.6, // -60% cooldown
+    rarity: 'epic',
+    isAbyssal: true
+  },
+  ABYSSAL_COMPASS: {
+    id: 'abyssal_compass',
+    name: "Abyssal Compass",
+    lore: "Points toward hidden riches.",
+    type: 'ABYSSAL_COMPASS',
+    color: 0xFFD700, // Gold
+    effect: 'compass',
+    bonus: 1.0,
+    rarity: 'cursed',
+    isAbyssal: true
+  },
+  CURSE_GREED: {
+    id: 'curse_greed',
+    name: "Curse of Greed",
+    lore: "More treasures, greater dangers.",
+    type: 'CURSE_GREED',
+    color: 0xFF4500, // Red-orange
+    effect: 'greed',
+    bonus: 2.0, // 2x modifier spawn chance
+    rarity: 'cursed',
+    isAbyssal: true
   }
 };
 const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room
@@ -157,7 +216,9 @@ function applyModifier(ship, modifierType) {
       speed: false,
       turning: false,
       fireRate: false,
-      bulletSpeed: false
+      abyssVision: false,
+      compass: false,
+      greed: false
     };
   }
 
@@ -195,7 +256,9 @@ function createShip(x, y) {
       speed: false,
       turning: false,
       fireRate: false,
-      bulletSpeed: false
+      abyssVision: false,
+      compass: false,
+      greed: false
     },
 
     // Server-side input management

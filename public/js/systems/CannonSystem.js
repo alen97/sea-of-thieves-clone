@@ -178,14 +178,7 @@ class CannonSystem {
         }
 
         // Create bullet data
-        // Base bullet speed (can be modified by bulletSpeed modifier)
-        let bulletSpeed = 750;
-        let bulletColor = 0xFFFFFF; // Default white
-
-        if (modifiers && modifiers.bulletSpeed) {
-            bulletSpeed = 750 * 1.35; // +35% speed
-            bulletColor = 0x7A00FF; // Violet color for Abyss Lantern
-        }
+        const bulletSpeed = 750;
 
         const bulletData = {
             x: cannon.x,
@@ -193,8 +186,7 @@ class CannonSystem {
             rotation: cannon.rotation,
             velocityX: Math.cos(cannon.rotation) * bulletSpeed,
             velocityY: Math.sin(cannon.rotation) * bulletSpeed,
-            shooterId: ship.playerId,
-            color: bulletColor
+            shooterId: ship.playerId
         };
 
         // Emit to server

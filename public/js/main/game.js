@@ -190,7 +190,9 @@ function create() {
     speed: false,
     turning: false,
     fireRate: false,
-    bulletSpeed: false
+    abyssVision: false,
+    compass: false,
+    greed: false
   };
 
   // Track modifiers in the order they were collected (for HUD display)
@@ -359,7 +361,7 @@ function create() {
             name: "Pirate's Tenacity"
           });
         }
-        if (shipData.modifiers.bulletSpeed) {
+        if (shipData.modifiers.abyssVision) {
           self.shipModifiersArray.push({
             type: 'ABYSS_LANTERN',
             color: 0x7A00FF,
@@ -699,7 +701,7 @@ function create() {
       self.lanternLit = data.lanternLit;
       // Update the visual state
       if (self.lantern) {
-        updateLanternVisual(self.lantern, self.lanternLit, self.shipModifiers.bulletSpeed);
+        updateLanternVisual(self.lantern, self.lanternLit, self.shipModifiers.abyssVision);
       }
     }
   });
@@ -920,7 +922,7 @@ function update(time, delta) {
       this.lanternLit = !this.lanternLit;
 
       // Update lantern visual
-      updateLanternVisual(this.lantern, this.lanternLit, this.shipModifiers.bulletSpeed);
+      updateLanternVisual(this.lantern, this.lanternLit, this.shipModifiers.abyssVision);
 
       // Play lantern sound with fade out
       const lanternSound = this.sound.add(this.lanternLit ? 'lanternLight' : 'lanternExtinguish');
@@ -1583,7 +1585,7 @@ class UIScene extends Phaser.Scene {
     const graphics = this.add.graphics();
 
     // If Abyss Lantern modifier is active AND lantern is lit, illuminate entire map (night vision effect)
-    const hasAbyssLantern = this.mainScene.shipModifiers && this.mainScene.shipModifiers.bulletSpeed;
+    const hasAbyssLantern = this.mainScene.shipModifiers && this.mainScene.shipModifiers.abyssVision;
     if (hasAbyssLantern && lanternPositions.length > 0) {
       graphics.fillStyle(0xffffff, 1.0);
       // Draw huge circle to reveal everything (night vision effect)
@@ -1682,7 +1684,7 @@ class UIScene extends Phaser.Scene {
     // ===== ACTUALIZAR ABYSS LANTERN OVERLAY =====
     // Show violet overlay when Abyss Lantern modifier is active and lantern is lit
     if (this.abyssOverlay) {
-      const hasAbyssLantern = this.mainScene.shipModifiers && this.mainScene.shipModifiers.bulletSpeed;
+      const hasAbyssLantern = this.mainScene.shipModifiers && this.mainScene.shipModifiers.abyssVision;
       const lanternLit = this.mainScene.lanternLit;
 
       if (hasAbyssLantern && lanternLit) {
