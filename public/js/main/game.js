@@ -659,6 +659,11 @@ function create() {
       showModifierPickupText(self, modifierPosition.x, modifierPosition.y, data.modifierName, data.modifierLore, data.modifierColor);
     }
 
+    // If Abyss Lantern was collected and lantern is currently lit, update lantern visual to violet
+    if (data.modifierType === 'ABYSS_LANTERN' && self.lanternLit && self.lantern) {
+      updateLanternVisual(self.lantern, self.lanternLit, true);
+    }
+
     console.log(`Collected "${data.modifierName}" modifier!`);
   });
 
@@ -1324,11 +1329,12 @@ class UIScene extends Phaser.Scene {
       cameraY,
       screenWidth,
       screenHeight,
-      0x4B0082, // Deep violet/indigo color
-      0 // Initially invisible
+      0x7A00FF, // Bright violet (same as Abyss Lantern color)
+      0 // Initially invisible (controlled by alpha)
     );
     this.abyssOverlay.setScrollFactor(0);
-    this.abyssOverlay.setDepth(1001); // Above all other overlays and effects
+    this.abyssOverlay.setDepth(2000); // Very high depth to ensure it's above everything except UI
+    this.abyssOverlay.setVisible(true); // Always visible, controlled by alpha instead
 
     // Indicador de timón - Barra horizontal minimalista
     const helmBarWidth = 425; // Ancho de la barra (con margen de 50px en cada lado)
@@ -1678,8 +1684,9 @@ class UIScene extends Phaser.Scene {
       const lanternLit = this.mainScene.lanternLit;
 
       if (hasAbyssLantern && lanternLit) {
-        // Show violet overlay with fixed alpha (same visibility day and night)
-        this.abyssOverlay.setAlpha(0.5);
+        // Show violet overlay with strong alpha (same visibility day and night)
+        this.abyssOverlay.setAlpha(0.45);
+        this.abyssOverlay.setVisible(true);
       } else {
         // Hide overlay
         this.abyssOverlay.setAlpha(0);
