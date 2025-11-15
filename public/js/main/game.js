@@ -678,8 +678,8 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
   const offsetX = x - scene.ship.x;
   const offsetY = y - scene.ship.y;
 
-  // Create main title text
-  const titleText = scene.add.text(x, y - 40, name, {
+  // Create main title text (positioned higher up)
+  const titleText = scene.add.text(x, y - 120, name, {
     fontSize: '20px',
     fontFamily: 'Georgia, serif',
     fill: color,
@@ -695,8 +695,8 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
     }
   }).setOrigin(0.5).setDepth(1000);
 
-  // Create lore text
-  const loreText = scene.add.text(x, y - 15, lore, {
+  // Create lore text (positioned higher up)
+  const loreText = scene.add.text(x, y - 90, lore, {
     fontSize: '14px',
     fontFamily: 'Georgia, serif',
     fill: '#CCCCCC',
@@ -715,9 +715,9 @@ function showModifierPickupText(scene, x, y, name, lore, rarity) {
 
   // Store offset data for updating position
   titleText.shipOffsetX = offsetX;
-  titleText.shipOffsetY = offsetY - 40;
+  titleText.shipOffsetY = offsetY - 120;
   loreText.shipOffsetX = offsetX;
-  loreText.shipOffsetY = offsetY - 15;
+  loreText.shipOffsetY = offsetY - 90;
 
   // Track floating offset for animation
   titleText.floatingOffset = 0;
