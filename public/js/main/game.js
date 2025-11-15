@@ -311,7 +311,6 @@ function create() {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       otherPlayer.destroy();
     });
-    self.otherPlayers.clear(true, true);
 
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {

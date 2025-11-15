@@ -434,9 +434,6 @@ io.on('connection', function (socket) {
         }
       });
 
-      // Notify old room that ship and players left
-      io.to(oldRoomId).emit('shipDestroyed');
-
       // Notify new room about new ship and players
       io.to(newRoomId).emit('sharedShip', newRoom.ship);
       playersToMove.forEach(playerId => {
