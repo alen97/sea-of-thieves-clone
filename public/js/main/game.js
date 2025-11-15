@@ -621,13 +621,15 @@ function create() {
       modifier.modifierType = modifierData.type;
       modifier.isAbyssal = modifierData.isAbyssal || false; // Track if this is an abyssal modifier
 
-      // Hide abyssal modifiers initially (only visible with Abyss Lantern + lit lantern)
-      if (modifier.isAbyssal) {
-        const hasAbyssVision = self.shipModifiers && self.shipModifiers.abyssVision;
-        const shouldBeVisible = hasAbyssVision && self.lanternLit;
-        modifier.setVisible(shouldBeVisible);
-        modifier.aura.setVisible(shouldBeVisible);
-      }
+      // Set initial visibility based on current world state
+      const hasAbyssVision = self.shipModifiers && self.shipModifiers.abyssVision;
+      const inAbyssalWorld = hasAbyssVision && self.lanternLit;
+
+      // Abyssal items: visible only in abyssal world
+      // Normal items: visible only in normal world
+      const shouldBeVisible = modifier.isAbyssal ? inAbyssalWorld : !inAbyssalWorld;
+      modifier.setVisible(shouldBeVisible);
+      modifier.aura.setVisible(shouldBeVisible);
 
       self.modifiers.add(modifier);
       self.modifiers.add(aura); // Add aura to group so it gets cleared too
@@ -1119,15 +1121,19 @@ function update(time, delta) {
     }
 
     // ===== UPDATE ABYSSAL MODIFIER VISIBILITY =====
-    // Show/hide abyssal modifiers based on lantern state
+    // Toggle between normal world and abyssal world based on lantern state
     const hasAbyssVision = this.shipModifiers && this.shipModifiers.abyssVision;
-    const shouldShowAbyssal = hasAbyssVision && this.lanternLit;
+    const inAbyssalWorld = hasAbyssVision && this.lanternLit;
 
     this.modifiers.getChildren().forEach(function (modifier) {
-      if (modifier.isAbyssal) {
-        modifier.setVisible(shouldShowAbyssal);
+      if (modifier.isAbyssal !== undefined) {
+        // Abyssal items: only visible in abyssal world (lantern + abyss vision)
+        // Normal items: only visible in normal world (no abyss vision OR lantern off)
+        const shouldBeVisible = modifier.isAbyssal ? inAbyssalWorld : !inAbyssalWorld;
+
+        modifier.setVisible(shouldBeVisible);
         if (modifier.aura) {
-          modifier.aura.setVisible(shouldShowAbyssal);
+          modifier.aura.setVisible(shouldBeVisible);
         }
       }
     });

@@ -20,7 +20,8 @@ const MODIFIER_TYPES = {
     color: 0x00CED1, // Dark Cyan - water in motion
     effect: 'speed',
     bonus: 0.2,
-    rarity: 'rare'
+    rarity: 'rare',
+    isAbyssal: false // Found in normal world
   },
   CAPTAINS_GUIDE: {
     id: 'captains_guide',
@@ -30,7 +31,8 @@ const MODIFIER_TYPES = {
     color: 0xFFD700, // Gold - navigator's light
     effect: 'turning',
     bonus: 0.25,
-    rarity: 'common'
+    rarity: 'common',
+    isAbyssal: false // Found in normal world
   },
   PIRATES_TENACITY: {
     id: 'pirates_tenacity',
@@ -40,7 +42,8 @@ const MODIFIER_TYPES = {
     color: 0xDC143C, // Crimson - relentless fire
     effect: 'fireRate',
     bonus: 0.3,
-    rarity: 'rare'
+    rarity: 'rare',
+    isAbyssal: false // Found in normal world
   },
   ABYSS_LANTERN: {
     id: 'abyss_lantern',
@@ -178,6 +181,7 @@ function spawnModifiersInRoom(room, roomX, roomY) {
         color: modifierType.color,
         effect: modifierType.effect,
         bonus: modifierType.bonus,
+        isAbyssal: modifierType.isAbyssal || false, // Track which world it belongs to
         x: Math.random() * (WORLD_WIDTH - 100) + 50, // Random position with margin
         y: Math.random() * (WORLD_HEIGHT - 100) + 50,
         size: MODIFIER_SIZE
