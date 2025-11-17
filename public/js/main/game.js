@@ -1783,7 +1783,7 @@ class UIScene extends Phaser.Scene {
     }
 
     // ===== CONTROL DE VIEWPORT DEL MAPA =====
-    // CRITICAL: Only process arrow keys when map is explicitly visible
+    // CRITICAL: ONLY process arrow keys when map is EXPLICITLY visible
     const mapVisible = this.mainScene && this.mainScene.mapVisible;
 
     // Initialize scroll speed throttle if not exists
@@ -1791,8 +1791,14 @@ class UIScene extends Phaser.Scene {
       this.mapScrollTimer = 0;
     }
 
-    // ONLY allow map viewport movement when map is visible
-    if (mapVisible === true && this.mainScene.inputSystem) {
+    // ABSOLUTELY DO NOT allow viewport changes unless map is visible
+    if (!mapVisible) {
+      // Map is NOT visible - FORCE reset offset and timer IMMEDIATELY
+      this.mapViewOffsetX = 0;
+      this.mapViewOffsetY = 0;
+      this.mapScrollTimer = 0;
+    } else if (mapVisible === true && this.mainScene.inputSystem) {
+      // Map IS visible - allow viewport control
       const keys = this.mainScene.inputSystem.keys;
 
       // Throttle scroll speed (update every 150ms for smooth but not too fast scrolling)
@@ -1824,11 +1830,6 @@ class UIScene extends Phaser.Scene {
         this.mapViewOffsetX = 0;
         this.mapViewOffsetY = 0;
       }
-    } else {
-      // Map is NOT visible - force reset offset and timer
-      this.mapViewOffsetX = 0;
-      this.mapViewOffsetY = 0;
-      this.mapScrollTimer = 0;
     }
 
     // ===== ACTUALIZAR MAPA =====
