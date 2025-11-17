@@ -180,6 +180,7 @@ function create() {
   this.helmSystem = new HelmSystem(this);
   this.anchorSystem = new AnchorSystem(this);
   this.cannonSystem = new CannonSystem(this);
+  this.crowsNestSystem = new CrowsNestSystem(this);
 
   // Groups
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
@@ -223,6 +224,9 @@ function create() {
       // Create lantern at ship center
       self.lanternLit = false;
       self.lantern = createLantern(self, self.ship, self.lanternLit);
+
+      // Create crow's nest visual
+      self.crowsNestSystem.createVisual(self.ship);
 
       // Initialize steering variable from server state
       self.steeringDirection = shipData.steeringDirection || 0;
@@ -433,7 +437,7 @@ function create() {
           // Initialize animation state from server-provided isMoving field
           const isMoving = players[id].player.isMoving || false;
 
-          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon) {
+          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon && !players[id].player.isInCrowsNest) {
             otherPlayer.play('run');
           } else {
             otherPlayer.setFrame('tile000.png');
@@ -468,7 +472,7 @@ function create() {
       // Initialize animation state from server-provided isMoving field
       const isMoving = playerInfo.player.isMoving || false;
 
-      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon) {
+      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest) {
         otherPlayer.play('run');
       } else {
         otherPlayer.setFrame('tile000.png');
@@ -503,7 +507,7 @@ function create() {
           // Synchronize animation based on received isMoving state
           const isMoving = playerInfo.player.isMoving || false;
 
-          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon) {
+          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest) {
             // Player walking - play animation
             if (!otherPlayer.anims.isPlaying ||
                 otherPlayer.anims.currentAnim.key !== 'run') {
@@ -908,13 +912,21 @@ function update(time, delta) {
       inputState.fire = false;
     }
 
-    // ===== SISTEMA DE ZOOM =====
-    if (inputState.zoomIn) {
-      this.targetZoom = Math.min(ZOOM_MAX, this.currentZoom + ZOOM_STEP);
+    // ===== SISTEMA DE ZOOM AUTOMÁTICO =====
+    // Automatic zoom based on player role
+    let targetZoomByRole;
+    if (this.player.isInCrowsNest) {
+      // In crow's nest - zoomed out for far visibility
+      targetZoomByRole = 0.5;
+    } else if (this.player.isControllingShip || this.player.isOnCannon) {
+      // Controlling ship or on cannon - medium zoom
+      targetZoomByRole = 1.0;
+    } else {
+      // On foot - close zoom
+      targetZoomByRole = 1.5;
     }
-    if (inputState.zoomOut) {
-      this.targetZoom = Math.max(ZOOM_MIN, this.currentZoom - ZOOM_STEP);
-    }
+
+    this.targetZoom = targetZoomByRole;
 
     // Aplicar zoom suave
     if (this.targetZoom === undefined) {
@@ -1004,6 +1016,9 @@ function update(time, delta) {
     // ===== SISTEMA DE ANCLA (usando AnchorSystem) =====
     this.anchorSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm);
     const canUseAnchor = this.anchorSystem.isNearAnchor(this.player, this.ship);
+
+    // ===== SISTEMA DE COFA (usando CrowsNestSystem) =====
+    this.crowsNestSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm, canUseAnchor);
 
     // ===== SISTEMA DE CAÑONES (usando CannonSystem) =====
     if (this.ship.cannons) {
@@ -1260,6 +1275,7 @@ function update(time, delta) {
           isControllingShip: this.player.isControllingShip,
           isOnCannon: this.player.isOnCannon,
           cannonSide: this.player.cannonSide,
+          isInCrowsNest: this.player.isInCrowsNest,
           isMoving: isPlayerMoving,  // Animation sync
           velocityX: this.player.body.velocity.x,
           velocityY: this.player.body.velocity.y

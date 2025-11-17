@@ -418,6 +418,7 @@ io.on('connection', function (socket) {
       isControllingShip: false,
       isOnCannon: false,
       cannonSide: null,
+      isInCrowsNest: false,
       velocityX: 0, // Initialize velocity for animation sync
       velocityY: 0,
       isMoving: false // Initialize as not moving
@@ -500,6 +501,17 @@ io.on('connection', function (socket) {
     }
   });
 
+  // Handle crow's nest toggle
+  socket.on('crowsNestToggle', function (data) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id] && data) {
+      room.players[socket.id].player.isInCrowsNest = data.isInCrowsNest;
+      console.log(`Player ${socket.id} toggled crow's nest: ${data.isInCrowsNest ? 'UP' : 'DOWN'}`);
+    }
+  });
+
   // Handle player avatar movement (still client-authoritative for now)
   socket.on('playerMovement', function (movementData) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
@@ -519,6 +531,11 @@ io.on('connection', function (socket) {
         // Sincronizar estado del cañón
         if (movementData.player.isOnCannon !== undefined) {
           room.players[socket.id].player.isOnCannon = movementData.player.isOnCannon;
+        }
+
+        // Sincronizar estado de la cofa
+        if (movementData.player.isInCrowsNest !== undefined) {
+          room.players[socket.id].player.isInCrowsNest = movementData.player.isInCrowsNest;
         }
         if (movementData.player.cannonSide !== undefined) {
           room.players[socket.id].player.cannonSide = movementData.player.cannonSide;

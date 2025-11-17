@@ -28,8 +28,6 @@ class InputSystem {
             RIGHT: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
             UP: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
             DOWN: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-            PLUS: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
-            MINUS: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS),
             M: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M),
             ESC: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
             SPACE: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
@@ -49,8 +47,6 @@ class InputSystem {
                 interact: false,
                 fire: false,
                 map: false,
-                zoomIn: false,
-                zoomOut: false,
                 camera: { up: false, down: false, left: false, right: false },
             };
         }
@@ -79,9 +75,6 @@ class InputSystem {
             },
             // Map toggle (M)
             map: Phaser.Input.Keyboard.JustDown(this.keys.M),
-            // Zoom (+/-)
-            zoomIn: Phaser.Input.Keyboard.JustDown(this.keys.PLUS),
-            zoomOut: Phaser.Input.Keyboard.JustDown(this.keys.MINUS),
             // Camera movement (Arrow keys)
             camera: {
                 up: this.keys.UP.isDown,

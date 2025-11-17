@@ -15,6 +15,7 @@ function addPlayer(self, playerInfo, ship) {
     player.isControllingShip = false;
     player.isOnCannon = false; // Para sistema de cañones
     player.cannonSide = null; // 'left' o 'right'
+    player.isInCrowsNest = false; // Para sistema de cofa
     player.canMove = true; // Control de movimiento
     player.ship = ship; // Referencia al barco
 
