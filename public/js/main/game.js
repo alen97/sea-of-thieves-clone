@@ -1476,7 +1476,7 @@ class UIScene extends Phaser.Scene {
     this.mapBackground.setDepth(1999);
 
     // Título del mapa
-    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M/ESC) - Flechas: mover / C: centrar', {
+    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M)', {
       fontSize: '14px',
       fill: '#ffffff',
       fontStyle: 'bold'

@@ -31,7 +31,6 @@ class InputSystem {
             PLUS: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
             MINUS: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS),
             M: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M),
-            C: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C),
             ESC: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
             SPACE: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
         };
@@ -53,7 +52,6 @@ class InputSystem {
                 zoomIn: false,
                 zoomOut: false,
                 camera: { up: false, down: false, left: false, right: false },
-                centerCamera: false
             };
         }
 
@@ -91,8 +89,6 @@ class InputSystem {
                 left: this.keys.LEFT.isDown,
                 right: this.keys.RIGHT.isDown
             },
-            // Center camera (C)
-            centerCamera: Phaser.Input.Keyboard.JustDown(this.keys.C)
         };
     }
 
