@@ -860,6 +860,39 @@ function update(time, delta) {
     if (inputState.map) {
       this.mapVisible = !this.mapVisible;
       console.log(`Map ${this.mapVisible ? 'shown' : 'hidden'}`);
+
+      // Reset map viewport when closing the map
+      if (!this.mapVisible) {
+        const uiScene = this.scene.get('UIScene');
+        if (uiScene) {
+          uiScene.mapViewOffsetX = 0;
+          uiScene.mapViewOffsetY = 0;
+        }
+      }
+    }
+
+    // Block game input when map is open (arrows control map viewport, other keys disabled)
+    if (this.mapVisible) {
+      // Block arrow keys from controlling cannons
+      if (inputState.aim) {
+        inputState.aim.left = false;
+        inputState.aim.right = false;
+      }
+      // Block player movement
+      if (inputState.movement) {
+        inputState.movement.up = false;
+        inputState.movement.down = false;
+        inputState.movement.left = false;
+        inputState.movement.right = false;
+      }
+      // Block steering
+      if (inputState.steering) {
+        inputState.steering.left = false;
+        inputState.steering.right = false;
+      }
+      // Block other actions
+      inputState.interact = false;
+      inputState.fire = false;
     }
 
     // ===== SISTEMA DE ZOOM =====
