@@ -120,5 +120,5 @@ function isNearLantern(player, ship) {
     ship.y
   );
 
-  return distance < 35; // 35 pixels threshold
+  return distance < 15; // 15 pixels threshold
 }

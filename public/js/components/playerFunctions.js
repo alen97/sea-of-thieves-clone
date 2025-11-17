@@ -183,7 +183,7 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         }
 
         // Posición de la cofa (en la proa del barco)
-        const crowsNestOffset = 70;
+        const crowsNestOffset = 60;
         const angle = ship.rotation - Math.PI / 2;
         const crowsNestX = ship.x + Math.cos(angle) * crowsNestOffset;
         const crowsNestY = ship.y + Math.sin(angle) * crowsNestOffset;

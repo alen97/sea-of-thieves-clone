@@ -9,7 +9,7 @@
 class CrowsNestSystem {
     constructor(scene) {
         this.scene = scene;
-        this.crowsNestOffset = 70; // Between lantern (0) and anchor (115)
+        this.crowsNestOffset = 60; // Between lantern (0) and anchor (115)
         this.interactionDistance = 15;
         this.indicator = null;
         this.visual = null;
@@ -55,7 +55,7 @@ class CrowsNestSystem {
 
         const graphics = this.scene.add.graphics();
         graphics.fillStyle(0x2B1810, 1); // Dark brown
-        graphics.fillRect(-8, -8, 16, 16); // 16x16 square centered
+        graphics.fillRect(-11, -11, 22, 22);
         graphics.setDepth(2.2); // Above ship, below lantern
 
         this.visual = graphics;
@@ -101,13 +101,16 @@ class CrowsNestSystem {
 
         if (canUseCrowsNest && !player.isControllingShip && !player.isOnCannon) {
             const crowsNestPos = this.getCrowsNestPosition(ship);
-            const text = player.isInCrowsNest
-                ? 'Presiona E para bajar de la cofa'
-                : 'Presiona E para subir a la cofa';
+            const text = 'Presiona E para subir a la cofa';
 
-            indicator.setText(text);
-            indicator.setPosition(crowsNestPos.x, crowsNestPos.y - 20);
-            indicator.setVisible(true);
+            if(!player.isInCrowsNest) {
+                indicator.setText(text);
+                indicator.setPosition(crowsNestPos.x, crowsNestPos.y - 20);
+                indicator.setVisible(true);
+            } else {
+                indicator.setVisible(false);
+            }
+
         } else {
             indicator.setVisible(false);
         }
