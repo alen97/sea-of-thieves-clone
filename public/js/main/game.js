@@ -157,6 +157,7 @@ function create() {
   this.lastSentSteeringDirection = 0;
   this.lastSentCannonLeft = 0;
   this.lastSentCannonRight = 0;
+  this.lastSentIsMoving = false; // Track player movement state for animation sync
   this.lastNetworkSendTime = 0;
 
   // Client prediction & input buffering
@@ -429,13 +430,10 @@ function create() {
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
 
-          // Initialize animation state
-          const playerVelX = players[id].player.velocityX || 0;
-          const playerVelY = players[id].player.velocityY || 0;
-          const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
-          const isMoving = playerSpeed > 10;
+          // Initialize animation state from server-provided isMoving field
+          const isMoving = players[id].player.isMoving || false;
 
-          if (isMoving && !players[id].player.isControllingShip) {
+          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon) {
             otherPlayer.play('run');
           } else {
             otherPlayer.setFrame('tile000.png');
@@ -467,13 +465,10 @@ function create() {
       otherPlayer.roomX = playerInfo.roomX;
       otherPlayer.roomY = playerInfo.roomY;
 
-      // Initialize animation state
-      const playerVelX = playerInfo.player.velocityX || 0;
-      const playerVelY = playerInfo.player.velocityY || 0;
-      const playerSpeed = Math.sqrt(playerVelX * playerVelX + playerVelY * playerVelY);
-      const isMoving = playerSpeed > 10;
+      // Initialize animation state from server-provided isMoving field
+      const isMoving = playerInfo.player.isMoving || false;
 
-      if (isMoving && !playerInfo.player.isControllingShip) {
+      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon) {
         otherPlayer.play('run');
       } else {
         otherPlayer.setFrame('tile000.png');
@@ -1180,11 +1175,12 @@ function update(time, delta) {
     const steeringChanged = Math.abs(currentSteeringDirection - this.lastSentSteeringDirection) > STEERING_THRESHOLD;
     const cannonLeftChanged = Math.abs(currentCannonLeft - this.lastSentCannonLeft) > CANNON_THRESHOLD;
     const cannonRightChanged = Math.abs(currentCannonRight - this.lastSentCannonRight) > CANNON_THRESHOLD;
+    const isMovingChanged = isPlayerMoving !== this.lastSentIsMoving; // Detect animation state change
     const throttleTimeElapsed = (time - this.lastNetworkSendTime) > NETWORK_THROTTLE_MS;
 
     const shouldSendSteeringOrCannon = (steeringChanged || cannonLeftChanged || cannonRightChanged) && throttleTimeElapsed;
 
-    // Emitir si es el primer frame O si algo cambió
+    // Emitir si es el primer frame O si algo cambió (incluyendo isMoving para animaciones)
     if (!this.ship.oldPosition ||
         x !== this.ship.oldPosition.x ||
         y !== this.ship.oldPosition.y ||
@@ -1192,6 +1188,7 @@ function update(time, delta) {
         playerRelativeX !== this.ship.oldPosition.playerX ||
         playerRelativeY !== this.ship.oldPosition.playerY ||
         this.player.rotation !== this.ship.oldPosition.playerRotation ||
+        isMovingChanged ||
         shouldSendSteeringOrCannon) {
 
       this.socket.emit('playerMovement', {
@@ -1222,6 +1219,9 @@ function update(time, delta) {
           velocityY: this.player.body.velocity.y
         }
       });
+
+      // Update last sent isMoving state (always update when sent)
+      this.lastSentIsMoving = isPlayerMoving;
 
       // Update last sent values if they were sent due to significant change
       if (shouldSendSteeringOrCannon) {
