@@ -974,7 +974,12 @@ function update(time, delta) {
     }
 
     if (canUseLantern && !this.player.isControllingShip) {
-      const lanternText = this.lanternLit ? 'Presiona E para apagar farol' : 'Presiona E para prender farol';
+      // Check if ship has Abyss Lantern modifier
+      const hasAbyssLantern = this.shipModifiers && this.shipModifiers.abyssVision;
+      const lanternName = hasAbyssLantern ? 'farol del abismo' : 'farol';
+      const lanternText = this.lanternLit
+        ? `Presiona E para apagar ${lanternName}`
+        : `Presiona E para prender ${lanternName}`;
       this.lanternIndicator.setText(lanternText);
       this.lanternIndicator.setPosition(this.ship.x, this.ship.y - 30);
       this.lanternIndicator.setVisible(true);
