@@ -856,7 +856,7 @@ function update(time, delta) {
       keySpace: this.inputSystem.keys.SPACE
     };
 
-    // Toggle mapa con M
+    // Toggle mapa con M, o cerrar con ESC
     if (inputState.map) {
       this.mapVisible = !this.mapVisible;
       console.log(`Map ${this.mapVisible ? 'shown' : 'hidden'}`);
@@ -868,6 +868,19 @@ function update(time, delta) {
           uiScene.mapViewOffsetX = 0;
           uiScene.mapViewOffsetY = 0;
         }
+      }
+    }
+
+    // Close map with ESC (only close, don't open)
+    if (Phaser.Input.Keyboard.JustDown(this.inputSystem.keys.ESC) && this.mapVisible) {
+      this.mapVisible = false;
+      console.log('Map hidden (ESC)');
+
+      // Reset map viewport when closing the map
+      const uiScene = this.scene.get('UIScene');
+      if (uiScene) {
+        uiScene.mapViewOffsetX = 0;
+        uiScene.mapViewOffsetY = 0;
       }
     }
 
@@ -1462,7 +1475,7 @@ class UIScene extends Phaser.Scene {
     this.mapBackground.setDepth(1999);
 
     // Título del mapa
-    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M) - Flechas: mover / C: centrar', {
+    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M/ESC) - Flechas: mover / C: centrar', {
       fontSize: '14px',
       fill: '#ffffff',
       fontStyle: 'bold'
@@ -1771,11 +1784,11 @@ class UIScene extends Phaser.Scene {
     // ===== CONTROL DE VIEWPORT DEL MAPA =====
     const mapVisible = this.mainScene.mapVisible;
 
-    // Permitir mover el viewport del mapa con las flechas cuando el mapa está visible
-    if (mapVisible && this.mainScene.inputSystem) {
+    // ONLY allow map viewport movement when map is visible
+    if (mapVisible === true && this.mainScene.inputSystem) {
       const keys = this.mainScene.inputSystem.keys;
 
-      // Mover viewport del mapa con las flechas
+      // Mover viewport del mapa con las flechas (solo cuando mapa está visible)
       if (Phaser.Input.Keyboard.JustDown(keys.UP)) {
         this.mapViewOffsetY -= 1;
       }
@@ -1791,6 +1804,12 @@ class UIScene extends Phaser.Scene {
 
       // Resetear viewport del mapa con C
       if (Phaser.Input.Keyboard.JustDown(keys.C)) {
+        this.mapViewOffsetX = 0;
+        this.mapViewOffsetY = 0;
+      }
+    } else {
+      // If map is not visible, ensure offset is reset (safety check)
+      if (this.mapViewOffsetX !== 0 || this.mapViewOffsetY !== 0) {
         this.mapViewOffsetX = 0;
         this.mapViewOffsetY = 0;
       }
