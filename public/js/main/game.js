@@ -638,6 +638,13 @@ function create() {
     console.log(`Spawned ${modifiers.length} modifiers in room`);
   });
 
+  // Handle portal position for Abyssal Compass
+  this.socket.on('portalPosition', function (portal) {
+    self.portalRoomX = portal.roomX;
+    self.portalRoomY = portal.roomY;
+    console.log(`Portal located at room (${portal.roomX}, ${portal.roomY})`);
+  });
+
   // Handle modifier collection
   this.socket.on('modifierCollected', function (data) {
     // Find the modifier to get its position before destroying
@@ -1545,6 +1552,19 @@ class UIScene extends Phaser.Scene {
       4, 4      // Punto inferior derecho
     );
 
+    // Indicador del portal (cuadrado violeta rotando para simular portal)
+    this.portalIndicator = this.add.graphics();
+    this.portalIndicator.setScrollFactor(0);
+    this.portalIndicator.setDepth(2001);
+    this.portalIndicator.setVisible(false);
+
+    // Dibujar cuadrado violeta centrado en (0, 0)
+    this.portalIndicator.fillStyle(0x7A00FF, 1); // Violet
+    this.portalIndicator.fillRect(-6, -6, 12, 12);
+
+    // Variable para animación de rotación del portal
+    this.portalRotation = 0;
+
     // Inicialmente oculto
     this.mapBackground.setVisible(false);
     this.mapTitle.setVisible(false);
@@ -1934,9 +1954,55 @@ class UIScene extends Phaser.Scene {
       } else {
         this.playerIndicator.setVisible(false);
       }
+
+      // ===== ACTUALIZAR INDICADOR DEL PORTAL (ABYSSAL COMPASS) =====
+      // Only show portal indicator if player has the compass
+      const hasCompass = this.mainScene.shipModifiers && this.mainScene.shipModifiers.compass;
+      if (hasCompass && this.mainScene.portalRoomX !== undefined && this.mainScene.portalRoomY !== undefined) {
+        const mapSize = 9;
+        const cellSize = 40;
+        const mapWidth = mapSize * cellSize;
+        const mapHeight = mapSize * cellSize;
+        const cameraX = this.mainScene.cameras.main.width / 2;
+        const cameraY = this.mainScene.cameras.main.height / 2;
+        const mapX = cameraX - mapWidth / 2;
+        const mapY = cameraY - mapHeight / 2;
+
+        // Calculate portal position on map considering viewport offset
+        const currentRoomX = this.mainScene.currentRoomX;
+        const currentRoomY = this.mainScene.currentRoomY;
+        const portalRoomX = this.mainScene.portalRoomX;
+        const portalRoomY = this.mainScene.portalRoomY;
+
+        // Calculate relative position with offset
+        const portalCol = 4 + (portalRoomX - currentRoomX) - this.mapViewOffsetX;
+        const portalRow = 4 + (portalRoomY - currentRoomY) - this.mapViewOffsetY;
+
+        // Check if portal is visible in current map viewport
+        const isPortalVisible = portalCol >= 0 && portalCol < mapSize &&
+                                portalRow >= 0 && portalRow < mapSize;
+
+        if (isPortalVisible) {
+          const cellCenterX = mapX + portalCol * cellSize + cellSize / 2;
+          const cellCenterY = mapY + portalRow * cellSize + cellSize / 2;
+
+          // Update portal rotation animation (rotate continuously)
+          this.portalRotation += 0.03; // Rotation speed
+
+          // Update portal indicator position and rotation
+          this.portalIndicator.setPosition(cellCenterX, cellCenterY);
+          this.portalIndicator.setRotation(this.portalRotation);
+          this.portalIndicator.setVisible(true);
+        } else {
+          this.portalIndicator.setVisible(false);
+        }
+      } else {
+        this.portalIndicator.setVisible(false);
+      }
     } else {
       this.mapCells.forEach(cell => cell.rect.setVisible(false));
       this.playerIndicator.setVisible(false);
+      this.portalIndicator.setVisible(false);
     }
 
     // Actualizar estado del jugador

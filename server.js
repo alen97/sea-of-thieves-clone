@@ -10,6 +10,18 @@ const shipPhysics = require('./shared/shipPhysics.js');
 var rooms = {};
 const MAX_PLAYERS = 4;
 
+// Portal position for Abyssal Compass (approximately 10 rooms away from origin)
+function generatePortalPosition() {
+  const distance = 10; // rooms
+  const angle = Math.random() * Math.PI * 2;
+  return {
+    roomX: Math.round(Math.cos(angle) * distance),
+    roomY: Math.round(Math.sin(angle) * distance)
+  };
+}
+const portalPosition = generatePortalPosition();
+console.log(`Portal generated at room (${portalPosition.roomX}, ${portalPosition.roomY})`);
+
 // Modifier system constants
 const MODIFIER_TYPES = {
   RIOS_WINDS: {
@@ -430,6 +442,7 @@ io.on('connection', function (socket) {
   socket.emit('currentPlayers', room.players);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
   socket.emit('roomModifiers', room.modifiers); // Send modifiers in the room
+  socket.emit('portalPosition', portalPosition); // Send portal position for Abyssal Compass
 
   // Update other players in the same room about the new player
   socket.to(roomId).emit('newPlayer', room.players[socket.id]);
