@@ -54,8 +54,8 @@ function addOtherPlayer(self, playerInfo, ship) {
 function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
     const playerSpeed = 100;
 
-    if (!player.isControllingShip && !player.isOnCannon) {
-        // El jugador NO está en el timón ni en el cañón - puede caminar
+    if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest) {
+        // El jugador NO está en el timón, ni en el cañón, ni en la cofa - puede caminar
 
         // Usar coordenadas locales persistentes (NO recalcular desde world position)
         let localX = player.localX;
@@ -171,6 +171,27 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
                 player.setFrame('tile000.png');
             }
         }
+
+    } else if (player.isInCrowsNest) {
+        // El jugador ESTÁ en la cofa - no puede caminar
+        player.setVelocity(0, 0);
+
+        // Stop animation when in crow's nest
+        if (player.anims.isPlaying) {
+            player.stop();
+            player.setFrame('tile000.png');
+        }
+
+        // Posición de la cofa (en la proa del barco)
+        const crowsNestOffset = 70;
+        const angle = ship.rotation - Math.PI / 2;
+        const crowsNestX = ship.x + Math.cos(angle) * crowsNestOffset;
+        const crowsNestY = ship.y + Math.sin(angle) * crowsNestOffset;
+
+        player.setPosition(crowsNestX, crowsNestY);
+
+        // El jugador mira en la dirección del barco (hacia adelante)
+        player.setRotation(ship.rotation + Math.PI);
 
     } else if (player.isOnCannon) {
         // El jugador ESTÁ en el cañón - no puede caminar
