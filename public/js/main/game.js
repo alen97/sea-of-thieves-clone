@@ -1326,6 +1326,10 @@ class UIScene extends Phaser.Scene {
     // Track time for light breathing effect
     this.breathingTime = 0;
 
+    // Map viewport offset (for exploring map with arrow keys)
+    this.mapViewOffsetX = 0;
+    this.mapViewOffsetY = 0;
+
     // Obtén las coordenadas de la cámara del jugador
     const cameraX = this.mainScene.cameras.main.width / 2;
     const cameraY = this.mainScene.cameras.main.height / 2;
@@ -1425,8 +1429,8 @@ class UIScene extends Phaser.Scene {
     this.mapBackground.setDepth(1999);
 
     // Título del mapa
-    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M)', {
-      fontSize: '16px',
+    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M) - Flechas: mover / C: centrar', {
+      fontSize: '14px',
       fill: '#ffffff',
       fontStyle: 'bold'
     }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
@@ -1731,8 +1735,35 @@ class UIScene extends Phaser.Scene {
       }
     }
 
-    // ===== ACTUALIZAR MAPA =====
+    // ===== CONTROL DE VIEWPORT DEL MAPA =====
     const mapVisible = this.mainScene.mapVisible;
+
+    // Permitir mover el viewport del mapa con las flechas cuando el mapa está visible
+    if (mapVisible && this.mainScene.inputSystem) {
+      const keys = this.mainScene.inputSystem.keys;
+
+      // Mover viewport del mapa con las flechas
+      if (Phaser.Input.Keyboard.JustDown(keys.UP)) {
+        this.mapViewOffsetY -= 1;
+      }
+      if (Phaser.Input.Keyboard.JustDown(keys.DOWN)) {
+        this.mapViewOffsetY += 1;
+      }
+      if (Phaser.Input.Keyboard.JustDown(keys.LEFT)) {
+        this.mapViewOffsetX -= 1;
+      }
+      if (Phaser.Input.Keyboard.JustDown(keys.RIGHT)) {
+        this.mapViewOffsetX += 1;
+      }
+
+      // Resetear viewport del mapa con C
+      if (Phaser.Input.Keyboard.JustDown(keys.C)) {
+        this.mapViewOffsetX = 0;
+        this.mapViewOffsetY = 0;
+      }
+    }
+
+    // ===== ACTUALIZAR MAPA =====
 
     // Mostrar/ocultar elementos del mapa
     this.mapBackground.setVisible(mapVisible);
@@ -1747,15 +1778,15 @@ class UIScene extends Phaser.Scene {
       // Actualizar texto de coordenadas
       this.mapCoordinates.setText(`Coordenadas: ${currentRoomX}, ${currentRoomY}`);
 
-      // Grid es 9x9, centrado en room actual
+      // Grid es 9x9, centrado en room actual + offset del viewport
       const halfSize = 4; // (9-1)/2
 
       this.mapCells.forEach(cell => {
         cell.rect.setVisible(true);
 
-        // Calcular coordenadas de room para esta celda
-        const roomX = currentRoomX + (cell.col - halfSize);
-        const roomY = currentRoomY + (cell.row - halfSize);
+        // Calcular coordenadas de room para esta celda (aplicar offset del viewport)
+        const roomX = currentRoomX + (cell.col - halfSize) + this.mapViewOffsetX;
+        const roomY = currentRoomY + (cell.row - halfSize) + this.mapViewOffsetY;
         const roomKey = `${roomX},${roomY}`;
 
         // Determinar color según estado
@@ -1785,26 +1816,37 @@ class UIScene extends Phaser.Scene {
         const mapX = cameraX - mapWidth / 2;
         const mapY = cameraY - mapHeight / 2;
 
-        // Celda del room actual está en el centro (col=4, row=4)
-        const centerCol = 4;
-        const centerRow = 4;
-        const cellCenterX = mapX + centerCol * cellSize + cellSize / 2;
-        const cellCenterY = mapY + centerRow * cellSize + cellSize / 2;
+        // Calcular en qué celda está el jugador considerando el offset del viewport
+        // La celda del jugador se desplaza en dirección opuesta al offset del viewport
+        const playerCol = 4 - this.mapViewOffsetX;
+        const playerRow = 4 - this.mapViewOffsetY;
 
-        // Mapear posición del barco (0-3200) a offset dentro de celda (-19 a +19 pixels)
-        const WORLD_WIDTH = 3200;
-        const WORLD_HEIGHT = 3200;
-        const playerOffsetX = ((this.mainScene.ship.x / WORLD_WIDTH) - 0.5) * (cellSize - 2);
-        const playerOffsetY = ((this.mainScene.ship.y / WORLD_HEIGHT) - 0.5) * (cellSize - 2);
+        // Solo mostrar indicador si el jugador está visible en el grid actual
+        const isPlayerVisible = playerCol >= 0 && playerCol < mapSize &&
+                                 playerRow >= 0 && playerRow < mapSize;
 
-        // Posición final del indicador
-        const indicatorX = cellCenterX + playerOffsetX;
-        const indicatorY = cellCenterY + playerOffsetY;
+        if (isPlayerVisible) {
+          const cellCenterX = mapX + playerCol * cellSize + cellSize / 2;
+          const cellCenterY = mapY + playerRow * cellSize + cellSize / 2;
 
-        // Actualizar posición y rotación
-        this.playerIndicator.setPosition(indicatorX, indicatorY);
-        this.playerIndicator.setRotation(this.mainScene.ship.rotation);
-        this.playerIndicator.setVisible(true);
+          // Mapear posición del barco (0-3200) a offset dentro de celda (-19 a +19 pixels)
+          const WORLD_WIDTH = 3200;
+          const WORLD_HEIGHT = 3200;
+          const playerOffsetX = ((this.mainScene.ship.x / WORLD_WIDTH) - 0.5) * (cellSize - 2);
+          const playerOffsetY = ((this.mainScene.ship.y / WORLD_HEIGHT) - 0.5) * (cellSize - 2);
+
+          // Posición final del indicador
+          const indicatorX = cellCenterX + playerOffsetX;
+          const indicatorY = cellCenterY + playerOffsetY;
+
+          // Actualizar posición y rotación
+          this.playerIndicator.setPosition(indicatorX, indicatorY);
+          this.playerIndicator.setRotation(this.mainScene.ship.rotation);
+          this.playerIndicator.setVisible(true);
+        } else {
+          // Jugador fuera del viewport del mapa
+          this.playerIndicator.setVisible(false);
+        }
       } else {
         this.playerIndicator.setVisible(false);
       }

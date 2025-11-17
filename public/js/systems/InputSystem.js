@@ -26,9 +26,12 @@ class InputSystem {
             E: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
             LEFT: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
             RIGHT: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
+            UP: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
+            DOWN: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
             PLUS: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS),
             MINUS: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS),
             M: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M),
+            C: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C),
             SPACE: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
         };
     }
