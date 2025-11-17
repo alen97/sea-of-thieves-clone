@@ -885,21 +885,21 @@ function update(time, delta) {
       }
     }
 
-    // Block game input when map is open (arrows control map viewport, other keys disabled)
+    // Block ALL game input when map is open
     if (this.mapVisible) {
-      // Block arrow keys from controlling cannons
+      // Block arrow keys from controlling cannons/aim
       if (inputState.aim) {
         inputState.aim.left = false;
         inputState.aim.right = false;
       }
-      // Block player movement
+      // Block player movement (WASD)
       if (inputState.movement) {
         inputState.movement.up = false;
         inputState.movement.down = false;
         inputState.movement.left = false;
         inputState.movement.right = false;
       }
-      // Block steering
+      // Block steering (A/D)
       if (inputState.steering) {
         inputState.steering.left = false;
         inputState.steering.right = false;
@@ -1412,6 +1412,7 @@ class UIScene extends Phaser.Scene {
     // Map viewport offset (for exploring map with arrow keys)
     this.mapViewOffsetX = 0;
     this.mapViewOffsetY = 0;
+    this.mapScrollTimer = 0; // Throttle timer for smooth scrolling
 
     // Obtén las coordenadas de la cámara del jugador
     const cameraX = this.mainScene.cameras.main.width / 2;
@@ -1819,24 +1820,40 @@ class UIScene extends Phaser.Scene {
     }
 
     // ===== CONTROL DE VIEWPORT DEL MAPA =====
-    const mapVisible = this.mainScene.mapVisible;
+    // CRITICAL: Only process arrow keys when map is explicitly visible
+    const mapVisible = this.mainScene && this.mainScene.mapVisible;
+
+    // Initialize scroll speed throttle if not exists
+    if (!this.mapScrollTimer) {
+      this.mapScrollTimer = 0;
+    }
 
     // ONLY allow map viewport movement when map is visible
     if (mapVisible === true && this.mainScene.inputSystem) {
       const keys = this.mainScene.inputSystem.keys;
 
-      // Mover viewport del mapa con las flechas (solo cuando mapa está visible)
-      if (Phaser.Input.Keyboard.JustDown(keys.UP)) {
-        this.mapViewOffsetY -= 1;
-      }
-      if (Phaser.Input.Keyboard.JustDown(keys.DOWN)) {
-        this.mapViewOffsetY += 1;
-      }
-      if (Phaser.Input.Keyboard.JustDown(keys.LEFT)) {
-        this.mapViewOffsetX -= 1;
-      }
-      if (Phaser.Input.Keyboard.JustDown(keys.RIGHT)) {
-        this.mapViewOffsetX += 1;
+      // Throttle scroll speed (update every 150ms for smooth but not too fast scrolling)
+      this.mapScrollTimer += delta;
+      const canScroll = this.mapScrollTimer >= 150;
+
+      if (canScroll) {
+        // Mover viewport del mapa con las flechas HOLD (isDown para mantener presionado)
+        if (keys.UP.isDown) {
+          this.mapViewOffsetY -= 1;
+          this.mapScrollTimer = 0;
+        }
+        if (keys.DOWN.isDown) {
+          this.mapViewOffsetY += 1;
+          this.mapScrollTimer = 0;
+        }
+        if (keys.LEFT.isDown) {
+          this.mapViewOffsetX -= 1;
+          this.mapScrollTimer = 0;
+        }
+        if (keys.RIGHT.isDown) {
+          this.mapViewOffsetX += 1;
+          this.mapScrollTimer = 0;
+        }
       }
 
       // Resetear viewport del mapa con C
@@ -1845,11 +1862,10 @@ class UIScene extends Phaser.Scene {
         this.mapViewOffsetY = 0;
       }
     } else {
-      // If map is not visible, ensure offset is reset (safety check)
-      if (this.mapViewOffsetX !== 0 || this.mapViewOffsetY !== 0) {
-        this.mapViewOffsetX = 0;
-        this.mapViewOffsetY = 0;
-      }
+      // Map is NOT visible - force reset offset and timer
+      this.mapViewOffsetX = 0;
+      this.mapViewOffsetY = 0;
+      this.mapScrollTimer = 0;
     }
 
     // ===== ACTUALIZAR MAPA =====
