@@ -21,6 +21,7 @@ const MODIFIER_TYPES = {
     effect: 'speed',
     bonus: 0.2,
     rarity: 'rare',
+    spawnChance: 0.4, // 40% spawn chance
     isAbyssal: false // Found in normal world
   },
   CAPTAINS_GUIDE: {
@@ -32,6 +33,7 @@ const MODIFIER_TYPES = {
     effect: 'turning',
     bonus: 0.25,
     rarity: 'common',
+    spawnChance: 0.6, // 60% spawn chance (common)
     isAbyssal: false // Found in normal world
   },
   PIRATES_TENACITY: {
@@ -43,6 +45,7 @@ const MODIFIER_TYPES = {
     effect: 'fireRate',
     bonus: 0.3,
     rarity: 'rare',
+    spawnChance: 0.4, // 40% spawn chance
     isAbyssal: false // Found in normal world
   },
   ABYSS_LANTERN: {
@@ -54,6 +57,7 @@ const MODIFIER_TYPES = {
     effect: 'abyssVision', // Only provides abyss vision, not bullet speed
     bonus: 1.0, // No numeric bonus, just enables abyss world
     rarity: 'legendary',
+    spawnChance: 0.15, // 15% spawn chance (legendary)
     isAbyssal: false // Found in normal world
   },
 
@@ -68,6 +72,7 @@ const MODIFIER_TYPES = {
     effect: 'speed',
     bonus: 0.4, // +40% speed
     rarity: 'epic',
+    spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true
   },
   ETHEREAL_HELM: {
@@ -79,6 +84,7 @@ const MODIFIER_TYPES = {
     effect: 'turning',
     bonus: 0.5, // +50% turning
     rarity: 'epic',
+    spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true
   },
   ENDLESS_BARRAGE: {
@@ -90,6 +96,7 @@ const MODIFIER_TYPES = {
     effect: 'fireRate',
     bonus: 0.6, // -60% cooldown
     rarity: 'epic',
+    spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true
   },
   ABYSSAL_COMPASS: {
@@ -101,6 +108,7 @@ const MODIFIER_TYPES = {
     effect: 'compass',
     bonus: 1.0,
     rarity: 'cursed',
+    spawnChance: 0.12, // 12% spawn chance (cursed/rare)
     isAbyssal: true
   },
   CURSE_GREED: {
@@ -112,11 +120,13 @@ const MODIFIER_TYPES = {
     effect: 'greed',
     bonus: 2.0, // 2x modifier spawn chance
     rarity: 'cursed',
+    spawnChance: 0.1, // 10% spawn chance (very rare)
     isAbyssal: true
   }
 };
-const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room
+const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room (deprecated - using individual chances now)
 const MODIFIER_SIZE = 8;
+const DEV_SPAWN_MULTIPLIER = 1.0; // Set to higher values for testing (e.g., 2.0 for 2x spawn rates)
 
 // Server tick configuration
 const SERVER_TICK_RATE = 60; // Hz
@@ -168,9 +178,12 @@ function getPlayerCount(room) {
 function spawnModifiersInRoom(room, roomX, roomY) {
   const modifierTypesArray = Object.values(MODIFIER_TYPES);
 
-  // Each modifier type has a chance to spawn
+  // Each modifier type has its own individual spawn chance
   modifierTypesArray.forEach(modifierType => {
-    if (Math.random() < MODIFIER_SPAWN_CHANCE) {
+    // Apply dev multiplier to spawn chance (capped at 1.0 = 100%)
+    const effectiveSpawnChance = Math.min(1.0, modifierType.spawnChance * DEV_SPAWN_MULTIPLIER);
+
+    if (Math.random() < effectiveSpawnChance) {
       const modifier = {
         id: `${roomX},${roomY}_${modifierType.type}_${Date.now()}`,
         modifierId: modifierType.id,
@@ -198,6 +211,10 @@ function checkModifierCollisions(ship, room) {
 
   const shipRadius = 50; // Approximate ship collision radius
 
+  // Determine if player is in the abyssal world
+  const hasAbyssVision = ship.modifiers && ship.modifiers.abyssVision;
+  const inAbyssalWorld = hasAbyssVision && ship.lanternLit;
+
   for (let i = 0; i < room.modifiers.length; i++) {
     const modifier = room.modifiers[i];
     const dx = ship.x - modifier.x;
@@ -205,8 +222,15 @@ function checkModifierCollisions(ship, room) {
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance < shipRadius + modifier.size) {
-      // Collision detected!
-      return { modifier, index: i };
+      // Check if the modifier is in the correct dimension
+      const isAbyssalItem = modifier.isAbyssal || false;
+
+      // Can only pick up abyssal items if in abyssal world
+      // Can only pick up normal items if NOT in abyssal world
+      if (isAbyssalItem === inAbyssalWorld) {
+        // Collision detected and dimension matches!
+        return { modifier, index: i };
+      }
     }
   }
 
@@ -393,7 +417,10 @@ io.on('connection', function (socket) {
       rotation: Math.PI,
       isControllingShip: false,
       isOnCannon: false,
-      cannonSide: null
+      cannonSide: null,
+      velocityX: 0, // Initialize velocity for animation sync
+      velocityY: 0,
+      isMoving: false // Initialize as not moving
     }
   };
 

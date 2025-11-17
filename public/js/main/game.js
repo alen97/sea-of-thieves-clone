@@ -299,7 +299,8 @@ function create() {
                 turnLeft: input.turnLeft,
                 turnRight: input.turnRight
               },
-              1/60 // Assume 60Hz for replay
+              1/60, // Assume 60Hz for replay
+              self.shipModifiers // Pass modifiers to physics
             );
 
             // Apply replayed state
@@ -1018,7 +1019,8 @@ function update(time, delta) {
           isAnchored: this.ship.isAnchored
         },
         shipInput,
-        deltaTime
+        deltaTime,
+        this.shipModifiers // Pass modifiers to physics
       );
 
       // Apply predicted state
@@ -1065,7 +1067,8 @@ function update(time, delta) {
        isAnchored: this.ship.isAnchored
      },
      { turnLeft: false, turnRight: false }, // No input
-     deltaTime
+     deltaTime,
+     this.shipModifiers // Pass modifiers to physics
    );
 
    // Apply state
@@ -1540,9 +1543,9 @@ class UIScene extends Phaser.Scene {
       return container;
     };
 
-    // Create 4 cells for up to 4 modifiers
+    // Create 9 cells for up to 9 modifiers
     this.modifierCells = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 9; i++) {
       const cell = createModifierCell(
         modifierCellStartX + i * (modifierCellSize + modifierCellSpacing),
         modifierCellStartY
