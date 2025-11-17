@@ -1824,12 +1824,6 @@ class UIScene extends Phaser.Scene {
           this.mapScrollTimer = 0;
         }
       }
-
-      // Resetear viewport del mapa con C
-      if (Phaser.Input.Keyboard.JustDown(keys.C)) {
-        this.mapViewOffsetX = 0;
-        this.mapViewOffsetY = 0;
-      }
     }
 
     // ===== ACTUALIZAR MAPA =====
