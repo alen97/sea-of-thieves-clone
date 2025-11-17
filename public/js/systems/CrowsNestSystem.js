@@ -63,7 +63,7 @@ class CrowsNestSystem {
     }
 
     /**
-     * Update crow's nest visual position and rotation
+     * Update crow's nest visual position
      * @param {Object} ship - Ship sprite
      */
     updateVisual(ship) {
@@ -71,7 +71,6 @@ class CrowsNestSystem {
 
         const pos = this.getCrowsNestPosition(ship);
         this.visual.setPosition(pos.x, pos.y);
-        this.visual.setRotation(ship.rotation);
     }
 
     /**
