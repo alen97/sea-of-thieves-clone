@@ -1511,7 +1511,7 @@ class UIScene extends Phaser.Scene {
     }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
 
     // Coordenadas del jugador
-    this.mapCoordinates = this.add.text(cameraX, mapY + mapHeight + 20, 'Coordenadas: 0, 0', {
+    this.mapCoordinates = this.add.text(cameraX, mapY + mapHeight + 20, 'X: 0, Y: 0', {
       fontSize: '14px',
       fill: '#00ff00',
       fontStyle: 'bold'
@@ -1880,7 +1880,7 @@ class UIScene extends Phaser.Scene {
       const visitedRooms = this.mainScene.visitedRooms;
 
       // Actualizar texto de coordenadas
-      this.mapCoordinates.setText(`Coordenadas: ${currentRoomX}, ${currentRoomY}`);
+      this.mapCoordinates.setText(`X: ${currentRoomX}, Y: ${currentRoomY}`);
 
       // Grid es 9x9, centrado en room actual + offset del viewport
       const halfSize = 4; // (9-1)/2
