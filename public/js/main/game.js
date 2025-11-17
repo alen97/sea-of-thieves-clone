@@ -927,8 +927,7 @@ function update(time, delta) {
     }
 
     // ===== SISTEMA DE CÁMARA LIBRE =====
-    // Only allow free camera when NOT on a cannon (arrow keys are used for aiming)
-    if (!this.player.isOnCannon) {
+    if (this.mapVisible) {
       const CAMERA_SPEED = 500; // pixels per second
       const cameraMovement = inputState.camera;
 
