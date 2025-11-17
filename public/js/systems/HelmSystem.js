@@ -89,13 +89,11 @@ class HelmSystem {
 
         player.isControllingShip = !player.isControllingShip;
 
-        // Update camera focus (only if not in free camera mode)
-        if (!this.scene.freeCameraMode) {
-            if (player.isControllingShip) {
-                this.scene.cameras.main.startFollow(ship, 1, 1);
-            } else {
-                this.scene.cameras.main.startFollow(player, 1, 1);
-            }
+        // Update camera focus
+        if (player.isControllingShip) {
+            this.scene.cameras.main.startFollow(ship, 1, 1);
+        } else {
+            this.scene.cameras.main.startFollow(player, 1, 1);
         }
 
         return player.isControllingShip;

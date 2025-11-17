@@ -152,7 +152,6 @@ function create() {
   this.visitedRooms.add('0,0'); // Add initial room
   this.mapVisible = false;
   this.chatMode = false;
-  this.freeCameraMode = false; // Free camera exploration mode
 
   // Network optimization: track last sent values for throttling
   this.lastSentSteeringDirection = 0;
@@ -924,41 +923,6 @@ function update(time, delta) {
     if (this.currentZoom !== this.targetZoom) {
       this.currentZoom = Phaser.Math.Linear(this.currentZoom, this.targetZoom, 0.1);
       this.cameras.main.setZoom(this.currentZoom);
-    }
-
-    // ===== SISTEMA DE CÁMARA LIBRE =====
-    if (this.mapVisible) {
-      const CAMERA_SPEED = 500; // pixels per second
-      const cameraMovement = inputState.camera;
-
-      // Check if any camera arrow key is pressed
-      if (cameraMovement.up || cameraMovement.down || cameraMovement.left || cameraMovement.right) {
-        // Enter free camera mode
-        if (!this.freeCameraMode) {
-          this.freeCameraMode = true;
-          this.cameras.main.stopFollow();
-          console.log('Free camera mode: ON (press C to center on player)');
-        }
-
-        // Move camera based on arrow keys
-        const cameraMoveX = (cameraMovement.right ? 1 : 0) - (cameraMovement.left ? 1 : 0);
-        const cameraMoveY = (cameraMovement.down ? 1 : 0) - (cameraMovement.up ? 1 : 0);
-
-        this.cameras.main.scrollX += cameraMoveX * CAMERA_SPEED * deltaTime;
-        this.cameras.main.scrollY += cameraMoveY * CAMERA_SPEED * deltaTime;
-      }
-    }
-
-    // Center camera with C key
-    if (inputState.centerCamera && this.freeCameraMode) {
-      this.freeCameraMode = false;
-      // Resume following the appropriate target (ship if controlling, player otherwise)
-      if (this.player.isControllingShip) {
-        this.cameras.main.startFollow(this.ship, 1, 1);
-      } else {
-        this.cameras.main.startFollow(this.player, 1, 1);
-      }
-      console.log('Free camera mode: OFF (following player)');
     }
 
     // ===== SISTEMA DE FAROL =====
