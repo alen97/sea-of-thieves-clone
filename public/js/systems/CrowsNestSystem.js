@@ -56,7 +56,7 @@ class CrowsNestSystem {
         const graphics = this.scene.add.graphics();
         graphics.fillStyle(0x2B1810, 1); // Dark brown
         graphics.fillRect(-11, -11, 22, 22);
-        graphics.setDepth(2.2); // Above ship, below lantern
+        graphics.setDepth(3.5); // Above walking player (3), below player in crow's nest (4)
 
         this.visual = graphics;
         return this.visual;

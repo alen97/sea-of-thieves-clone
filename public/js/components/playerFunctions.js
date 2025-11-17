@@ -57,6 +57,9 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
     if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest) {
         // El jugador NO está en el timón, ni en el cañón, ni en la cofa - puede caminar
 
+        // Player below crow's nest when walking
+        player.setDepth(3);
+
         // Usar coordenadas locales persistentes (NO recalcular desde world position)
         let localX = player.localX;
         let localY = player.localY;
@@ -193,9 +196,15 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         // El jugador mira en la dirección del barco (hacia adelante)
         player.setRotation(ship.rotation + Math.PI);
 
+        // Player on top of crow's nest
+        player.setDepth(4);
+
     } else if (player.isOnCannon) {
         // El jugador ESTÁ en el cañón - no puede caminar
         player.setVelocity(0, 0);
+
+        // Player normal depth when on cannon
+        player.setDepth(3);
 
         // Stop animation when on cannon
         if (player.anims.isPlaying) {
@@ -221,6 +230,9 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
     } else {
         // El jugador ESTÁ en el timón - no puede caminar
         player.setVelocity(0, 0);
+
+        // Player normal depth when controlling ship
+        player.setDepth(3);
 
         // Stop animation when controlling ship
         if (player.anims.isPlaying) {
