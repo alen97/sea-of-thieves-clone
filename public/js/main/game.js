@@ -718,6 +718,8 @@ function create() {
     // Clear existing jellies
     self.jellies.clear(true, true);
 
+    console.log(`[JELLIES] Received ${jellies.length} jellies from server`);
+
     // Create visual jellies (only visible in abyssal world)
     jellies.forEach(function (jellyData, index) {
       const jelly = self.add.sprite(
@@ -768,6 +770,9 @@ function create() {
       // Only visible in abyssal world
       const hasAbyssVision = self.shipModifiers && self.shipModifiers.abyssVision;
       const inAbyssalWorld = hasAbyssVision && self.lanternLit;
+
+      console.log(`[JELLIES] Jelly #${index+1}: hasAbyssVision=${hasAbyssVision}, lanternLit=${self.lanternLit}, visible=${inAbyssalWorld}`);
+
       jelly.setVisible(inAbyssalWorld);
       jelly.aura.setVisible(inAbyssalWorld);
 
@@ -775,7 +780,7 @@ function create() {
       self.jellies.add(aura);
     });
 
-    console.log(`Spawned ${jellies.length} abyssal jellies in room`);
+    console.log(`[JELLIES] Spawned ${jellies.length} abyssal jellies in room`);
   });
 
   // Handle portal position for Abyssal Compass

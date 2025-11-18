@@ -150,11 +150,12 @@ const MODIFIER_SIZE = 8;
 const DEV_SPAWN_MULTIPLIER = 1.0; // Set to higher values for testing (e.g., 2.0 for 2x spawn rates)
 
 // Abyssal Jelly configuration
-const JELLY_SPAWN_CHANCE = 0.3; // 30% chance to spawn a jelly in a room near center
-const JELLY_SPAWN_RADIUS = 3; // Spawn within 3 rooms from center (0,0)
+const JELLY_SPAWN_CHANCE = 0.7; // 70% chance to spawn jellies in a room near center
+const JELLY_SPAWN_RADIUS = 5; // Spawn within 5 rooms from center (0,0) - increased area
 const JELLY_SIZE = 64; // Visual size
 const JELLY_SPEED = 30; // Movement speed
 const JELLY_FOLLOW_RANGE = 800; // Range at which jelly starts following ship
+const JELLY_MIN_PER_ROOM = 1; // Minimum jellies per room
 const JELLY_MAX_PER_ROOM = 3; // Maximum jellies per room
 
 // Server tick configuration
@@ -249,26 +250,31 @@ function spawnJelliesInRoom(room, roomX, roomY) {
     return; // Too far from center
   }
 
-  // Spawn jellies with a probability
-  const jellyCount = Math.floor(Math.random() * (JELLY_MAX_PER_ROOM + 1)); // 0 to MAX
+  // Single probability check: should this room have jellies?
+  if (Math.random() > JELLY_SPAWN_CHANCE) {
+    return; // No jellies in this room
+  }
+
+  // Spawn between MIN and MAX jellies
+  const jellyCount = JELLY_MIN_PER_ROOM + Math.floor(Math.random() * (JELLY_MAX_PER_ROOM - JELLY_MIN_PER_ROOM + 1));
+
+  console.log(`Spawning ${jellyCount} jellies in room (${roomX}, ${roomY}) - distance from center: ${distanceFromCenter.toFixed(1)}`);
 
   for (let i = 0; i < jellyCount; i++) {
-    if (Math.random() < JELLY_SPAWN_CHANCE) {
-      const jelly = {
-        id: `jelly_${roomX}_${roomY}_${i}_${Date.now()}`,
-        x: Math.random() * (WORLD_WIDTH - 200) + 100,
-        y: Math.random() * (WORLD_HEIGHT - 200) + 100,
-        size: JELLY_SIZE,
-        // Jellyfish movement properties
-        velocityX: 0,
-        velocityY: 0,
-        phase: Math.random() * Math.PI * 2, // Random starting phase for wave motion
-        baseSpeed: JELLY_SPEED,
-        isFollowing: false
-      };
-      room.jellies.push(jelly);
-      console.log(`Spawned Abyssal Jelly in room (${roomX}, ${roomY}) at (${Math.floor(jelly.x)}, ${Math.floor(jelly.y)})`);
-    }
+    const jelly = {
+      id: `jelly_${roomX}_${roomY}_${i}_${Date.now()}`,
+      x: Math.random() * (WORLD_WIDTH - 200) + 100,
+      y: Math.random() * (WORLD_HEIGHT - 200) + 100,
+      size: JELLY_SIZE,
+      // Jellyfish movement properties
+      velocityX: 0,
+      velocityY: 0,
+      phase: Math.random() * Math.PI * 2, // Random starting phase for wave motion
+      baseSpeed: JELLY_SPEED,
+      isFollowing: false
+    };
+    room.jellies.push(jelly);
+    console.log(`  - Spawned Abyssal Jelly #${i+1} at (${Math.floor(jelly.x)}, ${Math.floor(jelly.y)})`);
   }
 }
 
