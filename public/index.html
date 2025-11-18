@@ -10,7 +10,7 @@
         <!-- Login Screen -->
         <div id="loginScreen">
             <div id="loginBox">
-                <h1>Sea of Thieves Clone</h1>
+                <h1>Endless Sea of Rooms</h1>
                 <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" autocomplete="off">
                 <button id="joinButton">Ingresar</button>
                 <p id="errorMessage"></p>
@@ -19,6 +19,21 @@
 
         <!-- Game Canvas (hidden initially) -->
         <div id="gameContainer" style="display: none;"></div>
+
+        <!-- Set day/night background based on system time -->
+        <script>
+            (function() {
+                const hour = new Date().getHours();
+                const loginScreen = document.getElementById('loginScreen');
+                // Daytime: 6am to 6pm (6-18)
+                // Nighttime: 6pm to 6am (18-24 and 0-6)
+                if (hour >= 6 && hour < 18) {
+                    loginScreen.classList.add('daytime');
+                } else {
+                    loginScreen.classList.add('nighttime');
+                }
+            })();
+        </script>
 
         <script src="/socket.io/socket.io.js"></script>
         <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
@@ -68,8 +83,18 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #0a1128 0%, #1e3a5f 100%);
             z-index: 1000;
+            transition: background 1s ease;
+        }
+
+        /* Day background (6am - 6pm) */
+        #loginScreen.daytime {
+            background: linear-gradient(135deg, #2b5876 0%, #4e89ae 50%, #87ceeb 100%);
+        }
+
+        /* Night background (6pm - 6am) */
+        #loginScreen.nighttime {
+            background: linear-gradient(135deg, #0a1128 0%, #1e3a5f 50%, #0f2540 100%);
         }
 
         #loginBox {
@@ -79,6 +104,9 @@
             text-align: center;
             border: 2px solid #4a90e2;
             box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         #loginBox h1 {
