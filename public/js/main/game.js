@@ -288,7 +288,7 @@ function create() {
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
 
-      self.player = addPlayer(self, { x: 0, y: 0, rotation: Math.PI, isControllingShip: false }, self.ship, playerName);
+      self.player = addPlayer(self, { x: 0, y: 0, rotation: Math.PI, isControllingShip: false }, self.ship);
 
       setupShipCollisions(self, self.ship);
       addShipWakeEmitters(self, self.ship);
@@ -582,11 +582,6 @@ function create() {
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
 
-          // Update name text position
-          if (otherPlayer.nameText) {
-            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y + 25);
-          }
-
           // Update depth based on crow's nest state
           if (players[id].player.isInCrowsNest) {
             otherPlayer.setDepth(4); // On top of crow's nest
@@ -597,7 +592,7 @@ function create() {
           }
         } else if (self.ship) {
           // Create new player
-          otherPlayer = addOtherPlayer(self, players[id].player, self.ship, players[id].playerName);
+          otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
           otherPlayer.playerId = players[id].playerId;
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
@@ -639,7 +634,7 @@ function create() {
 
     // Create other player's avatar on the shared ship
     if (self.ship) {
-      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship, playerInfo.playerName);
+      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship);
       otherPlayer.playerId = playerInfo.playerId;
       otherPlayer.roomX = playerInfo.roomX;
       otherPlayer.roomY = playerInfo.roomY;
@@ -708,11 +703,6 @@ function create() {
             self.ship.y + playerInfo.player.y
           );
           otherPlayer.setRotation(playerInfo.player.rotation);
-
-          // Update name text position
-          if (otherPlayer.nameText) {
-            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y + 25);
-          }
 
           // Synchronize animation based on received isMoving state
           const isMoving = playerInfo.player.isMoving || false;
@@ -1359,11 +1349,6 @@ function update(time, delta) {
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled);
-
-    // Update player name text position
-    if (this.player.nameText) {
-      this.player.nameText.setPosition(this.player.x, this.player.y + 25);
-    }
 
     // ===== ACTUALIZAR SHIP (client-side prediction with shared physics) =====
     if (this.player.isControllingShip && inputEnabled) {
