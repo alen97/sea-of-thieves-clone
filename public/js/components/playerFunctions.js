@@ -249,7 +249,7 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         }
 
         // Interpolar suavemente hacia el offset objetivo
-        const lerpSpeed = 5.0 * deltaTime;
+        const lerpSpeed = 3.0 * deltaTime;
         player.crowsNestCameraOffsetX = Phaser.Math.Linear(
             player.crowsNestCameraOffsetX,
             targetOffsetX,
