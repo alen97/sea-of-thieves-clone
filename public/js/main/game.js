@@ -1760,7 +1760,7 @@ function update(time, delta) {
       // Note: currentRoomX/Y will be updated by the 'roomChanged' event from server
     }
 
-    // ===== UPDATE PORTAL VISIBILITY =====
+    // ===== UPDATE PORTAL VISIBILITY AND POSITION =====
     if (this.portal && this.portalInner) {
       // Portal is visible only when:
       // 1. Player has Abyssal Compass
@@ -1772,6 +1772,18 @@ function update(time, delta) {
 
       this.portal.setVisible(shouldShowPortal);
       this.portalInner.setVisible(shouldShowPortal);
+
+      // When in the portal's room, position it at the center of the CURRENT room
+      // (local coordinates, not absolute)
+      if (inSameRoom) {
+        const WORLD_WIDTH = 3200;
+        const WORLD_HEIGHT = 3200;
+        const localPortalX = WORLD_WIDTH / 2;  // Center of current room
+        const localPortalY = WORLD_HEIGHT / 2;
+
+        this.portal.setPosition(localPortalX, localPortalY);
+        this.portalInner.setPosition(localPortalX, localPortalY);
+      }
     }
   }
 }
