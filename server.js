@@ -157,6 +157,9 @@ const JELLY_SPEED = 30; // Movement speed
 const JELLY_FOLLOW_RANGE = 800; // Range at which jelly starts following ship
 const JELLY_MIN_PER_ROOM = 1; // Minimum jellies per room
 const JELLY_MAX_PER_ROOM = 3; // Maximum jellies per room
+const JELLY_COLLISION_RADIUS = 40; // Collision detection radius
+const JELLY_SHOCK_FORCE = 150; // Knockback force when ship hits jelly
+const JELLY_SHOCK_COOLDOWN = 2000; // Cooldown in ms before jelly can shock again
 
 // Server tick configuration
 const SERVER_TICK_RATE = 60; // Hz
@@ -271,7 +274,9 @@ function spawnJelliesInRoom(room, roomX, roomY) {
       velocityY: 0,
       phase: Math.random() * Math.PI * 2, // Random starting phase for wave motion
       baseSpeed: JELLY_SPEED,
-      isFollowing: false
+      isFollowing: false,
+      // Shock/attack properties
+      lastShockTime: 0 // Last time this jelly shocked the ship
     };
     room.jellies.push(jelly);
     console.log(`  - Spawned Abyssal Jelly #${i+1} at (${Math.floor(jelly.x)}, ${Math.floor(jelly.y)})`);
@@ -356,6 +361,64 @@ function checkModifierCollisions(ship, room) {
   }
 
   return null;
+}
+
+// Check and handle jelly collisions with ship (shock/knockback effect)
+function checkJellyCollisions(ship, room) {
+  if (!ship || !room.jellies || room.jellies.length === 0) return [];
+
+  const shipRadius = 50; // Approximate ship collision radius
+  const now = Date.now();
+  const shockedJellies = [];
+
+  // Only check collisions if in abyssal world
+  const hasAbyssVision = ship.modifiers && ship.modifiers.abyssVision;
+  const inAbyssalWorld = hasAbyssVision && ship.lanternLit;
+
+  if (!inAbyssalWorld) {
+    return shockedJellies; // No collisions if not in abyssal world
+  }
+
+  for (let i = 0; i < room.jellies.length; i++) {
+    const jelly = room.jellies[i];
+
+    // Check if jelly is on cooldown
+    if (jelly.lastShockTime && (now - jelly.lastShockTime) < JELLY_SHOCK_COOLDOWN) {
+      continue; // Jelly can't shock yet
+    }
+
+    // Calculate distance between ship and jelly
+    const dx = ship.x - jelly.x;
+    const dy = ship.y - jelly.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < shipRadius + JELLY_COLLISION_RADIUS) {
+      // Collision detected! Apply knockback
+      const pushAngle = Math.atan2(dy, dx); // Direction from jelly to ship
+      const pushX = Math.cos(pushAngle) * JELLY_SHOCK_FORCE;
+      const pushY = Math.sin(pushAngle) * JELLY_SHOCK_FORCE;
+
+      // Apply impulse to ship velocity
+      ship.velocityX += pushX;
+      ship.velocityY += pushY;
+
+      // Update jelly cooldown
+      jelly.lastShockTime = now;
+
+      // Track shocked jellies for client notification
+      shockedJellies.push({
+        jellyId: jelly.id,
+        jellyX: jelly.x,
+        jellyY: jelly.y,
+        pushAngle: pushAngle,
+        pushForce: JELLY_SHOCK_FORCE
+      });
+
+      console.log(`Jelly ${jelly.id} shocked ship! Push: (${pushX.toFixed(1)}, ${pushY.toFixed(1)})`);
+    }
+  }
+
+  return shockedJellies;
 }
 
 // Apply modifier effect to ship
@@ -1005,6 +1068,15 @@ setInterval(function() {
       room.jellies.forEach(jelly => {
         updateJellyMovement(jelly, room.ship, DELTA_TIME);
       });
+
+      // Check for jelly collisions with ship (shock/knockback)
+      const shockedJellies = checkJellyCollisions(room.ship, room);
+      if (shockedJellies.length > 0) {
+        // Notify all clients in the room about the shock
+        io.to(roomId).emit('jellyShock', {
+          shocks: shockedJellies
+        });
+      }
 
       // Broadcast jelly positions to all players in room
       io.to(roomId).emit('jelliesUpdated', room.jellies);

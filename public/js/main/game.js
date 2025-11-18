@@ -407,6 +407,64 @@ function create() {
     });
   });
 
+  // Handle jelly shock (collision with jellies that pushes ship)
+  this.socket.on('jellyShock', function (data) {
+    console.log('[JELLY SHOCK] Ship got shocked by', data.shocks.length, 'jellies');
+
+    data.shocks.forEach(shock => {
+      // Create visual effect at jelly position
+      const shockEffect = self.add.circle(
+        shock.jellyX,
+        shock.jellyY,
+        60, // Radius
+        0x7A00FF, // Purple color
+        0.8 // Alpha
+      );
+
+      // Animate shock wave expanding
+      self.tweens.add({
+        targets: shockEffect,
+        scaleX: 2,
+        scaleY: 2,
+        alpha: 0,
+        duration: 400,
+        ease: 'Cubic.easeOut',
+        onComplete: function () {
+          shockEffect.destroy();
+        }
+      });
+
+      // Create particles for electric effect
+      if (self.particleManager) {
+        for (let i = 0; i < 8; i++) {
+          const angle = (Math.PI * 2 * i) / 8;
+          const particle = self.add.circle(
+            shock.jellyX,
+            shock.jellyY,
+            3,
+            0xFFFFFF,
+            0.8
+          );
+
+          self.tweens.add({
+            targets: particle,
+            x: shock.jellyX + Math.cos(angle) * 50,
+            y: shock.jellyY + Math.sin(angle) * 50,
+            alpha: 0,
+            duration: 300,
+            ease: 'Cubic.easeOut',
+            onComplete: function () {
+              particle.destroy();
+            }
+          });
+        }
+      }
+    });
+
+    // TODO: Add shock sound effect here when available
+    // self.sound.play('jellyShock', { volume: 0.3 });
+  });
+
   // Handle ship destroyed event
   this.socket.on('shipDestroyed', function () {
     if (self.ship) {
