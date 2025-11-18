@@ -520,6 +520,21 @@ function create() {
     });
   });
 
+  // Handle crow's nest state changes for other players
+  this.socket.on('playerCrowsNestChanged', function (data) {
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (data.playerId === otherPlayer.playerId) {
+        // Update depth based on crow's nest state
+        if (data.isInCrowsNest) {
+          otherPlayer.setDepth(4); // On top of crow's nest
+        } else {
+          otherPlayer.setDepth(3); // Normal depth (walking/under crow's nest)
+        }
+        console.log(`Player ${data.playerId} crow's nest depth updated: ${data.isInCrowsNest ? 'UP' : 'DOWN'}`);
+      }
+    });
+  });
+
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerInfo.playerId === otherPlayer.playerId) {

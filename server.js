@@ -532,6 +532,12 @@ io.on('connection', function (socket) {
     if (room && room.players[socket.id] && data) {
       room.players[socket.id].player.isInCrowsNest = data.isInCrowsNest;
       console.log(`Player ${socket.id} toggled crow's nest: ${data.isInCrowsNest ? 'UP' : 'DOWN'}`);
+
+      // Broadcast crow's nest state change to all other players in the room
+      socket.to(roomId).emit('playerCrowsNestChanged', {
+        playerId: socket.id,
+        isInCrowsNest: data.isInCrowsNest
+      });
     }
   });
 
