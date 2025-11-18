@@ -159,7 +159,7 @@ const JELLY_FOLLOW_RANGE = 800; // Range at which jelly starts following ship
 const JELLY_MIN_PER_ROOM = 1; // Minimum jellies per room
 const JELLY_MAX_PER_ROOM = 3; // Maximum jellies per room
 const JELLY_COLLISION_RADIUS = 40; // Collision detection radius
-const JELLY_SHOCK_FORCE = 150; // Knockback force when ship hits jelly
+const JELLY_SHOCK_DISTANCE = 80; // Distance ship is pushed back (pixels)
 const JELLY_SHOCK_COOLDOWN = 2000; // Cooldown in ms before jelly can shock again
 
 // Server tick configuration
@@ -396,12 +396,12 @@ function checkJellyCollisions(ship, room) {
     if (distance < shipRadius + JELLY_COLLISION_RADIUS) {
       // Collision detected! Apply knockback
       const pushAngle = Math.atan2(dy, dx); // Direction from jelly to ship
-      const pushX = Math.cos(pushAngle) * JELLY_SHOCK_FORCE;
-      const pushY = Math.sin(pushAngle) * JELLY_SHOCK_FORCE;
+      const pushX = Math.cos(pushAngle) * JELLY_SHOCK_DISTANCE;
+      const pushY = Math.sin(pushAngle) * JELLY_SHOCK_DISTANCE;
 
-      // Apply impulse to ship velocity
-      ship.velocityX += pushX;
-      ship.velocityY += pushY;
+      // Apply knockback directly to ship position (immediate displacement)
+      ship.x += pushX;
+      ship.y += pushY;
 
       // Update jelly cooldown
       jelly.lastShockTime = now;
@@ -412,10 +412,10 @@ function checkJellyCollisions(ship, room) {
         jellyX: jelly.x,
         jellyY: jelly.y,
         pushAngle: pushAngle,
-        pushForce: JELLY_SHOCK_FORCE
+        pushDistance: JELLY_SHOCK_DISTANCE
       });
 
-      console.log(`Jelly ${jelly.id} shocked ship! Push: (${pushX.toFixed(1)}, ${pushY.toFixed(1)})`);
+      console.log(`Jelly ${jelly.id} shocked ship! Pushed ${JELLY_SHOCK_DISTANCE}px at angle ${(pushAngle * 180 / Math.PI).toFixed(1)}°`);
     }
   }
 
