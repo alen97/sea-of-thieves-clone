@@ -124,10 +124,10 @@ class CrowsNestSystem {
     toggleCrowsNest(player) {
         player.isInCrowsNest = !player.isInCrowsNest;
 
-        // Reset local coordinates when descending from crow's nest
+        // Reset camera offset when descending from crow's nest
         if (!player.isInCrowsNest) {
-            player.crowsNestLocalX = 0;
-            player.crowsNestLocalY = 0;
+            player.crowsNestCameraOffsetX = 0;
+            player.crowsNestCameraOffsetY = 0;
         }
 
         // Emit crow's nest state to server

@@ -176,56 +176,54 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         }
 
     } else if (player.isInCrowsNest) {
-        // El jugador ESTÁ en la cofa - puede moverse dentro de un área limitada
+        // El jugador ESTÁ en la cofa - puede rotar y la cámara se desliza
 
         // Player on top of crow's nest
         player.setDepth(4);
 
-        // Usar coordenadas locales dentro de la cofa
-        if (player.crowsNestLocalX === undefined) {
-            player.crowsNestLocalX = 0;
-            player.crowsNestLocalY = 0;
+        // Inicializar offset de cámara si no existe
+        if (player.crowsNestCameraOffsetX === undefined) {
+            player.crowsNestCameraOffsetX = 0;
+            player.crowsNestCameraOffsetY = 0;
         }
 
-        let localX = player.crowsNestLocalX;
-        let localY = player.crowsNestLocalY;
-        let isMoving = false;
+        let targetOffsetX = 0;
+        let targetOffsetY = 0;
         let playerRotation = player.rotation;
 
-        const playerSpeed = 100;
+        const cameraShiftSpeed = 150; // Velocidad de desplazamiento de cámara
+        const maxCameraOffset = 40; // Máximo desplazamiento de cámara en pixels
 
         // Solo procesar input WASD si inputEnabled = true
         if (inputEnabled) {
-            // Aplicar movimiento en coordenadas DEL MUNDO (absolutas)
-            let worldVelX = 0;
-            let worldVelY = 0;
+            let inputDetected = false;
 
-            if (input.keyW.isDown) worldVelY -= playerSpeed; // NORTE (absoluto)
-            if (input.keyS.isDown) worldVelY += playerSpeed; // SUR (absoluto)
-            if (input.keyA.isDown) worldVelX -= playerSpeed; // OESTE (absoluto)
-            if (input.keyD.isDown) worldVelX += playerSpeed; // ESTE (absoluto)
-
-            // Normalizar velocidad diagonal
-            if (worldVelX !== 0 && worldVelY !== 0) {
-                worldVelX *= 0.707;
-                worldVelY *= 0.707;
+            // Determinar offset objetivo basado en input (en coordenadas del mundo)
+            if (input.keyW.isDown) {
+                targetOffsetY = -maxCameraOffset;
+                inputDetected = true;
+            }
+            if (input.keyS.isDown) {
+                targetOffsetY = maxCameraOffset;
+                inputDetected = true;
+            }
+            if (input.keyA.isDown) {
+                targetOffsetX = -maxCameraOffset;
+                inputDetected = true;
+            }
+            if (input.keyD.isDown) {
+                targetOffsetX = maxCameraOffset;
+                inputDetected = true;
             }
 
-            // Convertir velocidad del mundo a velocidad LOCAL relativa al barco
-            const cosAngle = Math.cos(-ship.rotation);
-            const sinAngle = Math.sin(-ship.rotation);
-            const localVelX = worldVelX * cosAngle - worldVelY * sinAngle;
-            const localVelY = worldVelX * sinAngle + worldVelY * cosAngle;
-
-            // Aplicar movimiento a coordenadas locales
-            localX += localVelX * deltaTime;
-            localY += localVelY * deltaTime;
-
-            // Determinar si está en movimiento
-            isMoving = (worldVelX !== 0 || worldVelY !== 0);
+            // Normalizar offset diagonal
+            if (targetOffsetX !== 0 && targetOffsetY !== 0) {
+                targetOffsetX *= 0.707;
+                targetOffsetY *= 0.707;
+            }
 
             // Rotar jugador según dirección del input (en coordenadas ABSOLUTAS del mundo)
-            if (isMoving) {
+            if (inputDetected) {
                 const directionAngles = {
                     "W":  Math.PI,                  // NORTE (absoluto)
                     "S":  0,                        // SUR (absoluto)
@@ -246,18 +244,29 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
                 const angle = directionAngles[combo];
                 if (angle !== undefined) {
                     playerRotation = angle;
+                    player.lastRotation = playerRotation;
                 }
             }
         }
 
-        // Limitar movimiento dentro de la cofa (área muy pequeña: 8 pixels de radio)
-        const maxCrowsNestRadius = 8;
-        localX = Phaser.Math.Clamp(localX, -maxCrowsNestRadius, maxCrowsNestRadius);
-        localY = Phaser.Math.Clamp(localY, -maxCrowsNestRadius, maxCrowsNestRadius);
+        // Interpolar suavemente hacia el offset objetivo
+        const lerpSpeed = 5.0 * deltaTime;
+        player.crowsNestCameraOffsetX = Phaser.Math.Linear(
+            player.crowsNestCameraOffsetX,
+            targetOffsetX,
+            lerpSpeed
+        );
+        player.crowsNestCameraOffsetY = Phaser.Math.Linear(
+            player.crowsNestCameraOffsetY,
+            targetOffsetY,
+            lerpSpeed
+        );
 
-        // Guardar coordenadas locales actualizadas
-        player.crowsNestLocalX = localX;
-        player.crowsNestLocalY = localY;
+        // Convertir offset de cámara a coordenadas locales del barco
+        const cosAngle = Math.cos(-ship.rotation);
+        const sinAngle = Math.sin(-ship.rotation);
+        const localOffsetX = player.crowsNestCameraOffsetX * cosAngle - player.crowsNestCameraOffsetY * sinAngle;
+        const localOffsetY = player.crowsNestCameraOffsetX * sinAngle + player.crowsNestCameraOffsetY * cosAngle;
 
         // Posición de la cofa (en la proa del barco)
         const crowsNestOffset = 60;
@@ -265,40 +274,31 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         const crowsNestCenterX = ship.x + Math.cos(angle) * crowsNestOffset;
         const crowsNestCenterY = ship.y + Math.sin(angle) * crowsNestOffset;
 
-        // Convertir coordenadas locales de vuelta a coordenadas del mundo
+        // Convertir offset local de vuelta a coordenadas del mundo
         const cosAngleBack = Math.cos(ship.rotation);
         const sinAngleBack = Math.sin(ship.rotation);
-        const worldX = localX * cosAngleBack - localY * sinAngleBack;
-        const worldY = localX * sinAngleBack + localY * cosAngleBack;
+        const worldOffsetX = localOffsetX * cosAngleBack - localOffsetY * sinAngleBack;
+        const worldOffsetY = localOffsetX * sinAngleBack + localOffsetY * cosAngleBack;
 
-        // Posicionar jugador en la cofa con offset local
-        player.setPosition(crowsNestCenterX + worldX, crowsNestCenterY + worldY);
+        // Posicionar jugador en el centro de la cofa + offset de cámara
+        player.setPosition(crowsNestCenterX + worldOffsetX, crowsNestCenterY + worldOffsetY);
         player.setVelocity(0, 0);
 
-        // Ajustar rotación del jugador cuando el barco rota (solo si no está en movimiento)
-        if (ship.previousRotation !== undefined && !isMoving) {
+        // Ajustar rotación del jugador cuando el barco rota
+        if (ship.previousRotation !== undefined) {
             const rotationDelta = ship.rotation - ship.previousRotation;
             if (Math.abs(rotationDelta) > 0.001) {
                 player.lastRotation += rotationDelta;
             }
         }
 
-        // Rotación del sprite
-        if (isMoving) {
-            player.lastRotation = playerRotation;
-        }
+        // Aplicar rotación
         player.setRotation(player.lastRotation);
 
-        // Manejar animación
-        if (isMoving) {
-            if (!player.anims.isPlaying || player.anims.currentAnim.key !== 'run') {
-                player.play('run');
-            }
-        } else {
-            if (player.anims.isPlaying) {
-                player.stop();
-                player.setFrame('tile000.png');
-            }
+        // No hay animación de caminar en la cofa (jugador quieto)
+        if (player.anims.isPlaying) {
+            player.stop();
+            player.setFrame('tile000.png');
         }
 
     } else if (player.isOnCannon) {
