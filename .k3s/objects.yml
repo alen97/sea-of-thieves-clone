@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sea-of-rooms
+  labels:
+    app: sea-of-rooms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sea-of-rooms
+  template:
+    metadata:
+      labels:
+        app: sea-of-rooms
+    spec:
+      containers:
+      - name: sea-of-rooms
+        image: registry.gitlab.com/multiplayer-socket-io/sea-of-thieves-clone:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "80"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      imagePullSecrets:
+      - name: gitlab-registry-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sea-of-rooms
+  labels:
+    app: sea-of-rooms
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: sea-of-rooms

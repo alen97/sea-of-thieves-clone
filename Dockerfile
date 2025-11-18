@@ -1,10 +1,18 @@
-FROM node:16.17.0-alpine
+FROM node:20-alpine
 
-WORKDIR /server
+WORKDIR /app
 
-# Copio archivos a /server
+# Copiar package.json primero para mejor cache de Docker
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm ci --only=production
+
+# Copiar el resto de archivos
 COPY . .
 
-RUN npm install
+# Exponer puerto
+EXPOSE 3000
 
+# Comando para iniciar
 CMD ["node", "server.js"]
