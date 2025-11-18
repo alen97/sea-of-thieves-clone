@@ -149,6 +149,14 @@ const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room (
 const MODIFIER_SIZE = 8;
 const DEV_SPAWN_MULTIPLIER = 1.0; // Set to higher values for testing (e.g., 2.0 for 2x spawn rates)
 
+// Abyssal Jelly configuration
+const JELLY_SPAWN_CHANCE = 0.3; // 30% chance to spawn a jelly in a room near center
+const JELLY_SPAWN_RADIUS = 3; // Spawn within 3 rooms from center (0,0)
+const JELLY_SIZE = 64; // Visual size
+const JELLY_SPEED = 30; // Movement speed
+const JELLY_FOLLOW_RANGE = 800; // Range at which jelly starts following ship
+const JELLY_MAX_PER_ROOM = 3; // Maximum jellies per room
+
 // Server tick configuration
 const SERVER_TICK_RATE = 60; // Hz
 const SERVER_TICK_INTERVAL = 1000 / SERVER_TICK_RATE; // ms
@@ -181,11 +189,15 @@ function getOrCreateRoom(roomX, roomY) {
       ship: null, // Shared ship for all players in room (created with first player)
       players: {}, // Player avatars only
       bullets: [],
-      modifiers: [] // Power-ups that spawn in the room
+      modifiers: [], // Power-ups that spawn in the room
+      jellies: [] // Abyssal jellies (only visible in abyssal world)
     };
 
     // Spawn modifiers with a chance
     spawnModifiersInRoom(rooms[roomId], roomX, roomY);
+
+    // Spawn abyssal jellies with a chance (only near center)
+    spawnJelliesInRoom(rooms[roomId], roomX, roomY);
   }
   return rooms[roomId];
 }
@@ -225,6 +237,87 @@ function spawnModifiersInRoom(room, roomX, roomY) {
       console.log(`Spawned "${modifierType.name}" modifier in room (${roomX}, ${roomY}) at (${Math.floor(modifier.x)}, ${Math.floor(modifier.y)})`);
     }
   });
+}
+
+// Spawn abyssal jellies in a room (only near center of map)
+function spawnJelliesInRoom(room, roomX, roomY) {
+  // Calculate distance from center (0, 0)
+  const distanceFromCenter = Math.sqrt(roomX * roomX + roomY * roomY);
+
+  // Only spawn jellies within a certain radius from center
+  if (distanceFromCenter > JELLY_SPAWN_RADIUS) {
+    return; // Too far from center
+  }
+
+  // Spawn jellies with a probability
+  const jellyCount = Math.floor(Math.random() * (JELLY_MAX_PER_ROOM + 1)); // 0 to MAX
+
+  for (let i = 0; i < jellyCount; i++) {
+    if (Math.random() < JELLY_SPAWN_CHANCE) {
+      const jelly = {
+        id: `jelly_${roomX}_${roomY}_${i}_${Date.now()}`,
+        x: Math.random() * (WORLD_WIDTH - 200) + 100,
+        y: Math.random() * (WORLD_HEIGHT - 200) + 100,
+        size: JELLY_SIZE,
+        // Jellyfish movement properties
+        velocityX: 0,
+        velocityY: 0,
+        phase: Math.random() * Math.PI * 2, // Random starting phase for wave motion
+        baseSpeed: JELLY_SPEED,
+        isFollowing: false
+      };
+      room.jellies.push(jelly);
+      console.log(`Spawned Abyssal Jelly in room (${roomX}, ${roomY}) at (${Math.floor(jelly.x)}, ${Math.floor(jelly.y)})`);
+    }
+  }
+}
+
+// Update jelly movement (jellyfish-like, follows ship when in range)
+function updateJellyMovement(jelly, ship, deltaTime) {
+  if (!ship) {
+    // Idle floating movement
+    jelly.phase += deltaTime * 2;
+    jelly.velocityX = Math.sin(jelly.phase) * jelly.baseSpeed * 0.3;
+    jelly.velocityY = Math.cos(jelly.phase * 0.7) * jelly.baseSpeed * 0.3;
+    jelly.isFollowing = false;
+  } else {
+    // Calculate distance to ship
+    const dx = ship.x - jelly.x;
+    const dy = ship.y - jelly.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < JELLY_FOLLOW_RANGE) {
+      // Follow the ship with jellyfish-like motion
+      jelly.isFollowing = true;
+      jelly.phase += deltaTime * 3;
+
+      // Smooth attraction toward ship
+      const attractionStrength = 0.5;
+      const dirX = dx / distance;
+      const dirY = dy / distance;
+
+      // Add wave motion for jellyfish effect
+      const waveOffsetX = Math.sin(jelly.phase) * 20;
+      const waveOffsetY = Math.cos(jelly.phase * 1.3) * 20;
+
+      jelly.velocityX = (dirX * jelly.baseSpeed * attractionStrength) + waveOffsetX;
+      jelly.velocityY = (dirY * jelly.baseSpeed * attractionStrength) + waveOffsetY;
+    } else {
+      // Idle floating movement
+      jelly.phase += deltaTime * 2;
+      jelly.velocityX = Math.sin(jelly.phase) * jelly.baseSpeed * 0.3;
+      jelly.velocityY = Math.cos(jelly.phase * 0.7) * jelly.baseSpeed * 0.3;
+      jelly.isFollowing = false;
+    }
+  }
+
+  // Apply velocity
+  jelly.x += jelly.velocityX * deltaTime;
+  jelly.y += jelly.velocityY * deltaTime;
+
+  // Keep within room bounds
+  jelly.x = Math.max(50, Math.min(WORLD_WIDTH - 50, jelly.x));
+  jelly.y = Math.max(50, Math.min(WORLD_HEIGHT - 50, jelly.y));
 }
 
 // Check if ship collides with a modifier
@@ -485,6 +578,7 @@ io.on('connection', function (socket) {
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
   socket.emit('roomModifiers', getAvailableModifiers(room, room.ship)); // Send only modifiers not yet collected
   socket.emit('portalPosition', portalPosition); // Send portal position for Abyssal Compass
+  socket.emit('roomJellies', room.jellies); // Send abyssal jellies in the room
 
   // Update other players in the same room about the new player
   socket.to(roomId).emit('newPlayer', room.players[socket.id]);
@@ -729,6 +823,7 @@ io.on('connection', function (socket) {
           playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
           playerSocket.emit('sharedShip', newRoom.ship);
           playerSocket.emit('roomModifiers', getAvailableModifiers(newRoom, newRoom.ship)); // Send only modifiers not yet collected
+          playerSocket.emit('roomJellies', newRoom.jellies); // Send abyssal jellies in the new room
         }
       });
 
@@ -897,6 +992,16 @@ setInterval(function() {
           shipModifiers: room.ship.modifiers
         });
       }
+    }
+
+    // Update abyssal jellies movement
+    if (room.jellies && room.jellies.length > 0) {
+      room.jellies.forEach(jelly => {
+        updateJellyMovement(jelly, room.ship, DELTA_TIME);
+      });
+
+      // Broadcast jelly positions to all players in room
+      io.to(roomId).emit('jelliesUpdated', room.jellies);
     }
 
     // Broadcast authoritative ship state to all players in room

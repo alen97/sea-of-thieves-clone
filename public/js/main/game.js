@@ -52,6 +52,9 @@ function preload() {
   // Modifier potion sprite
   this.load.image('potionModifier', 'assets/potion_modifier.png');
 
+  // Abyssal jelly mob sprite
+  this.load.image('abyssalJelly', 'assets/abyssal-jelly.png');
+
   this.load.image('bullet', 'assets/bullet.png');
   this.load.image('cannon', 'assets/cannon.png');
 
@@ -190,6 +193,7 @@ function create() {
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
   this.otherBullets = this.physics.add.group();
   this.modifiers = this.add.group(); // Power-ups in the current room
+  this.jellies = this.add.group(); // Abyssal jellies (mobs)
 
   // Track active ship modifiers
   this.shipModifiers = {
@@ -380,6 +384,27 @@ function create() {
         }
       }
     }
+  });
+
+  // Handle jelly position updates from server
+  this.socket.on('jelliesUpdated', function (jelliesData) {
+    jelliesData.forEach(jellyData => {
+      // Find the jelly sprite by ID
+      self.jellies.getChildren().forEach(child => {
+        if (child.jellyId === jellyData.id && child.texture && child.texture.key === 'abyssalJelly') {
+          // Smoothly lerp to server position
+          const lerpFactor = 0.15;
+          const newX = Phaser.Math.Linear(child.x, jellyData.x, lerpFactor);
+          const newY = Phaser.Math.Linear(child.y, jellyData.y, lerpFactor);
+          child.setPosition(newX, newY);
+
+          // Update aura position if it exists
+          if (child.aura) {
+            child.aura.setPosition(newX, newY);
+          }
+        }
+      });
+    });
   });
 
   // Handle ship destroyed event
@@ -686,6 +711,71 @@ function create() {
     });
 
     console.log(`Spawned ${modifiers.length} modifiers in room`);
+  });
+
+  // Handle abyssal jellies in room
+  this.socket.on('roomJellies', function (jellies) {
+    // Clear existing jellies
+    self.jellies.clear(true, true);
+
+    // Create visual jellies (only visible in abyssal world)
+    jellies.forEach(function (jellyData, index) {
+      const jelly = self.add.sprite(
+        jellyData.x,
+        jellyData.y,
+        'abyssalJelly'
+      );
+
+      // Scale to 64x64
+      jelly.setDisplaySize(64, 64);
+
+      // Add glow/aura effect
+      const aura = self.add.circle(
+        jellyData.x,
+        jellyData.y,
+        40, // Radius
+        0x7A00FF, // Purple glow
+        0.2 // Alpha
+      );
+
+      // Pulse animation for the aura
+      self.tweens.add({
+        targets: aura,
+        scale: 1.4,
+        alpha: 0.1,
+        duration: 2000 + (index * 100),
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        delay: index * 120
+      });
+
+      // Add subtle floating animation (will be overridden by server updates)
+      self.tweens.add({
+        targets: [jelly, aura],
+        y: jellyData.y + 10,
+        duration: 1800 + (index * 150),
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        delay: index * 100
+      });
+
+      // Store reference data
+      jelly.aura = aura;
+      jelly.jellyId = jellyData.id;
+
+      // Only visible in abyssal world
+      const hasAbyssVision = self.shipModifiers && self.shipModifiers.abyssVision;
+      const inAbyssalWorld = hasAbyssVision && self.lanternLit;
+      jelly.setVisible(inAbyssalWorld);
+      jelly.aura.setVisible(inAbyssalWorld);
+
+      self.jellies.add(jelly);
+      self.jellies.add(aura);
+    });
+
+    console.log(`Spawned ${jellies.length} abyssal jellies in room`);
   });
 
   // Handle portal position for Abyssal Compass
@@ -1277,6 +1367,17 @@ function update(time, delta) {
         modifier.setVisible(shouldBeVisible);
         if (modifier.aura) {
           modifier.aura.setVisible(shouldBeVisible);
+        }
+      }
+    });
+
+    // ===== UPDATE ABYSSAL JELLY VISIBILITY =====
+    // Jellies are only visible in the abyssal world
+    this.jellies.getChildren().forEach(function (jelly) {
+      if (jelly.jellyId && jelly.texture && jelly.texture.key === 'abyssalJelly') {
+        jelly.setVisible(inAbyssalWorld);
+        if (jelly.aura) {
+          jelly.aura.setVisible(inAbyssalWorld);
         }
       }
     });
