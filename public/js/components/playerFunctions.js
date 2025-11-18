@@ -1,12 +1,16 @@
 ////////////////////////////////////////////////// PLAYER FUNCTIONS
 
-function addPlayer(self, playerInfo, ship) {
+function addPlayer(self, playerInfo, ship, playerColor = 'default') {
+    // Determinar el sprite y animación basado en el color
+    const spriteKey = 'player' + playerColor.charAt(0).toUpperCase() + playerColor.slice(1);
+    const animKey = 'run' + playerColor.charAt(0).toUpperCase() + playerColor.slice(1);
+
     // Crear el jugador con sprite de animación
     const player = self.physics.add.sprite(
         ship.x + playerInfo.x,
         ship.y + playerInfo.y,
-        'playerRun',
-        'tile000.png'
+        spriteKey,
+        0 // First frame
     )
         .setOrigin(0.5, 0.5)
         .setDisplaySize(28, 28);
@@ -18,6 +22,8 @@ function addPlayer(self, playerInfo, ship) {
     player.isInCrowsNest = false; // Para sistema de cofa
     player.canMove = true; // Control de movimiento
     player.ship = ship; // Referencia al barco
+    player.playerColor = playerColor; // Store color for animation
+    player.animKey = animKey; // Store animation key
 
     // Coordenadas locales persistentes (relativas al barco)
     player.localX = playerInfo.x;
@@ -35,18 +41,24 @@ function addPlayer(self, playerInfo, ship) {
     return player;
 }
 
-function addOtherPlayer(self, playerInfo, ship) {
+function addOtherPlayer(self, playerInfo, ship, playerColor = 'default') {
+    // Determinar el sprite y animación basado en el color
+    const spriteKey = 'player' + playerColor.charAt(0).toUpperCase() + playerColor.slice(1);
+    const animKey = 'run' + playerColor.charAt(0).toUpperCase() + playerColor.slice(1);
+
     // Crear jugador de otro con sprite de animación
     const player = self.add.sprite(
         ship.x + playerInfo.x,
         ship.y + playerInfo.y,
-        'playerRun',
-        'tile000.png'
+        spriteKey,
+        0 // First frame
     )
         .setOrigin(0.5, 0.5)
         .setDisplaySize(28, 28);
 
     player.setDepth(3);
+    player.playerColor = playerColor; // Store color for animation
+    player.animKey = animKey; // Store animation key
 
     return player;
 }
@@ -165,13 +177,13 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
 
         // Manejar animación
         if (isMoving) {
-            if (!player.anims.isPlaying || player.anims.currentAnim.key !== 'run') {
-                player.play('run');
+            if (!player.anims.isPlaying || player.anims.currentAnim.key !== player.animKey) {
+                player.play(player.animKey);
             }
         } else {
             if (player.anims.isPlaying) {
                 player.stop();
-                player.setFrame('tile000.png');
+                player.setFrame(0); // First frame
             }
         }
 

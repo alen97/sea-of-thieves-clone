@@ -624,6 +624,10 @@ io.on('connection', function (socket) {
   socket.currentRoomX = initialRoomX;
   socket.currentRoomY = initialRoomY;
 
+  // Assign player color based on join order (0-3)
+  const playerColors = ['default', 'blue', 'red', 'yellow'];
+  const playerColor = playerColors[currentPlayerCount];
+
   // Create ship if this is the first player
   const isFirstPlayer = currentPlayerCount === 0;
   if (isFirstPlayer) {
@@ -639,6 +643,7 @@ io.on('connection', function (socket) {
   room.players[socket.id] = {
     playerId: socket.id,
     playerName: playerName, // Store player name
+    playerColor: playerColor, // Assign color based on join order
     roomX: initialRoomX,
     roomY: initialRoomY,
     player: {

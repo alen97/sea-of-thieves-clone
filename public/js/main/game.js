@@ -118,8 +118,11 @@ function preload() {
   this.load.audio('blessing', 'sounds/blessing.ogg');
   this.load.audio('curse', 'sounds/curse.wav');
 
-  // Load player run animation atlas
-  this.load.atlas('playerRun', 'assets/player_run.png', 'assets/player_run.json');
+  // Load player sprite sheets (one per player color)
+  this.load.spritesheet('playerDefault', 'assets/Prota-Spritesheet.png', { frameWidth: 28, frameHeight: 28 });
+  this.load.spritesheet('playerBlue', 'assets/Prota-Spritesheet-blue.png', { frameWidth: 28, frameHeight: 28 });
+  this.load.spritesheet('playerRed', 'assets/Prota-Spritesheet-red.png', { frameWidth: 28, frameHeight: 28 });
+  this.load.spritesheet('playerYellow', 'assets/Prota-Spritesheet-yellow.png', { frameWidth: 28, frameHeight: 28 });
 
 }
 
@@ -181,16 +184,28 @@ function create() {
   // Inicializar sistema de partículas de estela
   createWakeParticleSystem(this);
 
-  // Create player run animation
+  // Create player run animations for each color
   this.anims.create({
-    key: 'run',
-    frames: this.anims.generateFrameNames('playerRun', {
-      start: 0,
-      end: 7,
-      prefix: 'tile',
-      suffix: '.png',
-      zeroPad: 3
-    }),
+    key: 'runDefault',
+    frames: this.anims.generateFrameNumbers('playerDefault', { start: 0, end: 7 }),
+    frameRate: 10,
+    repeat: -1
+  });
+  this.anims.create({
+    key: 'runBlue',
+    frames: this.anims.generateFrameNumbers('playerBlue', { start: 0, end: 7 }),
+    frameRate: 10,
+    repeat: -1
+  });
+  this.anims.create({
+    key: 'runRed',
+    frames: this.anims.generateFrameNumbers('playerRed', { start: 0, end: 7 }),
+    frameRate: 10,
+    repeat: -1
+  });
+  this.anims.create({
+    key: 'runYellow',
+    frames: this.anims.generateFrameNumbers('playerYellow', { start: 0, end: 7 }),
     frameRate: 10,
     repeat: -1
   });
@@ -288,7 +303,7 @@ function create() {
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
 
-      self.player = addPlayer(self, { x: 0, y: 0, rotation: Math.PI, isControllingShip: false }, self.ship);
+      // Don't create player yet - wait for currentPlayers event which has playerColor
 
       setupShipCollisions(self, self.ship);
       addShipWakeEmitters(self, self.ship);
@@ -559,7 +574,7 @@ function create() {
         if (!self.player) {
           // Create player avatar if doesn't exist
           if (self.ship) {
-            self.player = addPlayer(self, players[id].player, self.ship);
+            self.player = addPlayer(self, players[id].player, self.ship, players[id].playerColor);
           }
         } else if (self.ship) {
           // Update player position (for room transition)
@@ -592,7 +607,7 @@ function create() {
           }
         } else if (self.ship) {
           // Create new player
-          otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
+          otherPlayer = addOtherPlayer(self, players[id].player, self.ship, players[id].playerColor);
           otherPlayer.playerId = players[id].playerId;
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
@@ -601,9 +616,9 @@ function create() {
           const isMoving = players[id].player.isMoving || false;
 
           if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon && !players[id].player.isInCrowsNest) {
-            otherPlayer.play('run');
+            otherPlayer.play(otherPlayer.animKey);
           } else {
-            otherPlayer.setFrame('tile000.png');
+            otherPlayer.setFrame(0); // First frame
           }
 
           // Set initial depth based on crow's nest state
@@ -634,7 +649,7 @@ function create() {
 
     // Create other player's avatar on the shared ship
     if (self.ship) {
-      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship);
+      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship, playerInfo.playerColor);
       otherPlayer.playerId = playerInfo.playerId;
       otherPlayer.roomX = playerInfo.roomX;
       otherPlayer.roomY = playerInfo.roomY;
@@ -643,9 +658,9 @@ function create() {
       const isMoving = playerInfo.player.isMoving || false;
 
       if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest) {
-        otherPlayer.play('run');
+        otherPlayer.play(otherPlayer.animKey);
       } else {
-        otherPlayer.setFrame('tile000.png');
+        otherPlayer.setFrame(0); // First frame
       }
 
       // Set initial depth based on crow's nest state
@@ -710,14 +725,14 @@ function create() {
           if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest) {
             // Player walking - play animation
             if (!otherPlayer.anims.isPlaying ||
-                otherPlayer.anims.currentAnim.key !== 'run') {
-              otherPlayer.play('run');
+                otherPlayer.anims.currentAnim.key !== otherPlayer.animKey) {
+              otherPlayer.play(otherPlayer.animKey);
             }
           } else {
             // Player idle or at helm - stop animation
             if (otherPlayer.anims.isPlaying) {
               otherPlayer.stop();
-              otherPlayer.setFrame('tile000.png');
+              otherPlayer.setFrame(0); // First frame
             }
           }
         }
