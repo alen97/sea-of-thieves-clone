@@ -815,6 +815,26 @@ io.on('connection', function (socket) {
     }
   });
 
+  // JELLY DESTROYED (by cannon bullet)
+  socket.on('jellyDestroyed', function (data) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.jellies) {
+      const jellyIndex = room.jellies.findIndex(jelly => jelly.id === data.jellyId);
+
+      if (jellyIndex !== -1) {
+        console.log(`[JELLY DESTROYED] Jelly ${data.jellyId} destroyed by bullet in room ${roomId}`);
+
+        // Remove jelly from server array
+        room.jellies.splice(jellyIndex, 1);
+
+        // Broadcast jelly destruction to all players in the room
+        io.to(roomId).emit('jellyDestroyed', { jellyId: data.jellyId });
+      }
+    }
+  });
+
   // when a player sends a chat message
   socket.on('chatMessage', function (messageData) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);

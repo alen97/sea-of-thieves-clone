@@ -45,4 +45,24 @@ function setupShipCollisions(self, ship) {
             bullet.destroy();
         }
     }, null, self);
+
+    // Colisión de balas con JELLIES (destruye la jelly)
+    self.physics.add.overlap(self.otherBullets, self.jellies, function (bullet, jelly) {
+        // Only process jellies (not auras)
+        if (jelly.jellyId && jelly.texture && jelly.texture.key === 'abyssalJelly') {
+            console.log(`[BULLET-JELLY] Bullet hit jelly ${jelly.jellyId}`);
+
+            // Destroy bullet immediately
+            bullet.destroy();
+
+            // Emit to server to destroy the jelly for all players
+            self.socket.emit('jellyDestroyed', { jellyId: jelly.jellyId });
+
+            // Destroy jelly and its aura locally
+            if (jelly.aura) {
+                jelly.aura.destroy();
+            }
+            jelly.destroy();
+        }
+    }, null, self);
 }

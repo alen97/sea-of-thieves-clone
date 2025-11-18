@@ -266,7 +266,7 @@ function create() {
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
   this.otherBullets = this.physics.add.group();
   this.modifiers = this.add.group(); // Power-ups in the current room
-  this.jellies = this.add.group(); // Abyssal jellies (mobs)
+  this.jellies = this.physics.add.group(); // Abyssal jellies (mobs) - physics group for collisions
 
   // Track active ship modifiers
   this.shipModifiers = {
@@ -549,6 +549,23 @@ function create() {
 
     // TODO: Add shock sound effect here when available
     // self.sound.play('jellyShock', { volume: 0.3 });
+  });
+
+  // Handle jelly destroyed by bullet
+  this.socket.on('jellyDestroyed', function (data) {
+    console.log(`[JELLY DESTROYED] Jelly ${data.jellyId} was destroyed`);
+
+    // Find and destroy the jelly sprite and its aura
+    self.jellies.getChildren().forEach(child => {
+      if (child.jellyId === data.jellyId && child.texture && child.texture.key === 'abyssalJelly') {
+        // Destroy aura if it exists
+        if (child.aura) {
+          child.aura.destroy();
+        }
+        // Destroy jelly sprite
+        child.destroy();
+      }
+    });
   });
 
   // Handle ship destroyed event
@@ -866,7 +883,7 @@ function create() {
 
     // Create visual jellies (only visible in abyssal world)
     jellies.forEach(function (jellyData, index) {
-      const jelly = self.add.sprite(
+      const jelly = self.physics.add.sprite(
         jellyData.x,
         jellyData.y,
         'abyssalJelly'
@@ -874,6 +891,9 @@ function create() {
 
       // Scale to 64x64
       jelly.setDisplaySize(64, 64);
+
+      // Set up physics body for collision detection
+      jelly.body.setCircle(32); // Collision radius matching visual size
 
       // Add glow/aura effect
       const aura = self.add.circle(
