@@ -191,7 +191,6 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         let targetOffsetY = 0;
         let playerRotation = player.rotation;
 
-        const cameraShiftSpeed = 150; // Velocidad de desplazamiento de cámara
         const maxCameraOffset = 40; // Máximo desplazamiento de cámara en pixels
 
         // Solo procesar input WASD si inputEnabled = true
@@ -262,27 +261,29 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
             lerpSpeed
         );
 
-        // Convertir offset de cámara a coordenadas locales del barco
-        const cosAngle = Math.cos(-ship.rotation);
-        const sinAngle = Math.sin(-ship.rotation);
-        const localOffsetX = player.crowsNestCameraOffsetX * cosAngle - player.crowsNestCameraOffsetY * sinAngle;
-        const localOffsetY = player.crowsNestCameraOffsetX * sinAngle + player.crowsNestCameraOffsetY * cosAngle;
-
-        // Posición de la cofa (en la proa del barco)
+        // Posición de la cofa (en la proa del barco) - FIJA
         const crowsNestOffset = 60;
         const angle = ship.rotation - Math.PI / 2;
         const crowsNestCenterX = ship.x + Math.cos(angle) * crowsNestOffset;
         const crowsNestCenterY = ship.y + Math.sin(angle) * crowsNestOffset;
 
-        // Convertir offset local de vuelta a coordenadas del mundo
-        const cosAngleBack = Math.cos(ship.rotation);
-        const sinAngleBack = Math.sin(ship.rotation);
-        const worldOffsetX = localOffsetX * cosAngleBack - localOffsetY * sinAngleBack;
-        const worldOffsetY = localOffsetX * sinAngleBack + localOffsetY * cosAngleBack;
-
-        // Posicionar jugador en el centro de la cofa + offset de cámara
-        player.setPosition(crowsNestCenterX + worldOffsetX, crowsNestCenterY + worldOffsetY);
+        // Posicionar jugador FIJO en el centro de la cofa
+        player.setPosition(crowsNestCenterX, crowsNestCenterY);
         player.setVelocity(0, 0);
+
+        // Aplicar offset de cámara directamente al scroll de la cámara
+        if (self.cameras && self.cameras.main) {
+            // La cámara sigue al player, así que ajustamos el scroll adicional
+            const camera = self.cameras.main;
+
+            // Calcular la posición base que la cámara debería tener (siguiendo al player)
+            const baseCameraX = crowsNestCenterX - camera.width / 2;
+            const baseCameraY = crowsNestCenterY - camera.height / 2;
+
+            // Aplicar el offset de pan de cámara
+            camera.scrollX = baseCameraX + player.crowsNestCameraOffsetX;
+            camera.scrollY = baseCameraY + player.crowsNestCameraOffsetY;
+        }
 
         // Ajustar rotación del jugador cuando el barco rota
         if (ship.previousRotation !== undefined) {
