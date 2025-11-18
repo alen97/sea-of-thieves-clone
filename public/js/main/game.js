@@ -66,8 +66,8 @@ function preload() {
   this.load.audio('lanternExtinguish', 'sounds/extinguish-fire.wav');
 
   // Modifier collection sounds
-  this.load.audio('blessing', 'sounds/blessing.mp3');
-  this.load.audio('curse', 'sounds/curse.mp3');
+  this.load.audio('blessing', 'sounds/blessing.ogg');
+  this.load.audio('curse', 'sounds/curse.wav');
 
   // Load player run animation atlas
   this.load.atlas('playerRun', 'assets/player_run.png', 'assets/player_run.json');
@@ -695,9 +695,12 @@ function create() {
       }
     });
 
-    // Show floating text with modifier name and lore
-    if (modifierPosition && data.modifierName && data.modifierLore) {
-      showModifierPickupText(self, modifierPosition.x, modifierPosition.y, data.modifierName, data.modifierLore, data.modifierColor);
+    // Show floating text with modifier name and lore (always show, regardless of modifierPosition)
+    // The text is positioned relative to the ship, not the modifier
+    if (data.modifierName && data.modifierLore) {
+      const posX = modifierPosition ? modifierPosition.x : self.ship.x;
+      const posY = modifierPosition ? modifierPosition.y : self.ship.y;
+      showModifierPickupText(self, posX, posY, data.modifierName, data.modifierLore, data.modifierColor);
     }
 
     // If Abyss Lantern was collected and lantern is currently lit, update lantern visual to violet
