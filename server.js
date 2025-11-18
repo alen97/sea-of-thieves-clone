@@ -521,6 +521,11 @@ io.on('connection', function (socket) {
     if (room && room.ship && data) {
       room.ship.isAnchored = data.isAnchored;
       console.log(`Player ${socket.id} toggled anchor: ${data.isAnchored ? 'DOWN' : 'UP'}`);
+
+      // Broadcast anchor state change immediately to all players in the room
+      io.to(roomId).emit('anchorStateChanged', {
+        isAnchored: data.isAnchored
+      });
     }
   });
 

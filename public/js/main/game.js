@@ -535,6 +535,14 @@ function create() {
     });
   });
 
+  // Handle anchor state changes from server
+  this.socket.on('anchorStateChanged', function (data) {
+    if (self.ship) {
+      self.ship.isAnchored = data.isAnchored;
+      console.log(`Anchor state updated from server: ${data.isAnchored ? 'DOWN' : 'UP'}`);
+    }
+  });
+
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerInfo.playerId === otherPlayer.playerId) {
