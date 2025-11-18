@@ -70,7 +70,7 @@ const MODIFIER_TYPES = {
     bonus: 1.0, // No numeric bonus, just enables abyss world
     rarity: 'legendary',
     spawnChance: 0.15, // 15% spawn chance (legendary)
-    isAbyssal: false // Found in normal world
+    isAbyssal: true // Uses curse sound (despite spawning in normal world)
   },
 
   // ===== ABYSSAL MODIFIERS (only visible with Abyss Lantern active) =====
