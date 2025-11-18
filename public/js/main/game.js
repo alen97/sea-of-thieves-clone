@@ -934,15 +934,54 @@ function create() {
     console.log(`[PORTAL] Portal located at room (${portal.roomX}, ${portal.roomY})`);
 
     // Create portal visual in the world
-    self.portal = createPortal(self, portal.roomX, portal.roomY);
-    console.log(`[PORTAL] Portal created:`, self.portal ? 'SUCCESS' : 'FAILED');
+    const WORLD_WIDTH = 3200;
+    const WORLD_HEIGHT = 3200;
 
-    // Immediately make visible if player already has compass
-    const hasCompass = self.shipModifiers && self.shipModifiers.compass;
-    if (hasCompass && self.portal) {
-      console.log('[PORTAL] Player already has compass, making portal visible');
-      updatePortalVisibility(self.portal, true);
-    }
+    // Calculate absolute position (center of the portal's room)
+    const portalX = portal.roomX * WORLD_WIDTH + WORLD_WIDTH / 2;
+    const portalY = portal.roomY * WORLD_HEIGHT + WORLD_HEIGHT / 2;
+
+    // Create portal graphic (purple swirling circle)
+    self.portal = self.add.circle(portalX, portalY, 60, 0x8800ff, 0.6);
+    self.portal.setDepth(1); // Below ship
+    self.portal.roomX = portal.roomX;
+    self.portal.roomY = portal.roomY;
+
+    // Add pulsing animation
+    self.tweens.add({
+      targets: self.portal,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      alpha: 0.8,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Create inner circle for effect
+    self.portalInner = self.add.circle(portalX, portalY, 40, 0xaa00ff, 0.8);
+    self.portalInner.setDepth(1);
+    self.portalInner.roomX = portal.roomX;
+    self.portalInner.roomY = portal.roomY;
+
+    // Counter-rotating animation
+    self.tweens.add({
+      targets: self.portalInner,
+      scaleX: 0.8,
+      scaleY: 0.8,
+      alpha: 1.0,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Initially invisible until player has compass and is in same room with lantern lit
+    self.portal.setVisible(false);
+    self.portalInner.setVisible(false);
+
+    console.log(`[PORTAL] Portal created at absolute position (${portalX}, ${portalY})`);
   });
 
   // Handle modifier collection
@@ -1719,6 +1758,20 @@ function update(time, delta) {
       });
 
       // Note: currentRoomX/Y will be updated by the 'roomChanged' event from server
+    }
+
+    // ===== UPDATE PORTAL VISIBILITY =====
+    if (this.portal && this.portalInner) {
+      // Portal is visible only when:
+      // 1. Player has Abyssal Compass
+      // 2. Lantern is lit (to see abyssal world)
+      // 3. Player is in the same room as the portal
+      const hasCompass = this.shipModifiers && this.shipModifiers.compass;
+      const inSameRoom = (this.currentRoomX === this.portalRoomX) && (this.currentRoomY === this.portalRoomY);
+      const shouldShowPortal = hasCompass && this.lanternLit && inSameRoom;
+
+      this.portal.setVisible(shouldShowPortal);
+      this.portalInner.setVisible(shouldShowPortal);
     }
   }
 }
