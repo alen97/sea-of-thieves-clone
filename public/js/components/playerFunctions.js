@@ -275,11 +275,9 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         if (self.cameras && self.cameras.main) {
             const camera = self.cameras.main;
 
-            // Detener el follow automático para controlar manualmente
-            if (!player.crowsNestCameraManualControl) {
-                camera.stopFollow();
-                player.crowsNestCameraManualControl = true;
-            }
+            // Detener el follow automático CADA frame (en caso de que otro sistema lo reactive)
+            camera.stopFollow();
+            player.crowsNestCameraManualControl = true;
 
             // Calcular la posición base que la cámara debería tener (centrada en el jugador)
             const baseCameraX = crowsNestCenterX - camera.width / 2;
