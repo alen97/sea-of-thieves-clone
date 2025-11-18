@@ -10,17 +10,18 @@ const shipPhysics = require('./shared/shipPhysics.js');
 var rooms = {};
 const MAX_PLAYERS = 4;
 
-// Portal position for Abyssal Compass (approximately 10 rooms away from origin)
-function generatePortalPosition() {
-  const distance = 10; // rooms
+// Portal position for Abyssal Compass (generated when first compass is collected)
+var portalPosition = null; // Will be generated when someone collects Abyssal Compass
+
+// Generate portal position relative to ship's current position
+function generatePortalPosition(shipRoomX, shipRoomY) {
+  const distance = 10; // rooms away from ship
   const angle = Math.random() * Math.PI * 2;
   return {
-    roomX: Math.round(Math.cos(angle) * distance),
-    roomY: Math.round(Math.sin(angle) * distance)
+    roomX: shipRoomX + Math.round(Math.cos(angle) * distance),
+    roomY: shipRoomY + Math.round(Math.sin(angle) * distance)
   };
 }
-const portalPosition = generatePortalPosition();
-console.log(`Portal generated at room (${portalPosition.roomX}, ${portalPosition.roomY})`);
 
 // Modifier system constants
 const MODIFIER_TYPES = {
@@ -646,7 +647,12 @@ io.on('connection', function (socket) {
   socket.emit('currentPlayers', room.players);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
   socket.emit('roomModifiers', getAvailableModifiers(room, room.ship)); // Send only modifiers not yet collected
-  socket.emit('portalPosition', portalPosition); // Send portal position for Abyssal Compass
+
+  // Send portal position only if it exists (generated when Abyssal Compass is collected)
+  if (portalPosition) {
+    socket.emit('portalPosition', portalPosition);
+  }
+
   socket.emit('roomJellies', room.jellies); // Send abyssal jellies in the room
 
   // Update other players in the same room about the new player
@@ -892,6 +898,12 @@ io.on('connection', function (socket) {
           playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
           playerSocket.emit('sharedShip', newRoom.ship);
           playerSocket.emit('roomModifiers', getAvailableModifiers(newRoom, newRoom.ship)); // Send only modifiers not yet collected
+
+          // Send portal position if it exists
+          if (portalPosition) {
+            playerSocket.emit('portalPosition', portalPosition);
+          }
+
           playerSocket.emit('roomJellies', newRoom.jellies); // Send abyssal jellies in the new room
         }
       });
@@ -1060,6 +1072,19 @@ setInterval(function() {
           usesCurseSound: collision.modifier.usesCurseSound || false,
           shipModifiers: room.ship.modifiers
         });
+
+        // Special handling for Abyssal Compass: Generate portal
+        if (collision.modifier.type === 'ABYSSAL_COMPASS' && !portalPosition) {
+          // Parse room coordinates from roomId (format: "x,y")
+          const [roomX, roomY] = roomId.split(',').map(Number);
+
+          // Generate portal position relative to ship's current room
+          portalPosition = generatePortalPosition(roomX, roomY);
+          console.log(`[PORTAL] Generated portal at room (${portalPosition.roomX}, ${portalPosition.roomY}) - 10 rooms from ship at (${roomX}, ${roomY})`);
+
+          // Broadcast portal position to ALL clients (not just current room)
+          io.emit('portalPosition', portalPosition);
+        }
       }
     }
 
