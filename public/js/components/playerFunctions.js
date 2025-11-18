@@ -273,16 +273,23 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
 
         // Aplicar offset de cámara directamente al scroll de la cámara
         if (self.cameras && self.cameras.main) {
-            // La cámara sigue al player, así que ajustamos el scroll adicional
             const camera = self.cameras.main;
 
-            // Calcular la posición base que la cámara debería tener (siguiendo al player)
+            // Detener el follow automático para controlar manualmente
+            if (!player.crowsNestCameraManualControl) {
+                camera.stopFollow();
+                player.crowsNestCameraManualControl = true;
+            }
+
+            // Calcular la posición base que la cámara debería tener (centrada en el jugador)
             const baseCameraX = crowsNestCenterX - camera.width / 2;
             const baseCameraY = crowsNestCenterY - camera.height / 2;
 
-            // Aplicar el offset de pan de cámara
-            camera.scrollX = baseCameraX + player.crowsNestCameraOffsetX;
-            camera.scrollY = baseCameraY + player.crowsNestCameraOffsetY;
+            // Aplicar el offset de pan de cámara manualmente
+            camera.setScroll(
+                baseCameraX + player.crowsNestCameraOffsetX,
+                baseCameraY + player.crowsNestCameraOffsetY
+            );
         }
 
         // Ajustar rotación del jugador cuando el barco rota

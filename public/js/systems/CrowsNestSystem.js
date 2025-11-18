@@ -128,6 +128,12 @@ class CrowsNestSystem {
         if (!player.isInCrowsNest) {
             player.crowsNestCameraOffsetX = 0;
             player.crowsNestCameraOffsetY = 0;
+            player.crowsNestCameraManualControl = false;
+
+            // Reactivate camera follow when leaving crow's nest
+            if (this.scene.cameras && this.scene.cameras.main) {
+                this.scene.cameras.main.startFollow(player, 1, 1);
+            }
         }
 
         // Emit crow's nest state to server
