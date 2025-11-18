@@ -709,6 +709,11 @@ function create() {
           );
           otherPlayer.setRotation(playerInfo.player.rotation);
 
+          // Update name text position
+          if (otherPlayer.nameText) {
+            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y - 20);
+          }
+
           // Synchronize animation based on received isMoving state
           const isMoving = playerInfo.player.isMoving || false;
 

@@ -38,7 +38,7 @@ function addPlayer(self, playerInfo, ship, playerName = 'You') {
             fontSize: '12px',
             fill: '#ffffff',
             stroke: '#000000',
-            strokeThickness: 3,
+            strokeThickness: 2,
             fontFamily: 'Arial'
         }
     ).setOrigin(0.5).setDepth(4);
@@ -69,9 +69,9 @@ function addOtherPlayer(self, playerInfo, ship, playerName = 'Player') {
         playerName,
         {
             fontSize: '12px',
-            fill: '#ffff00', // Yellow for other players
+            fill: '#ffffff',
             stroke: '#000000',
-            strokeThickness: 3,
+            strokeThickness: 2,
             fontFamily: 'Arial'
         }
     ).setOrigin(0.5).setDepth(4);
