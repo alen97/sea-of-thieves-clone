@@ -260,7 +260,7 @@ function checkModifierCollisions(ship, room) {
 }
 
 // Apply modifier effect to ship
-function applyModifier(ship, modifierType) {
+function applyModifier(ship, modifierType, modifierId) {
   if (!ship.modifiers) {
     ship.modifiers = {
       speed: false,
@@ -272,11 +272,42 @@ function applyModifier(ship, modifierType) {
     };
   }
 
-  const typeInfo = MODIFIER_TYPES[modifierType];
-  if (typeInfo) {
-    ship.modifiers[typeInfo.effect] = true;
-    console.log(`Applied ${modifierType} modifier to ship`);
+  if (!ship.collectedModifiers) {
+    ship.collectedModifiers = [];
   }
+
+  const typeInfo = MODIFIER_TYPES[modifierType];
+  if (!typeInfo) {
+    return false;
+  }
+
+  // Check if ship already has this modifier type collected
+  if (ship.collectedModifiers.includes(modifierType)) {
+    console.log(`Ship already collected ${modifierType}, skipping`);
+    return false;
+  }
+
+  // Apply the modifier
+  ship.modifiers[typeInfo.effect] = true;
+  ship.collectedModifiers.push(modifierType);
+  console.log(`Applied ${modifierType} modifier to ship (total: ${ship.collectedModifiers.length})`);
+  return true;
+}
+
+// Filter modifiers that ship hasn't collected yet
+function getAvailableModifiers(room, ship) {
+  if (!room || !room.modifiers || !ship) {
+    return [];
+  }
+
+  if (!ship.collectedModifiers) {
+    return room.modifiers; // Ship hasn't collected anything yet
+  }
+
+  // Return only modifiers that the ship hasn't collected
+  return room.modifiers.filter(modifier => {
+    return !ship.collectedModifiers.includes(modifier.type);
+  });
 }
 
 // Create shared ship for a room
@@ -310,6 +341,7 @@ function createShip(x, y) {
       compass: false,
       greed: false
     },
+    collectedModifiers: [], // Array of collected modifier IDs to track total count
 
     // Server-side input management
     pendingInputs: [],     // Queue of unprocessed inputs
@@ -451,7 +483,7 @@ io.on('connection', function (socket) {
   socket.emit('sharedShip', room.ship); // Send the shared ship data FIRST
   socket.emit('currentPlayers', room.players);
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
-  socket.emit('roomModifiers', room.modifiers); // Send modifiers in the room
+  socket.emit('roomModifiers', getAvailableModifiers(room, room.ship)); // Send only modifiers not yet collected
   socket.emit('portalPosition', portalPosition); // Send portal position for Abyssal Compass
 
   // Update other players in the same room about the new player
@@ -696,7 +728,7 @@ io.on('connection', function (socket) {
           // Notify this player about the room change
           playerSocket.emit('roomChanged', { roomX: roomData.roomX, roomY: roomData.roomY });
           playerSocket.emit('sharedShip', newRoom.ship);
-          playerSocket.emit('roomModifiers', newRoom.modifiers); // Send modifiers in the new room
+          playerSocket.emit('roomModifiers', getAvailableModifiers(newRoom, newRoom.ship)); // Send only modifiers not yet collected
         }
       });
 
@@ -845,24 +877,26 @@ setInterval(function() {
     // Check for modifier collisions
     const collision = checkModifierCollisions(room.ship, room);
     if (collision) {
-      // Apply the modifier to the ship
-      applyModifier(room.ship, collision.modifier.type);
+      // Try to apply the modifier to the ship (will fail if already collected)
+      const applied = applyModifier(room.ship, collision.modifier.type, collision.modifier.id);
 
-      // Remove the modifier from the room
-      room.modifiers.splice(collision.index, 1);
+      if (applied) {
+        // Remove the modifier from the room
+        room.modifiers.splice(collision.index, 1);
 
-      // Notify all clients in the room
-      io.to(roomId).emit('modifierCollected', {
-        modifierId: collision.modifier.id,
-        modifierType: collision.modifier.type,
-        modifierName: collision.modifier.name,
-        modifierLore: collision.modifier.lore,
-        modifierRarity: collision.modifier.rarity,
-        modifierColor: collision.modifier.color,
-        isAbyssal: collision.modifier.isAbyssal || false,
-        usesCurseSound: collision.modifier.usesCurseSound || false,
-        shipModifiers: room.ship.modifiers
-      });
+        // Notify all clients in the room
+        io.to(roomId).emit('modifierCollected', {
+          modifierId: collision.modifier.id,
+          modifierType: collision.modifier.type,
+          modifierName: collision.modifier.name,
+          modifierLore: collision.modifier.lore,
+          modifierRarity: collision.modifier.rarity,
+          modifierColor: collision.modifier.color,
+          isAbyssal: collision.modifier.isAbyssal || false,
+          usesCurseSound: collision.modifier.usesCurseSound || false,
+          shipModifiers: room.ship.modifiers
+        });
+      }
     }
 
     // Broadcast authoritative ship state to all players in room
