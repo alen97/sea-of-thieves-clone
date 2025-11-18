@@ -185,27 +185,31 @@ function create() {
   createWakeParticleSystem(this);
 
   // Create player run animations for each color
+  // Sprite sheets have 3 columns (animations) x 8 rows (frames)
+  // First column (walk): frames 0, 3, 6, 9, 12, 15, 18, 21
+  const walkFrames = [0, 3, 6, 9, 12, 15, 18, 21];
+
   this.anims.create({
     key: 'runDefault',
-    frames: this.anims.generateFrameNumbers('playerDefault', { start: 0, end: 7 }),
+    frames: walkFrames.map(f => ({ key: 'playerDefault', frame: f })),
     frameRate: 10,
     repeat: -1
   });
   this.anims.create({
     key: 'runBlue',
-    frames: this.anims.generateFrameNumbers('playerBlue', { start: 0, end: 7 }),
+    frames: walkFrames.map(f => ({ key: 'playerBlue', frame: f })),
     frameRate: 10,
     repeat: -1
   });
   this.anims.create({
     key: 'runRed',
-    frames: this.anims.generateFrameNumbers('playerRed', { start: 0, end: 7 }),
+    frames: walkFrames.map(f => ({ key: 'playerRed', frame: f })),
     frameRate: 10,
     repeat: -1
   });
   this.anims.create({
     key: 'runYellow',
-    frames: this.anims.generateFrameNumbers('playerYellow', { start: 0, end: 7 }),
+    frames: walkFrames.map(f => ({ key: 'playerYellow', frame: f })),
     frameRate: 10,
     repeat: -1
   });
