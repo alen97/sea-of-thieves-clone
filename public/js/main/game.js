@@ -431,6 +431,15 @@ function create() {
           otherPlayer.setRotation(players[id].player.rotation);
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
+
+          // Update depth based on crow's nest state
+          if (players[id].player.isInCrowsNest) {
+            otherPlayer.setDepth(4); // On top of crow's nest
+          } else if (players[id].player.isOnCannon || players[id].player.isControllingShip) {
+            otherPlayer.setDepth(3); // Normal depth
+          } else {
+            otherPlayer.setDepth(3); // Walking - under crow's nest
+          }
         } else if (self.ship) {
           // Create new player
           otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
@@ -445,6 +454,13 @@ function create() {
             otherPlayer.play('run');
           } else {
             otherPlayer.setFrame('tile000.png');
+          }
+
+          // Set initial depth based on crow's nest state
+          if (players[id].player.isInCrowsNest) {
+            otherPlayer.setDepth(4); // On top of crow's nest
+          } else {
+            otherPlayer.setDepth(3); // Normal depth
           }
 
           self.otherPlayers.add(otherPlayer);
@@ -480,6 +496,13 @@ function create() {
         otherPlayer.play('run');
       } else {
         otherPlayer.setFrame('tile000.png');
+      }
+
+      // Set initial depth based on crow's nest state
+      if (playerInfo.player.isInCrowsNest) {
+        otherPlayer.setDepth(4); // On top of crow's nest
+      } else {
+        otherPlayer.setDepth(3); // Normal depth
       }
 
       self.otherPlayers.add(otherPlayer);
