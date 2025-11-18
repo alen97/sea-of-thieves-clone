@@ -679,8 +679,8 @@ function create() {
       });
     }
 
-    // Play sound based on item type (abyssal = curse, common = blessing)
-    const soundKey = data.isAbyssal ? 'curse' : 'blessing';
+    // Play sound based on item type (usesCurseSound field determines sound)
+    const soundKey = data.usesCurseSound ? 'curse' : 'blessing';
     const itemSound = self.sound.add(soundKey, { volume: 1.0 });
     itemSound.play();
 

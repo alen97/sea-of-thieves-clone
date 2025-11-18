@@ -34,7 +34,8 @@ const MODIFIER_TYPES = {
     bonus: 0.2,
     rarity: 'rare',
     spawnChance: 0.4, // 40% spawn chance
-    isAbyssal: false // Found in normal world
+    isAbyssal: false, // Found in normal world
+    usesCurseSound: false // Uses blessing sound
   },
   CAPTAINS_GUIDE: {
     id: 'captains_guide',
@@ -46,7 +47,8 @@ const MODIFIER_TYPES = {
     bonus: 0.25,
     rarity: 'common',
     spawnChance: 0.6, // 60% spawn chance (common)
-    isAbyssal: false // Found in normal world
+    isAbyssal: false, // Found in normal world
+    usesCurseSound: false // Uses blessing sound
   },
   PIRATES_TENACITY: {
     id: 'pirates_tenacity',
@@ -58,7 +60,8 @@ const MODIFIER_TYPES = {
     bonus: 0.3,
     rarity: 'rare',
     spawnChance: 0.4, // 40% spawn chance
-    isAbyssal: false // Found in normal world
+    isAbyssal: false, // Found in normal world
+    usesCurseSound: false // Uses blessing sound
   },
   ABYSS_LANTERN: {
     id: 'abyss_lantern',
@@ -70,7 +73,8 @@ const MODIFIER_TYPES = {
     bonus: 1.0, // No numeric bonus, just enables abyss world
     rarity: 'legendary',
     spawnChance: 0.15, // 15% spawn chance (legendary)
-    isAbyssal: true // Uses curse sound (despite spawning in normal world)
+    isAbyssal: false, // Found in normal world
+    usesCurseSound: true // Uses curse sound despite being in normal world
   },
 
   // ===== ABYSSAL MODIFIERS (only visible with Abyss Lantern active) =====
@@ -85,7 +89,8 @@ const MODIFIER_TYPES = {
     bonus: 0.4, // +40% speed
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
-    isAbyssal: true
+    isAbyssal: true,
+    usesCurseSound: true // Uses curse sound
   },
   ETHEREAL_HELM: {
     id: 'ethereal_helm',
@@ -97,7 +102,8 @@ const MODIFIER_TYPES = {
     bonus: 0.5, // +50% turning
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
-    isAbyssal: true
+    isAbyssal: true,
+    usesCurseSound: true // Uses curse sound
   },
   ENDLESS_BARRAGE: {
     id: 'endless_barrage',
@@ -109,7 +115,8 @@ const MODIFIER_TYPES = {
     bonus: 0.6, // -60% cooldown
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
-    isAbyssal: true
+    isAbyssal: true,
+    usesCurseSound: true // Uses curse sound
   },
   ABYSSAL_COMPASS: {
     id: 'abyssal_compass',
@@ -121,7 +128,8 @@ const MODIFIER_TYPES = {
     bonus: 1.0,
     rarity: 'cursed',
     spawnChance: 0.12, // 12% spawn chance (cursed/rare)
-    isAbyssal: true
+    isAbyssal: true,
+    usesCurseSound: true // Uses curse sound
   },
   CURSE_GREED: {
     id: 'curse_greed',
@@ -133,7 +141,8 @@ const MODIFIER_TYPES = {
     bonus: 2.0, // 2x modifier spawn chance
     rarity: 'cursed',
     spawnChance: 0.1, // 10% spawn chance (very rare)
-    isAbyssal: true
+    isAbyssal: true,
+    usesCurseSound: true // Uses curse sound
   }
 };
 const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room (deprecated - using individual chances now)
@@ -207,6 +216,7 @@ function spawnModifiersInRoom(room, roomX, roomY) {
         effect: modifierType.effect,
         bonus: modifierType.bonus,
         isAbyssal: modifierType.isAbyssal || false, // Track which world it belongs to
+        usesCurseSound: modifierType.usesCurseSound || false, // Track which sound to use
         x: Math.random() * (WORLD_WIDTH - 100) + 50, // Random position with margin
         y: Math.random() * (WORLD_HEIGHT - 100) + 50,
         size: MODIFIER_SIZE
@@ -839,6 +849,7 @@ setInterval(function() {
         modifierRarity: collision.modifier.rarity,
         modifierColor: collision.modifier.color,
         isAbyssal: collision.modifier.isAbyssal || false,
+        usesCurseSound: collision.modifier.usesCurseSound || false,
         shipModifiers: room.ship.modifiers
       });
     }
