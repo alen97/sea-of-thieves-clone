@@ -191,7 +191,7 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         let targetOffsetY = 0;
         let playerRotation = player.rotation;
 
-        const maxCameraOffset = 40; // Máximo desplazamiento de cámara en pixels
+        const maxCameraOffset = 250; // Máximo desplazamiento de cámara en pixels
 
         // Solo procesar input WASD si inputEnabled = true
         if (inputEnabled) {
