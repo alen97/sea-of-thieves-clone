@@ -902,6 +902,6 @@ setInterval(function() {
   });
 }, 1000); // Update every 1 second
 
-server.listen(3000, function () {
+server.listen(80, function () {
   console.log(`Listening on ${server.address().port}`);
 });
