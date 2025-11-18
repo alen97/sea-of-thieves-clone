@@ -586,7 +586,19 @@ app.get('/', function (req, res) {
 });
 
 io.on('connection', function (socket) {
-  console.log('a user connected: ', socket.id);
+  // Get player name from connection query
+  const playerName = socket.handshake.query.playerName || 'Unknown';
+  console.log('a user connected: ', socket.id, '(', playerName, ')');
+
+  // Validate player name
+  if (!playerName || playerName === 'Unknown' || playerName.trim().length < 2) {
+    console.log(`Invalid player name: "${playerName}". Rejecting connection.`);
+    socket.emit('serverFull', {
+      message: 'Invalid player name. Please use at least 2 characters.'
+    });
+    socket.disconnect(true);
+    return;
+  }
 
   // Initialize player in room (0, 0)
   const initialRoomX = 0;
@@ -626,6 +638,7 @@ io.on('connection', function (socket) {
   // Create player avatar data only (ship is now shared)
   room.players[socket.id] = {
     playerId: socket.id,
+    playerName: playerName, // Store player name
     roomX: initialRoomX,
     roomY: initialRoomY,
     player: {

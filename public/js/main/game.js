@@ -12,32 +12,78 @@ const ZOOM_STEP = 0.5;
 // Maximum distance to render players from adjacent rooms (in pixels)
 const MAX_RENDER_DISTANCE = 2000;
 
-var config = {
-  type: Phaser.AUTO,
-  scale: {
-    mode: Phaser.Scale.ENVELOP,
-    parent: 'phaser-example',
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: VIEWPORT_WIDTH,
-    height: VIEWPORT_HEIGHT
-  },
-  disableContextMenu: true,
-  physics: {
-    default: 'arcade',
-    arcade: {
-      debug: false,
-      gravity: { y: 0 }
-    }
-  },
-  scene: {
-    preload: preload,
-    create: create,
-    update: update,
-    key: 'MainScene'
-  }
-};
+// Player name (set from login screen)
+var playerName = '';
+var game = null;
 
-var game = new Phaser.Game(config);
+// Login screen handling
+window.addEventListener('DOMContentLoaded', function() {
+  const joinButton = document.getElementById('joinButton');
+  const playerNameInput = document.getElementById('playerNameInput');
+  const errorMessage = document.getElementById('errorMessage');
+
+  // Allow Enter key to join
+  playerNameInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      joinButton.click();
+    }
+  });
+
+  joinButton.addEventListener('click', function() {
+    const name = playerNameInput.value.trim();
+
+    // Validation
+    if (name.length === 0) {
+      errorMessage.textContent = 'Please enter your name';
+      return;
+    }
+
+    if (name.length < 2) {
+      errorMessage.textContent = 'Name must be at least 2 characters';
+      return;
+    }
+
+    // Store player name and start game
+    playerName = name;
+    startGame();
+  });
+});
+
+function startGame() {
+  // Hide login screen
+  document.getElementById('loginScreen').style.display = 'none';
+
+  // Show game container
+  document.getElementById('gameContainer').style.display = 'block';
+
+  // Initialize Phaser game
+  var config = {
+    type: Phaser.AUTO,
+    scale: {
+      mode: Phaser.Scale.ENVELOP,
+      parent: 'gameContainer',
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: VIEWPORT_WIDTH,
+      height: VIEWPORT_HEIGHT
+    },
+    disableContextMenu: true,
+    physics: {
+      default: 'arcade',
+      arcade: {
+        debug: false,
+        gravity: { y: 0 }
+      }
+    },
+    scene: {
+      preload: preload,
+      create: create,
+      update: update,
+      key: 'MainScene'
+    }
+  };
+
+  game = new Phaser.Game(config);
+}
 
 function preload() {
   this.load.image('ship', 'assets/ship.png');
@@ -150,7 +196,15 @@ function create() {
   });
 
   var self = this;
-  this.socket = io();
+
+  // Connect socket with player name
+  this.socket = io({
+    query: {
+      playerName: playerName
+    }
+  });
+
+  console.log(`[LOGIN] Connecting as: ${playerName}`);
 
   // Room tracking
   this.currentRoomX = 0;
@@ -210,8 +264,21 @@ function create() {
 
   // Handle server full event
   this.socket.on('serverFull', function (data) {
-    alert(data.message || 'Server is full. Please try again later.');
-    console.error('Server is full');
+    console.error('[LOGIN] Server is full:', data.message);
+
+    // Show login screen again with error message
+    document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('errorMessage').textContent = data.message || 'Server is full (4/4 players)';
+
+    // Disconnect socket
+    self.socket.disconnect();
+
+    // Destroy game instance
+    if (game) {
+      game.destroy(true);
+      game = null;
+    }
   });
 
   // Handle shared ship data from server
@@ -221,7 +288,7 @@ function create() {
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
 
-      self.player = addPlayer(self, { x: 0, y: 0, rotation: Math.PI, isControllingShip: false }, self.ship);
+      self.player = addPlayer(self, { x: 0, y: 0, rotation: Math.PI, isControllingShip: false }, self.ship, playerName);
 
       setupShipCollisions(self, self.ship);
       addShipWakeEmitters(self, self.ship);
@@ -515,6 +582,11 @@ function create() {
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
 
+          // Update name text position
+          if (otherPlayer.nameText) {
+            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y - 20);
+          }
+
           // Update depth based on crow's nest state
           if (players[id].player.isInCrowsNest) {
             otherPlayer.setDepth(4); // On top of crow's nest
@@ -525,7 +597,7 @@ function create() {
           }
         } else if (self.ship) {
           // Create new player
-          otherPlayer = addOtherPlayer(self, players[id].player, self.ship);
+          otherPlayer = addOtherPlayer(self, players[id].player, self.ship, players[id].playerName);
           otherPlayer.playerId = players[id].playerId;
           otherPlayer.roomX = players[id].roomX;
           otherPlayer.roomY = players[id].roomY;
@@ -567,7 +639,7 @@ function create() {
 
     // Create other player's avatar on the shared ship
     if (self.ship) {
-      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship);
+      const otherPlayer = addOtherPlayer(self, playerInfo.player, self.ship, playerInfo.playerName);
       otherPlayer.playerId = playerInfo.playerId;
       otherPlayer.roomX = playerInfo.roomX;
       otherPlayer.roomY = playerInfo.roomY;
@@ -1282,6 +1354,11 @@ function update(time, delta) {
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled);
+
+    // Update player name text position
+    if (this.player.nameText) {
+      this.player.nameText.setPosition(this.player.x, this.player.y - 20);
+    }
 
     // ===== ACTUALIZAR SHIP (client-side prediction with shared physics) =====
     if (this.player.isControllingShip && inputEnabled) {

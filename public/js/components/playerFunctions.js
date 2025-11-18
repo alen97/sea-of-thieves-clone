@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////// PLAYER FUNCTIONS
 
-function addPlayer(self, playerInfo, ship) {
+function addPlayer(self, playerInfo, ship, playerName = 'You') {
     // Crear el jugador con sprite de animación
     const player = self.physics.add.sprite(
         ship.x + playerInfo.x,
@@ -29,13 +29,27 @@ function addPlayer(self, playerInfo, ship) {
     // Jugador apunta inicialmente hacia arriba
     player.setRotation(Math.PI);
 
+    // Create name text above player
+    player.nameText = self.add.text(
+        player.x,
+        player.y - 20,
+        playerName,
+        {
+            fontSize: '12px',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3,
+            fontFamily: 'Arial'
+        }
+    ).setOrigin(0.5).setDepth(4);
+
     // La cámara inicialmente sigue al jugador
     self.cameras.main.startFollow(player, 1, 1);
 
     return player;
 }
 
-function addOtherPlayer(self, playerInfo, ship) {
+function addOtherPlayer(self, playerInfo, ship, playerName = 'Player') {
     // Crear jugador de otro con sprite de animación
     const player = self.add.sprite(
         ship.x + playerInfo.x,
@@ -47,6 +61,20 @@ function addOtherPlayer(self, playerInfo, ship) {
         .setDisplaySize(28, 28);
 
     player.setDepth(3);
+
+    // Create name text above player
+    player.nameText = self.add.text(
+        player.x,
+        player.y - 20,
+        playerName,
+        {
+            fontSize: '12px',
+            fill: '#ffff00', // Yellow for other players
+            stroke: '#000000',
+            strokeThickness: 3,
+            fontFamily: 'Arial'
+        }
+    ).setOrigin(0.5).setDepth(4);
 
     return player;
 }
