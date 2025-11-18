@@ -693,6 +693,9 @@ function create() {
     self.portalRoomX = portal.roomX;
     self.portalRoomY = portal.roomY;
     console.log(`Portal located at room (${portal.roomX}, ${portal.roomY})`);
+
+    // Create portal visual in the world
+    self.portal = createPortal(self, portal.roomX, portal.roomY);
   });
 
   // Handle modifier collection
@@ -1277,6 +1280,13 @@ function update(time, delta) {
         }
       }
     });
+
+    // ===== UPDATE PORTAL VISIBILITY =====
+    // Show portal only when player has Abyssal Compass
+    const hasCompass = this.shipModifiers && this.shipModifiers.compass;
+    if (this.portal) {
+      updatePortalVisibility(this.portal, hasCompass);
+    }
 
     // ===== ACTUALIZAR POSICIONES DE BURBUJAS DE CHAT =====
     // Actualizar burbujas del jugador local
