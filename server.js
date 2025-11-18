@@ -150,8 +150,8 @@ const MODIFIER_SIZE = 8;
 const DEV_SPAWN_MULTIPLIER = 1.0; // Set to higher values for testing (e.g., 2.0 for 2x spawn rates)
 
 // Abyssal Jelly configuration
-const JELLY_SPAWN_CHANCE = 0.7; // 70% chance to spawn jellies in a room near center
-const JELLY_SPAWN_RADIUS = 5; // Spawn within 5 rooms from center (0,0) - increased area
+const JELLY_SPAWN_CHANCE = 0.5; // 50% chance to spawn jellies in a room
+const JELLY_SPAWN_CENTER_RADIUS = 400; // Spawn within this radius from center of each room
 const JELLY_SIZE = 64; // Visual size
 const JELLY_SPEED = 30; // Movement speed
 const JELLY_FOLLOW_RANGE = 800; // Range at which jelly starts following ship
@@ -240,16 +240,8 @@ function spawnModifiersInRoom(room, roomX, roomY) {
   });
 }
 
-// Spawn abyssal jellies in a room (only near center of map)
+// Spawn abyssal jellies in a room (near center of each room)
 function spawnJelliesInRoom(room, roomX, roomY) {
-  // Calculate distance from center (0, 0)
-  const distanceFromCenter = Math.sqrt(roomX * roomX + roomY * roomY);
-
-  // Only spawn jellies within a certain radius from center
-  if (distanceFromCenter > JELLY_SPAWN_RADIUS) {
-    return; // Too far from center
-  }
-
   // Single probability check: should this room have jellies?
   if (Math.random() > JELLY_SPAWN_CHANCE) {
     return; // No jellies in this room
@@ -258,13 +250,21 @@ function spawnJelliesInRoom(room, roomX, roomY) {
   // Spawn between MIN and MAX jellies
   const jellyCount = JELLY_MIN_PER_ROOM + Math.floor(Math.random() * (JELLY_MAX_PER_ROOM - JELLY_MIN_PER_ROOM + 1));
 
-  console.log(`Spawning ${jellyCount} jellies in room (${roomX}, ${roomY}) - distance from center: ${distanceFromCenter.toFixed(1)}`);
+  console.log(`Spawning ${jellyCount} jellies in room (${roomX}, ${roomY})`);
+
+  // Calculate room center
+  const roomCenterX = WORLD_WIDTH / 2;
+  const roomCenterY = WORLD_HEIGHT / 2;
 
   for (let i = 0; i < jellyCount; i++) {
+    // Spawn near the center of the room within JELLY_SPAWN_CENTER_RADIUS
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * JELLY_SPAWN_CENTER_RADIUS;
+
     const jelly = {
       id: `jelly_${roomX}_${roomY}_${i}_${Date.now()}`,
-      x: Math.random() * (WORLD_WIDTH - 200) + 100,
-      y: Math.random() * (WORLD_HEIGHT - 200) + 100,
+      x: roomCenterX + Math.cos(angle) * distance,
+      y: roomCenterY + Math.sin(angle) * distance,
       size: JELLY_SIZE,
       // Jellyfish movement properties
       velocityX: 0,

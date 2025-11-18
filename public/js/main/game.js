@@ -787,10 +787,18 @@ function create() {
   this.socket.on('portalPosition', function (portal) {
     self.portalRoomX = portal.roomX;
     self.portalRoomY = portal.roomY;
-    console.log(`Portal located at room (${portal.roomX}, ${portal.roomY})`);
+    console.log(`[PORTAL] Portal located at room (${portal.roomX}, ${portal.roomY})`);
 
     // Create portal visual in the world
     self.portal = createPortal(self, portal.roomX, portal.roomY);
+    console.log(`[PORTAL] Portal created:`, self.portal ? 'SUCCESS' : 'FAILED');
+
+    // Immediately make visible if player already has compass
+    const hasCompass = self.shipModifiers && self.shipModifiers.compass;
+    if (hasCompass && self.portal) {
+      console.log('[PORTAL] Player already has compass, making portal visible');
+      updatePortalVisibility(self.portal, true);
+    }
   });
 
   // Handle modifier collection
@@ -1392,6 +1400,8 @@ function update(time, delta) {
     const hasCompass = this.shipModifiers && this.shipModifiers.compass;
     if (this.portal) {
       updatePortalVisibility(this.portal, hasCompass);
+    } else if (hasCompass) {
+      console.warn('[PORTAL] Player has compass but portal is not created yet!');
     }
 
     // ===== ACTUALIZAR POSICIONES DE BURBUJAS DE CHAT =====
