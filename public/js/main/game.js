@@ -65,6 +65,10 @@ function preload() {
   this.load.audio('lanternLight', 'sounds/light-fire.wav');
   this.load.audio('lanternExtinguish', 'sounds/extinguish-fire.wav');
 
+  // Modifier collection sounds
+  this.load.audio('blessing', 'sounds/blessing.mp3');
+  this.load.audio('curse', 'sounds/curse.mp3');
+
   // Load player run animation atlas
   this.load.atlas('playerRun', 'assets/player_run.png', 'assets/player_run.json');
 
@@ -674,6 +678,22 @@ function create() {
         name: data.modifierName
       });
     }
+
+    // Play sound based on item type (abyssal = curse, common = blessing)
+    const soundKey = data.isAbyssal ? 'curse' : 'blessing';
+    const itemSound = self.sound.add(soundKey, { volume: 1.0 });
+    itemSound.play();
+
+    // Fade out over 6 seconds
+    self.tweens.add({
+      targets: itemSound,
+      volume: 0,
+      duration: 6000,
+      onComplete: function() {
+        itemSound.stop();
+        itemSound.destroy();
+      }
+    });
 
     // Show floating text with modifier name and lore
     if (modifierPosition && data.modifierName && data.modifierLore) {

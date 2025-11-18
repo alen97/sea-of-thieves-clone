@@ -838,6 +838,7 @@ setInterval(function() {
         modifierLore: collision.modifier.lore,
         modifierRarity: collision.modifier.rarity,
         modifierColor: collision.modifier.color,
+        isAbyssal: collision.modifier.isAbyssal || false,
         shipModifiers: room.ship.modifiers
       });
     }
