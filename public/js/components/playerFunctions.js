@@ -176,28 +176,130 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         }
 
     } else if (player.isInCrowsNest) {
-        // El jugador ESTÁ en la cofa - no puede caminar
-        player.setVelocity(0, 0);
+        // El jugador ESTÁ en la cofa - puede moverse dentro de un área limitada
 
-        // Stop animation when in crow's nest
-        if (player.anims.isPlaying) {
-            player.stop();
-            player.setFrame('tile000.png');
+        // Player on top of crow's nest
+        player.setDepth(4);
+
+        // Usar coordenadas locales dentro de la cofa
+        if (player.crowsNestLocalX === undefined) {
+            player.crowsNestLocalX = 0;
+            player.crowsNestLocalY = 0;
         }
+
+        let localX = player.crowsNestLocalX;
+        let localY = player.crowsNestLocalY;
+        let isMoving = false;
+        let playerRotation = player.rotation;
+
+        const playerSpeed = 100;
+
+        // Solo procesar input WASD si inputEnabled = true
+        if (inputEnabled) {
+            // Aplicar movimiento en coordenadas DEL MUNDO (absolutas)
+            let worldVelX = 0;
+            let worldVelY = 0;
+
+            if (input.keyW.isDown) worldVelY -= playerSpeed; // NORTE (absoluto)
+            if (input.keyS.isDown) worldVelY += playerSpeed; // SUR (absoluto)
+            if (input.keyA.isDown) worldVelX -= playerSpeed; // OESTE (absoluto)
+            if (input.keyD.isDown) worldVelX += playerSpeed; // ESTE (absoluto)
+
+            // Normalizar velocidad diagonal
+            if (worldVelX !== 0 && worldVelY !== 0) {
+                worldVelX *= 0.707;
+                worldVelY *= 0.707;
+            }
+
+            // Convertir velocidad del mundo a velocidad LOCAL relativa al barco
+            const cosAngle = Math.cos(-ship.rotation);
+            const sinAngle = Math.sin(-ship.rotation);
+            const localVelX = worldVelX * cosAngle - worldVelY * sinAngle;
+            const localVelY = worldVelX * sinAngle + worldVelY * cosAngle;
+
+            // Aplicar movimiento a coordenadas locales
+            localX += localVelX * deltaTime;
+            localY += localVelY * deltaTime;
+
+            // Determinar si está en movimiento
+            isMoving = (worldVelX !== 0 || worldVelY !== 0);
+
+            // Rotar jugador según dirección del input (en coordenadas ABSOLUTAS del mundo)
+            if (isMoving) {
+                const directionAngles = {
+                    "W":  Math.PI,                  // NORTE (absoluto)
+                    "S":  0,                        // SUR (absoluto)
+                    "A":  Math.PI / 2,              // OESTE (absoluto)
+                    "D": -Math.PI / 2,              // ESTE (absoluto)
+                    "WA": (3 * Math.PI) / 4,        // Noroeste
+                    "WD": -(3 * Math.PI) / 4,       // Noreste
+                    "SA": Math.PI / 4,              // Suroeste
+                    "SD": -Math.PI / 4              // Sureste
+                };
+
+                let combo = "";
+                if (input.keyW.isDown) combo += "W";
+                if (input.keyS.isDown) combo += "S";
+                if (input.keyA.isDown) combo += "A";
+                if (input.keyD.isDown) combo += "D";
+
+                const angle = directionAngles[combo];
+                if (angle !== undefined) {
+                    playerRotation = angle;
+                }
+            }
+        }
+
+        // Limitar movimiento dentro de la cofa (área muy pequeña: 8 pixels de radio)
+        const maxCrowsNestRadius = 8;
+        localX = Phaser.Math.Clamp(localX, -maxCrowsNestRadius, maxCrowsNestRadius);
+        localY = Phaser.Math.Clamp(localY, -maxCrowsNestRadius, maxCrowsNestRadius);
+
+        // Guardar coordenadas locales actualizadas
+        player.crowsNestLocalX = localX;
+        player.crowsNestLocalY = localY;
 
         // Posición de la cofa (en la proa del barco)
         const crowsNestOffset = 60;
         const angle = ship.rotation - Math.PI / 2;
-        const crowsNestX = ship.x + Math.cos(angle) * crowsNestOffset;
-        const crowsNestY = ship.y + Math.sin(angle) * crowsNestOffset;
+        const crowsNestCenterX = ship.x + Math.cos(angle) * crowsNestOffset;
+        const crowsNestCenterY = ship.y + Math.sin(angle) * crowsNestOffset;
 
-        player.setPosition(crowsNestX, crowsNestY);
+        // Convertir coordenadas locales de vuelta a coordenadas del mundo
+        const cosAngleBack = Math.cos(ship.rotation);
+        const sinAngleBack = Math.sin(ship.rotation);
+        const worldX = localX * cosAngleBack - localY * sinAngleBack;
+        const worldY = localX * sinAngleBack + localY * cosAngleBack;
 
-        // El jugador mira en la dirección del barco (hacia adelante)
-        player.setRotation(ship.rotation + Math.PI);
+        // Posicionar jugador en la cofa con offset local
+        player.setPosition(crowsNestCenterX + worldX, crowsNestCenterY + worldY);
+        player.setVelocity(0, 0);
 
-        // Player on top of crow's nest
-        player.setDepth(4);
+        // Ajustar rotación del jugador cuando el barco rota (solo si no está en movimiento)
+        if (ship.previousRotation !== undefined && !isMoving) {
+            const rotationDelta = ship.rotation - ship.previousRotation;
+            if (Math.abs(rotationDelta) > 0.001) {
+                player.lastRotation += rotationDelta;
+            }
+        }
+
+        // Rotación del sprite
+        if (isMoving) {
+            player.lastRotation = playerRotation;
+        }
+        player.setRotation(player.lastRotation);
+
+        // Manejar animación
+        if (isMoving) {
+            if (!player.anims.isPlaying || player.anims.currentAnim.key !== 'run') {
+                player.play('run');
+            }
+        } else {
+            if (player.anims.isPlaying) {
+                player.stop();
+                player.setFrame('tile000.png');
+            }
+        }
 
     } else if (player.isOnCannon) {
         // El jugador ESTÁ en el cañón - no puede caminar

@@ -124,6 +124,12 @@ class CrowsNestSystem {
     toggleCrowsNest(player) {
         player.isInCrowsNest = !player.isInCrowsNest;
 
+        // Reset local coordinates when descending from crow's nest
+        if (!player.isInCrowsNest) {
+            player.crowsNestLocalX = 0;
+            player.crowsNestLocalY = 0;
+        }
+
         // Emit crow's nest state to server
         if (this.scene.socket) {
             this.scene.socket.emit('crowsNestToggle', { isInCrowsNest: player.isInCrowsNest });
