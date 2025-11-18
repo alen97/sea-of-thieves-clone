@@ -584,7 +584,7 @@ function create() {
 
           // Update name text position
           if (otherPlayer.nameText) {
-            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y - 20);
+            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y + 25);
           }
 
           // Update depth based on crow's nest state
@@ -711,7 +711,7 @@ function create() {
 
           // Update name text position
           if (otherPlayer.nameText) {
-            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y - 20);
+            otherPlayer.nameText.setPosition(otherPlayer.x, otherPlayer.y + 25);
           }
 
           // Synchronize animation based on received isMoving state
@@ -1362,7 +1362,7 @@ function update(time, delta) {
 
     // Update player name text position
     if (this.player.nameText) {
-      this.player.nameText.setPosition(this.player.x, this.player.y - 20);
+      this.player.nameText.setPosition(this.player.x, this.player.y + 25);
     }
 
     // ===== ACTUALIZAR SHIP (client-side prediction with shared physics) =====

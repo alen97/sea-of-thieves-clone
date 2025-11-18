@@ -29,10 +29,10 @@ function addPlayer(self, playerInfo, ship, playerName = 'You') {
     // Jugador apunta inicialmente hacia arriba
     player.setRotation(Math.PI);
 
-    // Create name text above player
+    // Create name text below player
     player.nameText = self.add.text(
         player.x,
-        player.y - 20,
+        player.y + 25,
         playerName,
         {
             fontSize: '12px',
@@ -62,10 +62,10 @@ function addOtherPlayer(self, playerInfo, ship, playerName = 'Player') {
 
     player.setDepth(3);
 
-    // Create name text above player
+    // Create name text below player
     player.nameText = self.add.text(
         player.x,
-        player.y - 20,
+        player.y + 25,
         playerName,
         {
             fontSize: '12px',
