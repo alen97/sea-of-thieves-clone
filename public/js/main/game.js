@@ -2465,36 +2465,33 @@ class UIScene extends Phaser.Scene {
     const modifierCellStartX = cameraX - 380; // Left side of screen
     const modifierCellStartY = cameraY - 350; // Top of screen
 
-    // Helper function to create a single cell (outer border, inner white square, colored circle)
+    // Helper function to create a single cell (outer border with item image)
     const createModifierCell = (x, y) => {
       const container = this.add.container(x, y);
       container.setScrollFactor(0);
       container.setDepth(2020);
 
       // Outer cell with white border (initially transparent background)
-      const outerCell = this.add.rectangle(0, 0, modifierCellSize, modifierCellSize, 0x000000, 0);
+      const outerCell = this.add.rectangle(0, 0, modifierCellSize, modifierCellSize, 0x000000, 0.5);
       outerCell.setStrokeStyle(2, 0xFFFFFF, 1); // White border
 
-      // Inner white square (slightly smaller)
-      const innerSquareSize = modifierCellSize * 0.6; // 60% of cell size
-      const innerSquare = this.add.rectangle(0, 0, innerSquareSize, innerSquareSize, 0xFFFFFF, 1);
+      // Item image (the actual potion modifier sprite)
+      const itemImage = this.add.image(0, 0, 'potionModifier');
+      const imageScale = (modifierCellSize * 0.7) / Math.max(itemImage.width, itemImage.height);
+      itemImage.setScale(imageScale);
 
-      // Colored circle (will be updated based on modifier)
-      const circleRadius = innerSquareSize * 0.4; // 40% of inner square
-      const coloredCircle = this.add.circle(0, 0, circleRadius, 0xFFFFFF, 1);
-
-      container.add([outerCell, innerSquare, coloredCircle]);
+      container.add([outerCell, itemImage]);
       container.setVisible(false);
 
       // Store references for updating
-      container.coloredCircle = coloredCircle;
+      container.itemImage = itemImage;
 
       return container;
     };
 
-    // Create 9 cells for up to 9 modifiers
+    // Create 8 cells for up to 8 modifiers
     this.modifierCells = [];
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 8; i++) {
       const cell = createModifierCell(
         modifierCellStartX + i * (modifierCellSize + modifierCellSpacing),
         modifierCellStartY
@@ -2952,9 +2949,9 @@ class UIScene extends Phaser.Scene {
         const cell = this.modifierCells[i];
 
         if (i < modifiers.length) {
-          // Show cell and update color
+          // Show cell and tint with modifier color
           cell.setVisible(true);
-          cell.coloredCircle.setFillStyle(modifiers[i].color, 1);
+          cell.itemImage.setTint(modifiers[i].color);
         } else {
           // Hide empty cells
           cell.setVisible(false);
