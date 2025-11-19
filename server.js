@@ -32,7 +32,7 @@ const MODIFIER_TYPES = {
     type: 'RIOS_WINDS',
     color: 0x00CED1, // Dark Cyan - water in motion
     effect: 'speed',
-    bonus: 0.2,
+    bonus: 0.5, // +50% speed
     rarity: 'rare',
     spawnChance: 0.4, // 40% spawn chance
     isAbyssal: false, // Found in normal world
@@ -45,7 +45,7 @@ const MODIFIER_TYPES = {
     type: 'CAPTAINS_GUIDE',
     color: 0xFFD700, // Gold - navigator's light
     effect: 'turning',
-    bonus: 0.25,
+    bonus: 1.0, // +100% turning
     rarity: 'common',
     spawnChance: 0.6, // 60% spawn chance (common)
     isAbyssal: false, // Found in normal world
@@ -58,7 +58,7 @@ const MODIFIER_TYPES = {
     type: 'PIRATES_TENACITY',
     color: 0xDC143C, // Crimson - relentless fire
     effect: 'fireRate',
-    bonus: 0.3,
+    bonus: 0.5, // -50% cooldown
     rarity: 'rare',
     spawnChance: 0.4, // 40% spawn chance
     isAbyssal: false, // Found in normal world
@@ -87,7 +87,7 @@ const MODIFIER_TYPES = {
     type: 'TEMPEST_ABYSS',
     color: 0x7A00FF, // Violet
     effect: 'speed',
-    bonus: 0.4, // +40% speed
+    bonus: 1.0, // +100% speed
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true,
@@ -100,7 +100,7 @@ const MODIFIER_TYPES = {
     type: 'ETHEREAL_HELM',
     color: 0x7A00FF, // Violet
     effect: 'turning',
-    bonus: 0.5, // +50% turning
+    bonus: 1.5, // +150% turning
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true,
@@ -113,7 +113,7 @@ const MODIFIER_TYPES = {
     type: 'ENDLESS_BARRAGE',
     color: 0x7A00FF, // Violet
     effect: 'fireRate',
-    bonus: 0.6, // -60% cooldown
+    bonus: 0.7, // -70% cooldown
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true,
