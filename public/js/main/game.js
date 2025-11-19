@@ -285,6 +285,9 @@ function create() {
   // Track modifiers in the order they were collected (for HUD display)
   this.shipModifiersArray = [];
 
+  // Track collected modifier types (e.g., 'ENDLESS_BARRAGE', 'CAPTAINS_GUIDE')
+  this.collectedModifiers = [];
+
   // Handle server full event
   this.socket.on('serverFull', function (data) {
     console.error('[LOGIN] Server is full:', data.message);
@@ -1119,6 +1122,7 @@ function create() {
 
     // Update local ship modifiers state
     self.shipModifiers = data.shipModifiers;
+    self.collectedModifiers = data.collectedModifiers || [];
 
     // Add to modifiers array (for HUD display in order)
     // Only add if not already in array (avoid duplicates)
@@ -1552,7 +1556,8 @@ function update(time, delta) {
         canUseHelm,
         canUseAnchor,
         this.shipModifiers, // Pass modifiers for fire rate
-        this.otherPlayers // Pass other players for occupation check
+        this.otherPlayers, // Pass other players for occupation check
+        this.collectedModifiers // Pass collected modifier types
       );
     }
 

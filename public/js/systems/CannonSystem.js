@@ -199,9 +199,10 @@ class CannonSystem {
      * @param {Object} socket - Socket.io instance
      * @param {number} currentTime - Current time in ms
      * @param {Object} modifiers - Optional ship modifiers
+     * @param {Array} collectedModifiers - Array of collected modifier types
      * @returns {boolean} Was fire successful
      */
-    fireCannon(cannon, ship, socket, currentTime, modifiers = null) {
+    fireCannon(cannon, ship, socket, currentTime, modifiers = null, collectedModifiers = []) {
         if (!cannon || !ship) return false;
         if (!this.canShoot(cannon.side, currentTime, modifiers)) return false;
 
@@ -217,7 +218,8 @@ class CannonSystem {
         let bulletColor = null;
 
         // Endless Barrage modifier: +50% bullet speed + purple color
-        if (modifiers && modifiers.fireRate) {
+        // Only apply if specifically has ENDLESS_BARRAGE (not just any fireRate modifier)
+        if (collectedModifiers.includes('ENDLESS_BARRAGE')) {
             bulletSpeed = 750 * 1.5; // 1125 speed
             bulletColor = 0x7A00FF; // Violet/purple color
         }
@@ -351,7 +353,7 @@ class CannonSystem {
      * @param {Object} modifiers - Optional ship modifiers
      * @param {Object} otherPlayers - Phaser group of other players
      */
-    update(player, ship, cannons, input, deltaTime, currentTime, nearHelm, nearAnchor, modifiers = null, otherPlayers = null) {
+    update(player, ship, cannons, input, deltaTime, currentTime, nearHelm, nearAnchor, modifiers = null, otherPlayers = null, collectedModifiers = []) {
         // Update cannon positions
         this.updateCannonPosition(cannons.left, ship);
         this.updateCannonPosition(cannons.right, ship);
@@ -372,7 +374,7 @@ class CannonSystem {
 
             // Handle firing
             if (input.fire) {
-                this.fireCannon(cannon, ship, this.scene.socket, currentTime, modifiers);
+                this.fireCannon(cannon, ship, this.scene.socket, currentTime, modifiers, collectedModifiers);
             }
         }
     }

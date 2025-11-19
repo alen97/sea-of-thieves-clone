@@ -1229,7 +1229,8 @@ setInterval(function() {
           modifierColor: collision.modifier.color,
           isAbyssal: collision.modifier.isAbyssal || false,
           usesCurseSound: collision.modifier.usesCurseSound || false,
-          shipModifiers: room.ship.modifiers
+          shipModifiers: room.ship.modifiers,
+          collectedModifiers: room.ship.collectedModifiers
         });
 
         // Special handling for Abyssal Compass: Generate portal
