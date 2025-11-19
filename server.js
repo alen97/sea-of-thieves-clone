@@ -475,7 +475,9 @@ function applyModifier(ship, modifierType, modifierId) {
   } else if (typeInfo.effect === 'turning') {
     ship.modifiers.turningBonus = (ship.modifiers.turningBonus || 0) + typeInfo.bonus;
   } else if (typeInfo.effect === 'fireRate') {
-    ship.modifiers.fireRateBonus = (ship.modifiers.fireRateBonus || 0) + typeInfo.bonus;
+    const oldBonus = ship.modifiers.fireRateBonus || 0;
+    ship.modifiers.fireRateBonus = oldBonus + typeInfo.bonus;
+    console.log(`[SERVER] fireRate: old=${oldBonus}, adding=${typeInfo.bonus}, new=${ship.modifiers.fireRateBonus}`);
   }
   ship.collectedModifiers.push(modifierType);
   console.log(`Applied ${modifierType} modifier to ship with bonus ${typeInfo.bonus} (total: ${ship.collectedModifiers.length})`);
