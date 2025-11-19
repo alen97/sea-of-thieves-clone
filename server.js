@@ -758,6 +758,19 @@ io.on('connection', function (socket) {
         shipModifiers: room.ship.modifiers,
         collectedModifiers: room.ship.collectedModifiers
       });
+
+      // Special handling for Abyssal Compass: Generate portal
+      if (modifierType === 'ABYSSAL_COMPASS' && !portalPosition) {
+        // Parse room coordinates from roomId (format: "x,y")
+        const [roomX, roomY] = roomId.split(',').map(Number);
+
+        // Generate portal position relative to ship's current room
+        portalPosition = generatePortalPosition(roomX, roomY);
+        console.log(`[PORTAL] [DEV] Generated portal at room (${portalPosition.roomX}, ${portalPosition.roomY}) - 10 rooms from ship at (${roomX}, ${roomY})`);
+
+        // Broadcast portal position to ALL clients (not just current room)
+        io.emit('portalPosition', portalPosition);
+      }
     } else {
       console.log(`[DEV] Failed to apply ${modifierType} (already collected?)`);
     }
