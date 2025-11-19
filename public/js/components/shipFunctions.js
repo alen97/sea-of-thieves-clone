@@ -126,9 +126,9 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
                 ship.damageSmoke.start();
             }
 
-            // Calculate hatch position (same as RepairSystem)
-            const hatchOffsetX = 40;
-            const hatchOffsetY = 50;
+            // Calculate hatch position (same offsets as RepairSystem)
+            const hatchOffsetX = -57; // Slightly to the right of helm
+            const hatchOffsetY = 0; // Below helm
             const angle = ship.rotation - Math.PI / 2;
             const cos = Math.cos(angle);
             const sin = Math.sin(angle);

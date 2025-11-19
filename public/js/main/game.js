@@ -1449,10 +1449,7 @@ function update(time, delta) {
       this.ship.healthBar.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
     }
 
-    // Update damage smoke position to follow ship
-    if (this.ship.damageSmoke && this.ship.damageSmoke.on) {
-      this.ship.damageSmoke.setPosition(this.ship.x, this.ship.y);
-    }
+    // Note: Damage smoke position is updated in updateShipHealthBar() to follow hatch position
 
     // ===== FLOATING MODIFIER TEXTS =====
     // Update floating text positions to follow ship
