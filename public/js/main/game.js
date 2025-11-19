@@ -2036,12 +2036,12 @@ function update(time, delta) {
           const portalSound = this.sound.add('portalExit', { volume: 1.0 });
           portalSound.play();
 
-          // Fade out sound after 30 seconds max
-          this.time.delayedCall(25000, () => {
+          // Fade out sound after 10 seconds
+          this.time.delayedCall(7000, () => {
             this.tweens.add({
               targets: portalSound,
               volume: 0,
-              duration: 5000,
+              duration: 3000,
               onComplete: () => {
                 portalSound.stop();
                 portalSound.destroy();
@@ -2049,30 +2049,14 @@ function update(time, delta) {
             });
           });
 
-          // Create full-screen black overlay for fade effect
-          const fadeOverlay = this.add.rectangle(
-            this.cameras.main.width / 2,
-            this.cameras.main.height / 2,
-            this.cameras.main.width * 2,
-            this.cameras.main.height * 2,
-            0x000000,
-            0
-          );
-          fadeOverlay.setScrollFactor(0);
-          fadeOverlay.setDepth(999);
+          // Use camera fade to black
+          this.cameras.main.fadeOut(2000, 0, 0, 0);
 
-          // Fade to black
-          this.tweens.add({
-            targets: fadeOverlay,
-            alpha: 1,
-            duration: 2000,
-            ease: 'Power2',
-            onComplete: () => {
-              // Show victory screen after fade completes
-              this.time.delayedCall(1500, () => {
-                showVictoryScreen.call(this);
-              });
-            }
+          // Show victory screen after fade completes
+          this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.time.delayedCall(1500, () => {
+              showVictoryScreen.call(this);
+            });
           });
         }
       }
