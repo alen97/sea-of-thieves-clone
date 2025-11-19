@@ -872,6 +872,11 @@ io.on('connection', function (socket) {
           room.players[socket.id].player.cannonSide = movementData.player.cannonSide;
         }
 
+        // Sincronizar estado de reparación
+        if (movementData.player.isRepairing !== undefined) {
+          room.players[socket.id].player.isRepairing = movementData.player.isRepairing;
+        }
+
         // Broadcast player update to others in room
         socket.to(roomId).emit('playerMoved', room.players[socket.id]);
       }

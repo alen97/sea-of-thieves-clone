@@ -675,7 +675,7 @@ function create() {
           // Initialize animation state from server-provided isMoving field
           const isMoving = players[id].player.isMoving || false;
 
-          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon && !players[id].player.isInCrowsNest) {
+          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon && !players[id].player.isInCrowsNest && !players[id].player.isRepairing) {
             otherPlayer.play(otherPlayer.animKey);
           } else {
             otherPlayer.setFrame(0); // First frame
@@ -717,7 +717,7 @@ function create() {
       // Initialize animation state from server-provided isMoving field
       const isMoving = playerInfo.player.isMoving || false;
 
-      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest) {
+      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest && !playerInfo.player.isRepairing) {
         otherPlayer.play(otherPlayer.animKey);
       } else {
         otherPlayer.setFrame(0); // First frame
@@ -799,7 +799,7 @@ function create() {
           // Synchronize animation based on received isMoving state
           const isMoving = playerInfo.player.isMoving || false;
 
-          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest) {
+          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest && !playerInfo.player.isRepairing) {
             // Player walking - play animation
             if (!otherPlayer.anims.isPlaying ||
                 otherPlayer.anims.currentAnim.key !== otherPlayer.animKey) {
@@ -1358,6 +1358,25 @@ function update(time, delta) {
       inputState.fire = false;
     }
 
+    // Block player movement when repairing (but allow E to toggle off)
+    if (this.player.isRepairing) {
+      // Block player movement (WASD)
+      if (inputState.movement) {
+        inputState.movement.up = false;
+        inputState.movement.down = false;
+        inputState.movement.left = false;
+        inputState.movement.right = false;
+      }
+      // Block steering (A/D) - player can't control ship while repairing
+      if (inputState.steering) {
+        inputState.steering.left = false;
+        inputState.steering.right = false;
+      }
+      // Allow E to toggle repair off (interact is handled by RepairSystem)
+      // Block firing and other actions
+      inputState.fire = false;
+    }
+
     // ===== SISTEMA DE ZOOM AUTOMÁTICO =====
     // Automatic zoom based on player role
     let targetZoomByRole;
@@ -1704,6 +1723,7 @@ function update(time, delta) {
     const isPlayerMoving = inputEnabled &&
                           !this.player.isControllingShip &&
                           !this.player.isOnCannon &&
+                          !this.player.isRepairing &&
                           (input.keyW.isDown || input.keyS.isDown ||
                            input.keyA.isDown || input.keyD.isDown);
 
@@ -1764,6 +1784,7 @@ function update(time, delta) {
           isOnCannon: this.player.isOnCannon,
           cannonSide: this.player.cannonSide,
           isInCrowsNest: this.player.isInCrowsNest,
+          isRepairing: this.player.isRepairing || false,
           isMoving: isPlayerMoving,  // Animation sync
           velocityX: this.player.body.velocity.x,
           velocityY: this.player.body.velocity.y

@@ -133,9 +133,20 @@ class RepairSystem {
 
         if (nearHatch) {
             const hatchPos = this.getHatchPosition(ship);
-            indicator.setText('Presiona E para reparar');
-            indicator.setPosition(hatchPos.x, hatchPos.y - 25);
-            indicator.setVisible(true);
+
+            // Check if ship is at full health
+            const health = ship.health || 100;
+            const maxHealth = ship.maxHealth || 100;
+
+            if (health >= maxHealth) {
+                indicator.setText('Barco con salud completa');
+                indicator.setPosition(hatchPos.x, hatchPos.y - 25);
+                indicator.setVisible(true);
+            } else {
+                indicator.setText('Presiona E para reparar');
+                indicator.setPosition(hatchPos.x, hatchPos.y - 25);
+                indicator.setVisible(true);
+            }
         } else {
             indicator.setVisible(false);
         }
@@ -163,17 +174,22 @@ class RepairSystem {
 
         const nearHatch = this.isNearHatch(player, ship);
 
-        // Stop repairing if player moves away from hatch
-        if (!nearHatch && player.isRepairing) {
-            player.isRepairing = false;
-            socket.emit('stopRepair');
-            console.log('[REPAIR] Stopped repairing ship - moved away from hatch');
-            return;
-        }
+        // Stop repairing if player moves away from hatch (only if not already repairing)
+        // Note: We don't stop repair on movement since we're locking position
+        // We only stop if the player uses another station or presses E again
 
         // Toggle repair on E press when near hatch
         if (nearHatch && interactPressed) {
             if (!player.isRepairing) {
+                // Check if ship is at full health
+                const health = ship.health || 100;
+                const maxHealth = ship.maxHealth || 100;
+
+                if (health >= maxHealth) {
+                    console.log('[REPAIR] Cannot repair - ship is at full health');
+                    return;
+                }
+
                 // Start repairing
                 player.isRepairing = true;
                 socket.emit('startRepair');
@@ -185,6 +201,18 @@ class RepairSystem {
                 console.log('[REPAIR] Stopped repairing ship - toggled off');
             }
         }
+    }
+
+    /**
+     * Lock player position at hatch when repairing
+     * @param {Object} player - Player sprite
+     * @param {Object} ship - Ship sprite
+     */
+    lockPlayerAtHatch(player, ship) {
+        if (!player.isRepairing) return;
+
+        const hatchPos = this.getHatchPosition(ship);
+        player.setPosition(hatchPos.x, hatchPos.y);
     }
 
     /**
@@ -200,11 +228,14 @@ class RepairSystem {
         // Update visual position
         this.updateVisual(ship);
 
+        // Lock player at hatch if repairing
+        this.lockPlayerAtHatch(player, ship);
+
         // Update indicator
         this.updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest);
 
-        // Handle repair input (need to check if E is being held)
-        const interactHeld = inputState.interact || false;
-        this.handleRepairInput(player, ship, interactHeld, nearHelm, nearCannon, nearCrowsNest, this.scene.socket);
+        // Handle repair input
+        const interactPressed = inputState.interact || false;
+        this.handleRepairInput(player, ship, interactPressed, nearHelm, nearCannon, nearCrowsNest, this.scene.socket);
     }
 }
