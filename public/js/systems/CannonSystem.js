@@ -182,10 +182,11 @@ class CannonSystem {
     canShoot(side, currentTime, modifiers = null) {
         const lastShot = side === 'left' ? this.leftLastShot : this.rightLastShot;
 
-        // Apply fire rate modifier (-50% cooldown = fires twice as fast)
+        // Apply fire rate modifier (bonus = 0.6 means -60% cooldown, so multiply by (1 - 0.6) = 0.4)
         let effectiveCooldown = this.cooldownTime;
         if (modifiers && modifiers.fireRate) {
-            effectiveCooldown = this.cooldownTime * 0.5; // 3000ms -> 1500ms
+            const reduction = modifiers.fireRateBonus || 0.5; // Default -50% if no bonus specified
+            effectiveCooldown = this.cooldownTime * (1 - reduction); // e.g., 3000ms * 0.4 = 1200ms
         }
 
         return (currentTime - lastShot) >= effectiveCooldown;
@@ -211,8 +212,15 @@ class CannonSystem {
             this.rightLastShot = currentTime;
         }
 
-        // Create bullet data
-        const bulletSpeed = 750;
+        // Create bullet data with modifiers
+        let bulletSpeed = 750;
+        let bulletColor = null;
+
+        // Endless Barrage modifier: +50% bullet speed + purple color
+        if (modifiers && modifiers.fireRate) {
+            bulletSpeed = 750 * 1.5; // 1125 speed
+            bulletColor = 0x7A00FF; // Violet/purple color
+        }
 
         const bulletData = {
             x: cannon.x,
@@ -220,7 +228,8 @@ class CannonSystem {
             rotation: cannon.rotation,
             velocityX: Math.cos(cannon.rotation) * bulletSpeed,
             velocityY: Math.sin(cannon.rotation) * bulletSpeed,
-            shooterId: ship.playerId
+            shooterId: ship.playerId,
+            color: bulletColor // Pass color for tinting
         };
 
         // Emit to server
@@ -269,10 +278,11 @@ class CannonSystem {
             if (!canShoot) {
                 const lastShot = player.cannonSide === 'left' ? this.leftLastShot : this.rightLastShot;
 
-                // Calculate effective cooldown with modifier
+                // Calculate effective cooldown with modifier (same logic as canShoot)
                 let effectiveCooldown = this.cooldownTime;
                 if (modifiers && modifiers.fireRate) {
-                    effectiveCooldown = this.cooldownTime * 0.5; // -50% cooldown
+                    const reduction = modifiers.fireRateBonus || 0.5;
+                    effectiveCooldown = this.cooldownTime * (1 - reduction);
                 }
 
                 const timeRemaining = Math.ceil((effectiveCooldown - (currentTime - lastShot)) / 1000);

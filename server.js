@@ -131,19 +131,6 @@ const MODIFIER_TYPES = {
     spawnChance: 0.12, // 12% spawn chance (cursed/rare)
     isAbyssal: true,
     usesCurseSound: true // Uses curse sound
-  },
-  CURSE_GREED: {
-    id: 'curse_greed',
-    name: "Curse of Greed",
-    lore: "More treasures, greater dangers.",
-    type: 'CURSE_GREED',
-    color: 0xFF4500, // Red-orange
-    effect: 'greed',
-    bonus: 2.0, // 2x modifier spawn chance
-    rarity: 'cursed',
-    spawnChance: 0.1, // 10% spawn chance (very rare)
-    isAbyssal: true,
-    usesCurseSound: true // Uses curse sound
   }
 };
 const MODIFIER_SPAWN_CHANCE = 0.5; // 50% chance to spawn a modifier in a room (deprecated - using individual chances now)
@@ -458,8 +445,7 @@ function applyModifier(ship, modifierType, modifierId) {
       turning: false,
       fireRate: false,
       abyssVision: false,
-      compass: false,
-      greed: false
+      compass: false
     };
   }
 
@@ -480,8 +466,16 @@ function applyModifier(ship, modifierType, modifierId) {
 
   // Apply the modifier
   ship.modifiers[typeInfo.effect] = true;
+  // Store bonus value for speed and turning modifiers
+  if (typeInfo.effect === 'speed') {
+    ship.modifiers.speedBonus = typeInfo.bonus;
+  } else if (typeInfo.effect === 'turning') {
+    ship.modifiers.turningBonus = typeInfo.bonus;
+  } else if (typeInfo.effect === 'fireRate') {
+    ship.modifiers.fireRateBonus = typeInfo.bonus;
+  }
   ship.collectedModifiers.push(modifierType);
-  console.log(`Applied ${modifierType} modifier to ship (total: ${ship.collectedModifiers.length})`);
+  console.log(`Applied ${modifierType} modifier to ship with bonus ${typeInfo.bonus} (total: ${ship.collectedModifiers.length})`);
   return true;
 }
 
