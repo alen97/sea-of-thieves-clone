@@ -1924,33 +1924,77 @@ function update(time, delta) {
 function showDeathScreen() {
   console.log('[DEATH SCREEN] Showing death screen');
 
-  // Create semi-transparent black overlay
+  // Create semi-transparent black overlay (full screen)
   const overlay = this.add.rectangle(
     this.cameras.main.scrollX + this.cameras.main.width / 2,
     this.cameras.main.scrollY + this.cameras.main.height / 2,
     this.cameras.main.width,
     this.cameras.main.height,
     0x000000,
-    0.8
+    0.7
   );
   overlay.setScrollFactor(0);
   overlay.setDepth(1000);
 
-  // Create death text
-  const deathText = this.add.text(
+  // Create modal background (centered box)
+  const modalWidth = 500;
+  const modalHeight = 250;
+  const modalBg = this.add.rectangle(
     this.cameras.main.width / 2,
     this.cameras.main.height / 2,
-    'TU BARCO SE HUNDIÓ\n\nRecargando...',
+    modalWidth,
+    modalHeight,
+    0x1a1a1a,
+    1
+  );
+  modalBg.setScrollFactor(0);
+  modalBg.setDepth(1001);
+  modalBg.setStrokeStyle(4, 0x8b0000); // Dark red border
+
+  // Create skull icon (using text emoji or symbol)
+  const skullIcon = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 - 60,
+    '☠',
     {
-      fontSize: '48px',
+      fontSize: '64px',
+      fill: '#ff0000'
+    }
+  );
+  skullIcon.setOrigin(0.5);
+  skullIcon.setScrollFactor(0);
+  skullIcon.setDepth(1002);
+
+  // Create death title
+  const deathTitle = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2,
+    'TU BARCO SE HUNDIÓ',
+    {
+      fontSize: '36px',
       fill: '#ff0000',
       fontStyle: 'bold',
       align: 'center'
     }
   );
-  deathText.setOrigin(0.5);
-  deathText.setScrollFactor(0);
-  deathText.setDepth(1001);
+  deathTitle.setOrigin(0.5);
+  deathTitle.setScrollFactor(0);
+  deathTitle.setDepth(1002);
+
+  // Create reload message
+  const reloadText = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 + 50,
+    'Recargando en 3 segundos...',
+    {
+      fontSize: '20px',
+      fill: '#ffffff',
+      align: 'center'
+    }
+  );
+  reloadText.setOrigin(0.5);
+  reloadText.setScrollFactor(0);
+  reloadText.setDepth(1002);
 
   // Reload page after 3 seconds
   this.time.delayedCall(3000, () => {

@@ -79,6 +79,10 @@ function createShipHealthBar(self, ship) {
     ship.healthBarOffsetY = barY;
     ship.damageSmoke = smokeEmitter;
 
+    // Hide health bar (not used)
+    healthBarBg.setVisible(false);
+    healthBar.setVisible(false);
+
     // Initialize with full health
     updateShipHealthBar(ship, 100, 100);
 }
@@ -114,9 +118,9 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
-    // Handle damage smoke effect (health < 10) - smoke comes from repair hatch
+    // Handle damage smoke effect (health < 30) - smoke comes from repair hatch
     if (ship.damageSmoke) {
-        if (currentHealth < 10 && currentHealth > 0) {
+        if (currentHealth < 30 && currentHealth > 0) {
             // Start smoke if not already emitting
             if (!ship.damageSmoke.on) {
                 ship.damageSmoke.start();
@@ -134,7 +138,7 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             // Update smoke position to hatch
             ship.damageSmoke.setPosition(ship.x + rotatedX, ship.y + rotatedY);
         } else {
-            // Stop smoke if health >= 10 or ship sunk
+            // Stop smoke if health >= 30 or ship sunk
             if (ship.damageSmoke.on) {
                 ship.damageSmoke.stop();
             }
