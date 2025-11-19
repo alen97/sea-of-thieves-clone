@@ -2,12 +2,17 @@
 
 function addBullet(self, creationData) {
   console.log("CREATE BULLET!");
+  console.log("[ADD BULLET DEBUG] creationData:", creationData);
+  console.log("[ADD BULLET DEBUG] creationData.color:", creationData.color);
 
   const bullet = self.physics.add.sprite(creationData.x, creationData.y, 'bullet').setOrigin(0.5, 0.5).setDisplaySize(12, 12);
 
   // Apply color tint if specified (for Abyss Lantern modifier)
   if (creationData.color) {
+    console.log("[ADD BULLET DEBUG] Applying color tint:", creationData.color);
     bullet.setTint(creationData.color);
+  } else {
+    console.log("[ADD BULLET DEBUG] No color tint (creationData.color is null/undefined)");
   }
 
   const shoot = self.sound.add('shoot');

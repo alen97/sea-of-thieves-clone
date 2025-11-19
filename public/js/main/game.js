@@ -1134,6 +1134,10 @@ function create() {
     self.shipModifiers = data.shipModifiers;
     self.collectedModifiers = data.collectedModifiers || [];
 
+    console.log('[MODIFIER COLLECTED] data.modifierType:', data.modifierType);
+    console.log('[MODIFIER COLLECTED] data.collectedModifiers:', data.collectedModifiers);
+    console.log('[MODIFIER COLLECTED] self.collectedModifiers:', self.collectedModifiers);
+
     // Add to modifiers array (for HUD display in order)
     // Only add if not already in array (avoid duplicates)
     const existingIndex = self.shipModifiersArray.findIndex(m => m.type === data.modifierType);

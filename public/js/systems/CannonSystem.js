@@ -221,11 +221,20 @@ class CannonSystem {
         let bulletSpeed = 750;
         let bulletColor = null;
 
+        // DEBUG: Check collectedModifiers
+        console.log('[FIRE DEBUG] collectedModifiers:', collectedModifiers);
+        console.log('[FIRE DEBUG] Is array?', Array.isArray(collectedModifiers));
+        console.log('[FIRE DEBUG] Length:', collectedModifiers?.length);
+        console.log('[FIRE DEBUG] Has ENDLESS_BARRAGE?', collectedModifiers.includes('ENDLESS_BARRAGE'));
+
         // Endless Barrage modifier: +50% bullet speed + purple color
         // Only apply if specifically has ENDLESS_BARRAGE (not just any fireRate modifier)
         if (collectedModifiers.includes('ENDLESS_BARRAGE')) {
+            console.log('[FIRE DEBUG] APPLYING ENDLESS BARRAGE - Speed: 1125, Color: 0x7A00FF');
             bulletSpeed = 750 * 1.5; // 1125 speed
             bulletColor = 0x7A00FF; // Violet/purple color
+        } else {
+            console.log('[FIRE DEBUG] NOT applying Endless Barrage - using normal bullet');
         }
 
         const bulletData = {
@@ -237,6 +246,10 @@ class CannonSystem {
             shooterId: ship.playerId,
             color: bulletColor // Pass color for tinting
         };
+
+        console.log('[FIRE DEBUG] bulletData being sent:', bulletData);
+        console.log('[FIRE DEBUG] bulletSpeed:', bulletSpeed);
+        console.log('[FIRE DEBUG] bulletColor:', bulletColor);
 
         // Emit to server
         socket.emit('createBullet', bulletData);
