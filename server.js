@@ -61,7 +61,7 @@ const MODIFIER_TYPES = {
     type: 'PIRATES_TENACITY',
     color: 0xDC143C, // Crimson - relentless fire
     effect: 'fireRate',
-    bonus: 0.5, // -50% cooldown
+    bonus: 0.33, // -33% cooldown (3s → 2s)
     rarity: 'rare',
     spawnChance: 0.4, // 40% spawn chance
     isAbyssal: false, // Found in normal world
@@ -116,7 +116,7 @@ const MODIFIER_TYPES = {
     type: 'ENDLESS_BARRAGE',
     color: 0x7A00FF, // Violet
     effect: 'fireRate',
-    bonus: 0.67, // -67% cooldown (results in 1s cooldown from 3s base)
+    bonus: 0.5, // -50% cooldown (3s → 1.5s)
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true,
