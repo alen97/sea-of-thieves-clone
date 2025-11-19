@@ -762,11 +762,16 @@ function create() {
   });
 
   this.socket.on('newBullet', function (creationData) {
-    console.log("self.ship", self.ship)
-    console.log("self.ship.playerId", self.ship?.playerId)
-    console.log("PRE ADD BULLET ", creationData)
-    console.log("Received newBullet from:", creationData.shooterId, "My ID:", self.ship?.playerId);
+    console.log("[CLIENT] ========== NEW BULLET EVENT ==========");
+    console.log("[CLIENT] self.ship", self.ship);
+    console.log("[CLIENT] self.ship.playerId", self.ship?.playerId);
+    console.log("[CLIENT] PRE ADD BULLET ", creationData);
+    console.log("[CLIENT] Received newBullet from:", creationData.shooterId, "My ID:", self.ship?.playerId);
+    console.log("[CLIENT] Am I the shooter?", creationData.shooterId === self.ship?.playerId);
+    console.log("[CLIENT] About to call addBullet()...");
     addBullet(self, creationData);
+    console.log("[CLIENT] addBullet() called successfully");
+    console.log("[CLIENT] =======================================");
   });
 
   this.socket.on('playerIsDead', function (playerInfo, deathData) {

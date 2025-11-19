@@ -619,6 +619,8 @@ io.on('connection', function (socket) {
 
   // Join the socket.io room for this ship
   socket.join(roomId);
+  console.log(`[SOCKET JOIN] Socket ${socket.id} joined room ${roomId}`);
+  console.log(`[SOCKET ROOMS] Socket ${socket.id} is now in rooms:`, socket.rooms);
 
   // Store room info in socket
   socket.currentRoomX = initialRoomX;
@@ -809,9 +811,16 @@ io.on('connection', function (socket) {
       console.log("creationData (server): ", creationData);
       console.log("Broadcasting bullet to room", roomId, "from shooter", creationData.shooterId);
       console.log("Players in room:", Object.keys(room.players));
+      console.log("Socket rooms:", socket.rooms); // Debug: show which rooms this socket is in
+
       room.bullets.push({ id: room.bullets.length });
-      // Emit to all players in the same room
+
+      // Emit to all players in the same room (INCLUDING the shooter)
       io.to(roomId).emit('newBullet', creationData);
+
+      console.log(`[BULLET BROADCAST] Sent newBullet to room ${roomId} with ${Object.keys(room.players).length} players`);
+    } else {
+      console.error(`[BULLET ERROR] Room ${roomId} not found for socket ${socket.id}`);
     }
   });
 
@@ -913,7 +922,8 @@ io.on('connection', function (socket) {
       // Move all players to new room and update their coordinates
       playersOnShip.forEach(playerId => {
         const playerData = oldRoom.players[playerId];
-        const playerSocket = io.sockets.connected[playerId];
+        // Use io.sockets.sockets instead of deprecated io.sockets.connected
+        const playerSocket = io.sockets.sockets[playerId] || io.sockets.sockets.get(playerId);
 
         if (playerData && playerSocket) {
           // Remove from old room data
