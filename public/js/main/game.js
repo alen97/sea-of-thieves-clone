@@ -595,7 +595,7 @@ function create() {
         console.log('[SHIP SINKING] Ship is sinking! Death screen in 5 seconds...');
 
         self.time.delayedCall(5000, () => {
-          self.showDeathScreen();
+          showDeathScreen.call(self);
         });
       }
     }
@@ -1916,46 +1916,46 @@ function update(time, delta) {
       }
     }
   }
+}
 
-  /**
-   * Show death screen when ship has sunk
-   */
-  showDeathScreen() {
-    console.log('[DEATH SCREEN] Showing death screen');
+/**
+ * Show death screen when ship has sunk
+ */
+function showDeathScreen() {
+  console.log('[DEATH SCREEN] Showing death screen');
 
-    // Create semi-transparent black overlay
-    const overlay = this.add.rectangle(
-      this.cameras.main.scrollX + this.cameras.main.width / 2,
-      this.cameras.main.scrollY + this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000,
-      0.8
-    );
-    overlay.setScrollFactor(0);
-    overlay.setDepth(1000);
+  // Create semi-transparent black overlay
+  const overlay = this.add.rectangle(
+    this.cameras.main.scrollX + this.cameras.main.width / 2,
+    this.cameras.main.scrollY + this.cameras.main.height / 2,
+    this.cameras.main.width,
+    this.cameras.main.height,
+    0x000000,
+    0.8
+  );
+  overlay.setScrollFactor(0);
+  overlay.setDepth(1000);
 
-    // Create death text
-    const deathText = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      'TU BARCO SE HUNDIÓ\n\nRecargando...',
-      {
-        fontSize: '48px',
-        fill: '#ff0000',
-        fontStyle: 'bold',
-        align: 'center'
-      }
-    );
-    deathText.setOrigin(0.5);
-    deathText.setScrollFactor(0);
-    deathText.setDepth(1001);
+  // Create death text
+  const deathText = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2,
+    'TU BARCO SE HUNDIÓ\n\nRecargando...',
+    {
+      fontSize: '48px',
+      fill: '#ff0000',
+      fontStyle: 'bold',
+      align: 'center'
+    }
+  );
+  deathText.setOrigin(0.5);
+  deathText.setScrollFactor(0);
+  deathText.setDepth(1001);
 
-    // Reload page after 3 seconds
-    this.time.delayedCall(3000, () => {
-      window.location.reload();
-    });
-  }
+  // Reload page after 3 seconds
+  this.time.delayedCall(3000, () => {
+    window.location.reload();
+  });
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
