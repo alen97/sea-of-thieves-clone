@@ -53,12 +53,17 @@ class CrowsNestSystem {
             return this.visual;
         }
 
-        const graphics = this.scene.add.graphics();
-        graphics.fillStyle(0x2B1810, 1); // Dark brown
-        graphics.fillRect(-11, -11, 22, 22);
-        graphics.setDepth(3.5); // Above walking player (3), below player in crow's nest (4)
+        // Create sprite using the crow's nest image
+        const crowsNestSprite = this.scene.add.sprite(0, 0, 'crowsNest');
 
-        this.visual = graphics;
+        // Scale to maintain the same size as the old square (22x22)
+        const targetSize = 22; // Same size as old square
+        const scale = targetSize / Math.max(crowsNestSprite.width, crowsNestSprite.height);
+        crowsNestSprite.setScale(scale);
+
+        crowsNestSprite.setDepth(3.5); // Above walking player (3), below player in crow's nest (4)
+
+        this.visual = crowsNestSprite;
         return this.visual;
     }
 

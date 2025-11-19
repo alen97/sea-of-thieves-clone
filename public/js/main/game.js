@@ -90,6 +90,7 @@ function preload() {
   this.load.image('player', 'assets/player.png');
   this.load.image('otherPlayer', 'assets/ship.png');
   this.load.image('hatch', 'assets/escotilla.png');
+  this.load.image('crowsNest', 'assets/cofa.png');
 
   this.load.audio('enterGame', ['sounds/portalenter.ogg', 'sounds/portalenter.mp3']);
 
