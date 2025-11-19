@@ -6,6 +6,9 @@ var io = require('socket.io').listen(server);
 // Load shared physics module
 const shipPhysics = require('./shared/shipPhysics.js');
 
+// Development mode flag - set to false in production
+const DEV_MODE = true;
+
 // Room-based structure: each room has ONE shared ship and multiple players (max 4)
 var rooms = {};
 const MAX_PLAYERS = 4;
@@ -707,6 +710,56 @@ io.on('connection', function (socket) {
 
   // Update other players in the same room about the new player
   socket.to(roomId).emit('newPlayer', room.players[socket.id]);
+
+  // DEV: Apply modifier instantly (development only)
+  socket.on('devApplyModifier', function (data) {
+    if (!DEV_MODE) {
+      console.log('[DEV] devApplyModifier ignored - DEV_MODE is false');
+      return;
+    }
+
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (!room || !room.ship) {
+      console.log('[DEV] No room or ship found for devApplyModifier');
+      return;
+    }
+
+    const modifierType = data.modifierType;
+    const typeInfo = MODIFIER_TYPES[modifierType];
+
+    if (!typeInfo) {
+      console.log(`[DEV] Invalid modifier type: ${modifierType}`);
+      return;
+    }
+
+    // Generate unique ID for dev modifier
+    const devModifierId = `dev_${modifierType}_${Date.now()}`;
+
+    // Apply the modifier
+    const applied = applyModifier(room.ship, modifierType, devModifierId);
+
+    if (applied) {
+      console.log(`[DEV] Applied ${modifierType} to ship`);
+
+      // Emit to all clients in room (same as normal collection)
+      io.to(roomId).emit('modifierCollected', {
+        modifierId: devModifierId,
+        modifierType: typeInfo.type,
+        modifierName: typeInfo.name,
+        modifierLore: typeInfo.lore,
+        modifierRarity: typeInfo.rarity,
+        modifierColor: typeInfo.color,
+        isAbyssal: typeInfo.isAbyssal || false,
+        usesCurseSound: typeInfo.usesCurseSound || false,
+        shipModifiers: room.ship.modifiers,
+        collectedModifiers: room.ship.collectedModifiers
+      });
+    } else {
+      console.log(`[DEV] Failed to apply ${modifierType} (already collected?)`);
+    }
+  });
 
   // when a player disconnects, remove them from their room
   socket.on('disconnect', function () {

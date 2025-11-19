@@ -1374,6 +1374,61 @@ function update(time, delta) {
       }
     }
 
+    // DEV: Number keys to instantly apply modifiers
+    if (!this.chatMode) {
+      const devModifierMap = {
+        1: { type: 'RIOS_WINDS', name: "Río de la Plata's Winds", color: 0x00CED1 },
+        2: { type: 'CAPTAINS_GUIDE', name: "Captain's Wisdom", color: 0xFFD700 },
+        3: { type: 'PIRATES_TENACITY', name: "Pirate's Tenacity", color: 0xDC143C },
+        4: { type: 'ABYSS_LANTERN', name: "Lantern of the Abyss", color: 0x7A00FF },
+        5: { type: 'TEMPEST_ABYSS', name: "Tempest of the Abyss", color: 0x7A00FF },
+        6: { type: 'ETHEREAL_HELM', name: "Ethereal Helm", color: 0x7A00FF },
+        7: { type: 'ENDLESS_BARRAGE', name: "Endless Barrage", color: 0x7A00FF },
+        8: { type: 'ABYSSAL_COMPASS', name: "Abyssal Compass", color: 0xFFD700 }
+      };
+
+      const checkDevKey = (keyNum, keyObj) => {
+        if (Phaser.Input.Keyboard.JustDown(keyObj)) {
+          const modInfo = devModifierMap[keyNum];
+          console.log(`[DEV] Applying ${modInfo.name} (key ${keyNum})`);
+
+          // Emit to server
+          this.socket.emit('devApplyModifier', { modifierType: modInfo.type });
+
+          // Visual feedback
+          const feedbackText = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 100,
+            `DEV: Applied ${modInfo.name}`,
+            {
+              fontSize: '20px',
+              fill: '#' + modInfo.color.toString(16).padStart(6, '0'),
+              backgroundColor: '#000000',
+              padding: { x: 10, y: 5 }
+            }
+          ).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+
+          // Fade out after 2 seconds
+          this.tweens.add({
+            targets: feedbackText,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => feedbackText.destroy()
+          });
+        }
+      };
+
+      checkDevKey(1, this.devKey1);
+      checkDevKey(2, this.devKey2);
+      checkDevKey(3, this.devKey3);
+      checkDevKey(4, this.devKey4);
+      checkDevKey(5, this.devKey5);
+      checkDevKey(6, this.devKey6);
+      checkDevKey(7, this.devKey7);
+      checkDevKey(8, this.devKey8);
+    }
+
     // Block ALL game input when map is open
     if (this.mapVisible) {
       // Block arrow keys from controlling cannons/aim
@@ -2296,6 +2351,16 @@ class UIScene extends Phaser.Scene {
     this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.keyBackspace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
+
+    // DEV: Register number keys for instant modifier application
+    this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+    this.devKey2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+    this.devKey3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+    this.devKey4 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+    this.devKey5 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE);
+    this.devKey6 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX);
+    this.devKey7 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SEVEN);
+    this.devKey8 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.EIGHT);
 
     // Capturar input de teclado para chat
     this.input.keyboard.on('keydown', (event) => {
