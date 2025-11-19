@@ -2051,10 +2051,10 @@ function update(time, delta) {
 
           // Create full-screen black overlay for fade effect
           const fadeOverlay = this.add.rectangle(
-            this.cameras.main.scrollX + this.cameras.main.width / 2,
-            this.cameras.main.scrollY + this.cameras.main.height / 2,
-            this.cameras.main.width,
-            this.cameras.main.height,
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            this.cameras.main.width * 2,
+            this.cameras.main.height * 2,
             0x000000,
             0
           );
@@ -2239,7 +2239,7 @@ function showVictoryScreen() {
   const reloadText = this.add.text(
     this.cameras.main.width / 2,
     this.cameras.main.height / 2 + 70,
-    'Comenzando nueva aventura en 5 segundos...',
+    'Presiona ESC para reiniciar',
     {
       fontSize: '16px',
       fill: '#aaaaaa',
@@ -2250,13 +2250,8 @@ function showVictoryScreen() {
   reloadText.setScrollFactor(0);
   reloadText.setDepth(1002);
 
-  // Play victory sound if available
-  if (this.sound.get('enterGame')) {
-    this.sound.play('enterGame', { volume: 0.5 });
-  }
-
-  // Reload page after 5 seconds
-  this.time.delayedCall(5000, () => {
+  // Listen for ESC key to reload
+  this.input.keyboard.once('keydown-ESC', () => {
     window.location.reload();
   });
 }
