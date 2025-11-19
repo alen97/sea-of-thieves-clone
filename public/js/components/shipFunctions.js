@@ -130,6 +130,20 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             }
         }
     }
+
+    // Handle ship sinking visual (health < 10)
+    if (currentHealth < 10 && currentHealth > 0) {
+        // Sink ship below ocean (negative depth)
+        if (ship.depth !== -1) {
+            ship.setDepth(-1);
+            console.log('[SHIP SINKING] Ship depth set to -1 (below ocean)');
+        }
+    } else {
+        // Ship is above water
+        if (ship.depth !== 2) {
+            ship.setDepth(2);
+        }
+    }
 }
 
 function setupShipCollisions(self, ship) {

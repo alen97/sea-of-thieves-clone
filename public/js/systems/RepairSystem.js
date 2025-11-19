@@ -113,10 +113,13 @@ class RepairSystem {
         // If player is repairing, show repair progress
         if (player.isRepairing) {
             const hatchPos = this.getHatchPosition(ship);
-            const healthPercent = Math.round((ship.health / ship.maxHealth) * 100);
+            const health = ship.health || 100;
+            const maxHealth = ship.maxHealth || 100;
+            const healthPercent = Math.round((health / maxHealth) * 100);
             indicator.setText(`Reparando... ${healthPercent}%`);
             indicator.setPosition(hatchPos.x, hatchPos.y - 25);
             indicator.setVisible(true);
+            console.log(`[REPAIR DEBUG] Health: ${health}/${maxHealth}, Percent: ${healthPercent}%`);
             return;
         }
 

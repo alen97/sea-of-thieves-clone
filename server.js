@@ -831,6 +831,7 @@ io.on('connection', function (socket) {
       // Mark player as not repairing
       room.players[socket.id].player.isRepairing = false;
       room.players[socket.id].player.repairStartTime = null;
+      room.players[socket.id].player.lastRepairTime = null;
 
       console.log(`[REPAIR] Player ${socket.id} stopped repairing`);
 
@@ -1252,14 +1253,21 @@ setInterval(function() {
       const REPAIR_AMOUNT = 10; // HP per player every 3 seconds
 
       repairingPlayers.forEach(playerData => {
-        const repairStartTime = playerData.player.repairStartTime || now;
-        const timeSinceStart = now - repairStartTime;
+        // Initialize repair tracking
+        if (!playerData.player.lastRepairTime) {
+          playerData.player.lastRepairTime = now;
+        }
+
+        const timeSinceLastRepair = now - playerData.player.lastRepairTime;
 
         // Check if it's time to repair (every 3 seconds)
-        if (timeSinceStart >= REPAIR_INTERVAL && timeSinceStart % REPAIR_INTERVAL < DELTA_TIME * 1000) {
+        if (timeSinceLastRepair >= REPAIR_INTERVAL) {
           // Repair ship
           const oldHealth = room.ship.health;
           room.ship.health = Math.min(room.ship.maxHealth, room.ship.health + REPAIR_AMOUNT);
+
+          // Update last repair time
+          playerData.player.lastRepairTime = now;
 
           console.log(`[REPAIR] Player ${playerData.playerId} repaired ship: ${oldHealth} -> ${room.ship.health}`);
 
