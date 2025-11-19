@@ -2474,7 +2474,8 @@ class UIScene extends Phaser.Scene {
 
       // Item image (the actual potion modifier sprite)
       const itemImage = this.add.image(0, 0, 'potionModifier');
-      const imageScale = (modifierCellSize * 0.7) / Math.max(itemImage.width, itemImage.height);
+      const imageSize = Math.max(itemImage.width || 32, itemImage.height || 32);
+      const imageScale = (modifierCellSize * 0.7) / imageSize;
       itemImage.setScale(imageScale);
 
       container.add([outerCell, itemImage]);
@@ -2948,7 +2949,10 @@ class UIScene extends Phaser.Scene {
         if (i < modifiers.length) {
           // Show cell and tint with modifier color
           cell.setVisible(true);
-          cell.itemImage.setTint(modifiers[i].color);
+          if (cell.itemImage) {
+            cell.itemImage.clearTint();
+            cell.itemImage.setTint(modifiers[i].color);
+          }
         } else {
           // Hide empty cells
           cell.setVisible(false);
