@@ -2670,8 +2670,8 @@ class UIScene extends Phaser.Scene {
       const lanternLit = this.mainScene.lanternLit;
 
       if (hasAbyssLantern && lanternLit) {
-        // Show violet overlay with strong alpha (same visibility day and night)
-        this.abyssOverlay.setAlpha(0.5);
+        // Show violet overlay with lighter alpha for reduced eye strain
+        this.abyssOverlay.setAlpha(0.25);
         this.abyssOverlay.setFillStyle(0x7A00FF, 1.0);
         console.log("Abyss overlay ACTIVE - alpha:", this.abyssOverlay.alpha, "visible:", this.abyssOverlay.visible, "depth:", this.abyssOverlay.depth);
       } else {
@@ -2813,9 +2813,10 @@ class UIScene extends Phaser.Scene {
       }
 
       // ===== ACTUALIZAR INDICADOR DEL PORTAL (ABYSSAL COMPASS) =====
-      // Only show portal indicator if player has the compass
+      // Only show portal indicator if player has the compass AND lantern is lit
       const hasCompass = this.mainScene.shipModifiers && this.mainScene.shipModifiers.compass;
-      if (hasCompass && this.mainScene.portalRoomX !== undefined && this.mainScene.portalRoomY !== undefined) {
+      const lanternLit = this.mainScene.lanternLit;
+      if (hasCompass && lanternLit && this.mainScene.portalRoomX !== undefined && this.mainScene.portalRoomY !== undefined) {
         const mapSize = 9;
         const cellSize = 40;
         const mapWidth = mapSize * cellSize;
