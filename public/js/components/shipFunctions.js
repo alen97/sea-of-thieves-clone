@@ -38,13 +38,10 @@ function addOtherShip(self, shipInfo) {
 }
 
 function setupShipCollisions(self, ship) {
-    // Colisión de balas con el BARCO (sin daño)
-    self.physics.add.overlap(ship, self.otherBullets, function (shipObj, bullet) {
-        if (shipObj.playerId !== bullet.shooterId) {
-            // Destruir bala al impactar (sin causar daño)
-            bullet.destroy();
-        }
-    }, null, self);
+    // NOTE: Removed ship-bullet collision for shared ship
+    // In a shared ship with multiple crew members, bullets from any player
+    // should not collide with their own ship (they're all on the same team)
+    // Bullets auto-destroy after 1 second timeout anyway
 
     // Colisión de balas con JELLIES (destruye la jelly)
     self.physics.add.overlap(self.otherBullets, self.jellies, function (bullet, jelly) {
