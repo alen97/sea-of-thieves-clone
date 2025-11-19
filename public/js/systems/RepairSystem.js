@@ -133,7 +133,7 @@ class RepairSystem {
 
         if (nearHatch) {
             const hatchPos = this.getHatchPosition(ship);
-            indicator.setText('Mantén E para reparar');
+            indicator.setText('Presiona E para reparar');
             indicator.setPosition(hatchPos.x, hatchPos.y - 25);
             indicator.setVisible(true);
         } else {
@@ -142,16 +142,16 @@ class RepairSystem {
     }
 
     /**
-     * Handle repair input (holding E at hatch)
+     * Handle repair input (toggle E at hatch)
      * @param {Object} player - Player sprite
      * @param {Object} ship - Ship sprite
-     * @param {boolean} interactHeld - Is E key being held
+     * @param {boolean} interactPressed - Was E key just pressed (JustDown)
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearCannon - Is player near cannon
      * @param {boolean} nearCrowsNest - Is player near crow's nest
      * @param {Object} socket - Socket instance
      */
-    handleRepairInput(player, ship, interactHeld, nearHelm, nearCannon, nearCrowsNest, socket) {
+    handleRepairInput(player, ship, interactPressed, nearHelm, nearCannon, nearCrowsNest, socket) {
         // Don't allow repair if player is doing something else
         if (nearHelm || nearCannon || nearCrowsNest) {
             if (player.isRepairing) {
@@ -163,16 +163,27 @@ class RepairSystem {
 
         const nearHatch = this.isNearHatch(player, ship);
 
-        if (nearHatch && interactHeld && !player.isRepairing) {
-            // Start repairing
-            player.isRepairing = true;
-            socket.emit('startRepair');
-            console.log('[REPAIR] Started repairing ship');
-        } else if ((!nearHatch || !interactHeld) && player.isRepairing) {
-            // Stop repairing
+        // Stop repairing if player moves away from hatch
+        if (!nearHatch && player.isRepairing) {
             player.isRepairing = false;
             socket.emit('stopRepair');
-            console.log('[REPAIR] Stopped repairing ship');
+            console.log('[REPAIR] Stopped repairing ship - moved away from hatch');
+            return;
+        }
+
+        // Toggle repair on E press when near hatch
+        if (nearHatch && interactPressed) {
+            if (!player.isRepairing) {
+                // Start repairing
+                player.isRepairing = true;
+                socket.emit('startRepair');
+                console.log('[REPAIR] Started repairing ship');
+            } else {
+                // Stop repairing (toggle off)
+                player.isRepairing = false;
+                socket.emit('stopRepair');
+                console.log('[REPAIR] Stopped repairing ship - toggled off');
+            }
         }
     }
 
