@@ -8,9 +8,9 @@
 class RepairSystem {
     constructor(scene) {
         this.scene = scene;
-        this.interactionDistance = 30;
-        this.hatchOffsetX = 40; // Slightly to the right of helm
-        this.hatchOffsetY = 50; // Below helm
+        this.interactionDistance = 15;
+        this.hatchOffsetX = -57; // Slightly to the right of helm
+        this.hatchOffsetY = 0; // Below helm
         this.visual = null;
         this.indicator = null;
         this.repairRate = 10; // HP per repair tick
