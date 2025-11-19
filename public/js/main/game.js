@@ -119,6 +119,7 @@ function preload() {
   // Modifier collection sounds
   this.load.audio('blessing', 'sounds/blessing.ogg');
   this.load.audio('curse', 'sounds/curse.wav');
+  this.load.audio('portalExit', 'sounds/portal_exit.mp3');
 
   // Load player sprite sheets (one per player color)
   this.load.spritesheet('playerDefault', 'assets/Prota-Spritesheet.png', { frameWidth: 28, frameHeight: 28 });
@@ -2030,7 +2031,49 @@ function update(time, delta) {
         if (distanceToPortal < collisionDistance && !this.victoryTriggered) {
           console.log('[PORTAL] Ship entered portal! Distance:', distanceToPortal);
           this.victoryTriggered = true; // Prevent multiple triggers
-          showVictoryScreen.call(this);
+
+          // Play portal exit sound
+          const portalSound = this.sound.add('portalExit', { volume: 1.0 });
+          portalSound.play();
+
+          // Fade out sound after 30 seconds max
+          this.time.delayedCall(25000, () => {
+            this.tweens.add({
+              targets: portalSound,
+              volume: 0,
+              duration: 5000,
+              onComplete: () => {
+                portalSound.stop();
+                portalSound.destroy();
+              }
+            });
+          });
+
+          // Create full-screen black overlay for fade effect
+          const fadeOverlay = this.add.rectangle(
+            this.cameras.main.scrollX + this.cameras.main.width / 2,
+            this.cameras.main.scrollY + this.cameras.main.height / 2,
+            this.cameras.main.width,
+            this.cameras.main.height,
+            0x000000,
+            0
+          );
+          fadeOverlay.setScrollFactor(0);
+          fadeOverlay.setDepth(999);
+
+          // Fade to black
+          this.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 2000,
+            ease: 'Power2',
+            onComplete: () => {
+              // Show victory screen after fade completes
+              this.time.delayedCall(1500, () => {
+                showVictoryScreen.call(this);
+              });
+            }
+          });
         }
       }
     }
