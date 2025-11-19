@@ -467,34 +467,35 @@ function create() {
       if (shipData.modifiers) {
         self.shipModifiers = shipData.modifiers;
 
-        // Build shipModifiersArray from collectedModifiers array
-        // This properly handles all 8 modifier types
-        self.shipModifiersArray = [];
-        self.collectedModifiers = shipData.collectedModifiers || [];
+        // Only rebuild shipModifiersArray on initial join (when empty)
+        // This prevents overwriting modifiers collected during gameplay
+        if (self.shipModifiersArray.length === 0 && shipData.collectedModifiers && shipData.collectedModifiers.length > 0) {
+          self.collectedModifiers = shipData.collectedModifiers;
 
-        // Modifier info lookup for display
-        const MODIFIER_INFO = {
-          'RIOS_WINDS': { color: 0x00CED1, name: "Río de la Plata's Winds" },
-          'CAPTAINS_GUIDE': { color: 0xFFD700, name: "Captain's Wisdom" },
-          'PIRATES_TENACITY': { color: 0xDC143C, name: "Pirate's Tenacity" },
-          'ABYSS_LANTERN': { color: 0x7A00FF, name: "Lantern of the Abyss" },
-          'TEMPEST_ABYSS': { color: 0x7A00FF, name: "Tempest of the Abyss" },
-          'ETHEREAL_HELM': { color: 0x7A00FF, name: "Ethereal Helm" },
-          'ENDLESS_BARRAGE': { color: 0x7A00FF, name: "Endless Barrage" },
-          'ABYSSAL_COMPASS': { color: 0xFFD700, name: "Abyssal Compass" }
-        };
+          // Modifier info lookup for display
+          const MODIFIER_INFO = {
+            'RIOS_WINDS': { color: 0x00CED1, name: "Río de la Plata's Winds" },
+            'CAPTAINS_GUIDE': { color: 0xFFD700, name: "Captain's Wisdom" },
+            'PIRATES_TENACITY': { color: 0xDC143C, name: "Pirate's Tenacity" },
+            'ABYSS_LANTERN': { color: 0x7A00FF, name: "Lantern of the Abyss" },
+            'TEMPEST_ABYSS': { color: 0x7A00FF, name: "Tempest of the Abyss" },
+            'ETHEREAL_HELM': { color: 0x7A00FF, name: "Ethereal Helm" },
+            'ENDLESS_BARRAGE': { color: 0x7A00FF, name: "Endless Barrage" },
+            'ABYSSAL_COMPASS': { color: 0xFFD700, name: "Abyssal Compass" }
+          };
 
-        // Add each collected modifier to the array
-        self.collectedModifiers.forEach(modifierType => {
-          const info = MODIFIER_INFO[modifierType];
-          if (info) {
-            self.shipModifiersArray.push({
-              type: modifierType,
-              color: info.color,
-              name: info.name
-            });
-          }
-        });
+          // Add each collected modifier to the array
+          self.collectedModifiers.forEach(modifierType => {
+            const info = MODIFIER_INFO[modifierType];
+            if (info) {
+              self.shipModifiersArray.push({
+                type: modifierType,
+                color: info.color,
+                name: info.name
+              });
+            }
+          });
+        }
       }
     }
   });
@@ -2463,29 +2464,25 @@ class UIScene extends Phaser.Scene {
     const modifierCellStartX = cameraX - 380; // Left side of screen
     const modifierCellStartY = cameraY - 350; // Top of screen
 
-    // Helper function to create a single cell (outer border, inner white square, colored circle)
+    // Helper function to create a single cell (outer border with item image)
     const createModifierCell = (x, y) => {
       const container = this.add.container(x, y);
       container.setScrollFactor(0);
       container.setDepth(2020);
 
-      // Outer cell with white border (initially transparent background)
-      const outerCell = this.add.rectangle(0, 0, modifierCellSize, modifierCellSize, 0x000000, 0);
+      // Outer cell with white border and dark background
+      const outerCell = this.add.rectangle(0, 0, modifierCellSize, modifierCellSize, 0x000000, 0.5);
       outerCell.setStrokeStyle(2, 0xFFFFFF, 1); // White border
 
-      // Inner white square (slightly smaller)
-      const innerSquareSize = modifierCellSize * 0.6; // 60% of cell size
-      const innerSquare = this.add.rectangle(0, 0, innerSquareSize, innerSquareSize, 0xFFFFFF, 1);
+      // Item image (the actual potion modifier sprite)
+      const itemImage = this.add.image(0, 0, 'potionModifier');
+      itemImage.setDisplaySize(modifierCellSize * 0.7, modifierCellSize * 0.7);
 
-      // Colored circle (will be updated based on modifier)
-      const circleRadius = innerSquareSize * 0.4; // 40% of inner square
-      const coloredCircle = this.add.circle(0, 0, circleRadius, 0xFFFFFF, 1);
-
-      container.add([outerCell, innerSquare, coloredCircle]);
+      container.add([outerCell, itemImage]);
       container.setVisible(false);
 
       // Store references for updating
-      container.coloredCircle = coloredCircle;
+      container.itemImage = itemImage;
 
       return container;
     };
@@ -2950,9 +2947,9 @@ class UIScene extends Phaser.Scene {
         const cell = this.modifierCells[i];
 
         if (i < modifiers.length) {
-          // Show cell and update color
+          // Show cell and tint item with modifier color
           cell.setVisible(true);
-          cell.coloredCircle.setFillStyle(modifiers[i].color, 1);
+          cell.itemImage.setTint(modifiers[i].color);
         } else {
           // Hide empty cells
           cell.setVisible(false);
