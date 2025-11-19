@@ -185,8 +185,12 @@ class CannonSystem {
         // Apply fire rate modifier with cap to prevent spam
         let effectiveCooldown = this.cooldownTime;
         if (modifiers && modifiers.fireRate) {
-            const reduction = Math.min(modifiers.fireRateBonus || 0.5, 0.90); // Cap at 90% reduction
-            effectiveCooldown = this.cooldownTime * (1 - reduction); // e.g., 3000ms * (1-0.67) = 1000ms
+            const rawReduction = modifiers.fireRateBonus || 0.5;
+            const reduction = Math.min(rawReduction, 0.90); // Cap at 90% reduction
+            effectiveCooldown = this.cooldownTime * (1 - reduction);
+
+            // Debug log
+            console.log(`[CANNON] fireRateBonus: ${rawReduction}, capped: ${reduction}, cooldown: ${effectiveCooldown}ms`);
         }
 
         return (currentTime - lastShot) >= effectiveCooldown;
