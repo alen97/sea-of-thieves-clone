@@ -62,12 +62,18 @@ class RepairSystem {
             return this.visual;
         }
 
-        const graphics = this.scene.add.graphics();
-        graphics.fillStyle(0x1a1a1a, 1); // Dark gray/black (like crow's nest)
-        graphics.fillRect(-15, -15, 30, 30); // Slightly larger than crow's nest
-        graphics.setDepth(2.5); // Same as cannons, above ship (2), below player (3)
+        // Create sprite using the hatch image
+        const hatchSprite = this.scene.add.sprite(0, 0, 'hatch');
 
-        this.visual = graphics;
+        // Scale to maintain the same size as the old square (30x30)
+        // Adjust based on the actual sprite dimensions
+        const targetSize = 30; // Same size as old square
+        const scale = targetSize / Math.max(hatchSprite.width, hatchSprite.height);
+        hatchSprite.setScale(scale);
+
+        hatchSprite.setDepth(2.5); // Same as cannons, above ship (2), below player (3)
+
+        this.visual = hatchSprite;
         return this.visual;
     }
 
