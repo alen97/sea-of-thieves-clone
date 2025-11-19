@@ -466,13 +466,13 @@ function applyModifier(ship, modifierType, modifierId) {
 
   // Apply the modifier
   ship.modifiers[typeInfo.effect] = true;
-  // Store bonus value for speed and turning modifiers
+  // Accumulate bonus values for speed, turning, and fireRate modifiers
   if (typeInfo.effect === 'speed') {
-    ship.modifiers.speedBonus = typeInfo.bonus;
+    ship.modifiers.speedBonus = (ship.modifiers.speedBonus || 0) + typeInfo.bonus;
   } else if (typeInfo.effect === 'turning') {
-    ship.modifiers.turningBonus = typeInfo.bonus;
+    ship.modifiers.turningBonus = (ship.modifiers.turningBonus || 0) + typeInfo.bonus;
   } else if (typeInfo.effect === 'fireRate') {
-    ship.modifiers.fireRateBonus = typeInfo.bonus;
+    ship.modifiers.fireRateBonus = (ship.modifiers.fireRateBonus || 0) + typeInfo.bonus;
   }
   ship.collectedModifiers.push(modifierType);
   console.log(`Applied ${modifierType} modifier to ship with bonus ${typeInfo.bonus} (total: ${ship.collectedModifiers.length})`);
