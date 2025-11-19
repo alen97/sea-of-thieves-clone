@@ -2032,6 +2032,16 @@ function update(time, delta) {
           console.log('[PORTAL] Ship entered portal! Distance:', distanceToPortal);
           this.victoryTriggered = true; // Prevent multiple triggers
 
+          // Disable all input
+          this.input.keyboard.enabled = false;
+          this.input.mouse.enabled = false;
+
+          // Stop any current player action
+          if (this.player) {
+            this.player.currentAction = null;
+            this.player.isControlling = false;
+          }
+
           // Play portal exit sound
           const portalSound = this.sound.add('portalExit', { volume: 1.0 });
           portalSound.play();
@@ -2052,11 +2062,9 @@ function update(time, delta) {
           // Use camera fade to black
           this.cameras.main.fadeOut(2000, 0, 0, 0);
 
-          // Show victory screen after fade completes
-          this.cameras.main.once('camerafadeoutcomplete', () => {
-            this.time.delayedCall(1500, () => {
-              showVictoryScreen.call(this);
-            });
+          // Show victory screen after fade completes (2s fade + 1.5s delay)
+          this.time.delayedCall(3500, () => {
+            showVictoryScreen.call(this);
           });
         }
       }
@@ -2233,6 +2241,9 @@ function showVictoryScreen() {
   reloadText.setOrigin(0.5);
   reloadText.setScrollFactor(0);
   reloadText.setDepth(1002);
+
+  // Re-enable keyboard for ESC
+  this.input.keyboard.enabled = true;
 
   // Listen for ESC key to reload
   this.input.keyboard.once('keydown-ESC', () => {
