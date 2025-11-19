@@ -93,6 +93,24 @@ class CannonSystem {
     }
 
     /**
+     * Check if another player is using a specific cannon
+     * @param {Object} otherPlayers - Phaser group of other players
+     * @param {string} side - 'left' or 'right'
+     * @returns {boolean}
+     */
+    isCannonOccupiedByOther(otherPlayers, side) {
+        if (!otherPlayers) return false;
+
+        const others = otherPlayers.getChildren();
+        for (let i = 0; i < others.length; i++) {
+            if (others[i].isOnCannon && others[i].cannonSide === side) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Mount player on cannon
      * @param {Object} player - Player sprite
      * @param {Object} cannon - Cannon sprite
@@ -101,6 +119,14 @@ class CannonSystem {
         player.isOnCannon = true;
         player.cannonSide = cannon.side;
         player.canMove = false;
+
+        // Emit cannon state to server
+        if (this.scene.socket) {
+            this.scene.socket.emit('cannonToggle', {
+                isOnCannon: true,
+                cannonSide: cannon.side
+            });
+        }
     }
 
     /**
@@ -111,6 +137,14 @@ class CannonSystem {
         player.isOnCannon = false;
         player.cannonSide = null;
         player.canMove = true;
+
+        // Emit cannon state to server
+        if (this.scene.socket) {
+            this.scene.socket.emit('cannonToggle', {
+                isOnCannon: false,
+                cannonSide: null
+            });
+        }
     }
 
     /**
@@ -222,8 +256,9 @@ class CannonSystem {
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearAnchor - Is player near anchor
      * @param {Object} modifiers - Optional ship modifiers
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor, modifiers = null) {
+    updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor, modifiers = null, otherPlayers = null) {
         const indicator = this.getIndicator();
 
         if (player.isOnCannon) {
@@ -248,15 +283,17 @@ class CannonSystem {
                 indicator.setVisible(false);
             }
         } else {
-            // Not mounted: show mount prompt if near cannon
+            // Not mounted: show mount prompt if near cannon (and cannon not occupied)
             const nearLeft = this.isNearCannon(player, cannons.left);
             const nearRight = this.isNearCannon(player, cannons.right);
+            const leftOccupied = this.isCannonOccupiedByOther(otherPlayers, 'left');
+            const rightOccupied = this.isCannonOccupiedByOther(otherPlayers, 'right');
 
-            if (nearLeft && !nearHelm && !nearAnchor) {
+            if (nearLeft && !nearHelm && !nearAnchor && !leftOccupied) {
                 indicator.setText('Presiona E para usar cañón');
                 indicator.setPosition(cannons.left.x, cannons.left.y - 20);
                 indicator.setVisible(true);
-            } else if (nearRight && !nearHelm && !nearAnchor) {
+            } else if (nearRight && !nearHelm && !nearAnchor && !rightOccupied) {
                 indicator.setText('Presiona E para usar cañón');
                 indicator.setPosition(cannons.right.x, cannons.right.y - 20);
                 indicator.setVisible(true);
@@ -273,18 +310,19 @@ class CannonSystem {
      * @param {boolean} interactPressed - Was interact pressed
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearAnchor - Is player near anchor
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    handleInteraction(player, cannons, interactPressed, nearHelm, nearAnchor) {
+    handleInteraction(player, cannons, interactPressed, nearHelm, nearAnchor, otherPlayers) {
         if (!interactPressed) return;
 
         if (player.isOnCannon) {
             // Dismount
             this.dismountCannon(player);
         } else if (!nearHelm && !nearAnchor) {
-            // Try to mount
-            if (this.isNearCannon(player, cannons.left)) {
+            // Try to mount (only if cannon is not occupied by another player)
+            if (this.isNearCannon(player, cannons.left) && !this.isCannonOccupiedByOther(otherPlayers, 'left')) {
                 this.mountCannon(player, cannons.left);
-            } else if (this.isNearCannon(player, cannons.right)) {
+            } else if (this.isNearCannon(player, cannons.right) && !this.isCannonOccupiedByOther(otherPlayers, 'right')) {
                 this.mountCannon(player, cannons.right);
             }
         }
@@ -301,17 +339,18 @@ class CannonSystem {
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearAnchor - Is player near anchor
      * @param {Object} modifiers - Optional ship modifiers
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    update(player, ship, cannons, input, deltaTime, currentTime, nearHelm, nearAnchor, modifiers = null) {
+    update(player, ship, cannons, input, deltaTime, currentTime, nearHelm, nearAnchor, modifiers = null, otherPlayers = null) {
         // Update cannon positions
         this.updateCannonPosition(cannons.left, ship);
         this.updateCannonPosition(cannons.right, ship);
 
         // Update indicator
-        this.updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor, modifiers);
+        this.updateIndicator(player, cannons, currentTime, nearHelm, nearAnchor, modifiers, otherPlayers);
 
         // Handle mount/dismount
-        this.handleInteraction(player, cannons, input.interact, nearHelm, nearAnchor);
+        this.handleInteraction(player, cannons, input.interact, nearHelm, nearAnchor, otherPlayers);
 
         // Update cannon rotation if mounted
         if (player.isOnCannon) {

@@ -786,6 +786,42 @@ io.on('connection', function (socket) {
     }
   });
 
+  // Handle helm control toggle
+  socket.on('helmToggle', function (data) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id] && data !== undefined) {
+      room.players[socket.id].player.isControllingShip = data.isControllingShip;
+      console.log(`Player ${socket.id} toggled helm: ${data.isControllingShip ? 'CONTROLLING' : 'RELEASED'}`);
+
+      // Broadcast helm state change to all other players in the room
+      socket.to(roomId).emit('playerHelmChanged', {
+        playerId: socket.id,
+        isControllingShip: data.isControllingShip
+      });
+    }
+  });
+
+  // Handle cannon mount/dismount
+  socket.on('cannonToggle', function (data) {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id] && data !== undefined) {
+      room.players[socket.id].player.isOnCannon = data.isOnCannon;
+      room.players[socket.id].player.cannonSide = data.cannonSide || null;
+      console.log(`Player ${socket.id} toggled cannon: ${data.isOnCannon ? `MOUNTED ${data.cannonSide}` : 'DISMOUNTED'}`);
+
+      // Broadcast cannon state change to all other players in the room
+      socket.to(roomId).emit('playerCannonChanged', {
+        playerId: socket.id,
+        isOnCannon: data.isOnCannon,
+        cannonSide: data.cannonSide
+      });
+    }
+  });
+
   // Handle crow's nest toggle
   socket.on('crowsNestToggle', function (data) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);

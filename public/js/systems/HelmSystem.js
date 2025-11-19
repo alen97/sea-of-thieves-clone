@@ -59,15 +59,34 @@ class HelmSystem {
     }
 
     /**
+     * Check if another player is controlling the ship
+     * @param {Object} otherPlayers - Phaser group of other players
+     * @returns {boolean}
+     */
+    isOccupiedByOther(otherPlayers) {
+        if (!otherPlayers) return false;
+
+        const others = otherPlayers.getChildren();
+        for (let i = 0; i < others.length; i++) {
+            if (others[i].isControllingShip) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Update helm indicator
      * @param {Object} player - Player sprite
      * @param {Object} ship - Ship sprite
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    updateIndicator(player, ship) {
+    updateIndicator(player, ship, otherPlayers) {
         const indicator = this.getIndicator();
         const canUseHelm = this.isNearHelm(player, ship);
+        const occupiedByOther = this.isOccupiedByOther(otherPlayers);
 
-        if (canUseHelm && !player.isControllingShip) {
+        if (canUseHelm && !player.isControllingShip && !occupiedByOther) {
             const helmPos = this.getHelmPosition(ship);
             indicator.setPosition(helmPos.x, helmPos.y - 20);
             indicator.setVisible(true);
@@ -80,14 +99,25 @@ class HelmSystem {
      * Toggle helm control
      * @param {Object} player - Player sprite
      * @param {Object} ship - Ship sprite
+     * @param {Object} otherPlayers - Phaser group of other players
      * @returns {boolean} New control state
      */
-    toggleControl(player, ship) {
+    toggleControl(player, ship, otherPlayers) {
         if (!this.isNearHelm(player, ship)) {
             return player.isControllingShip;
         }
 
+        // Don't allow taking control if another player is controlling
+        if (!player.isControllingShip && this.isOccupiedByOther(otherPlayers)) {
+            return player.isControllingShip;
+        }
+
         player.isControllingShip = !player.isControllingShip;
+
+        // Emit helm state to server
+        if (this.scene.socket) {
+            this.scene.socket.emit('helmToggle', { isControllingShip: player.isControllingShip });
+        }
 
         // Update camera focus
         if (player.isControllingShip) {
@@ -104,12 +134,13 @@ class HelmSystem {
      * @param {Object} player - Player sprite
      * @param {Object} ship - Ship sprite
      * @param {boolean} interactPressed - Was interact key pressed
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    update(player, ship, interactPressed) {
-        this.updateIndicator(player, ship);
+    update(player, ship, interactPressed, otherPlayers) {
+        this.updateIndicator(player, ship, otherPlayers);
 
         if (interactPressed) {
-            this.toggleControl(player, ship);
+            this.toggleControl(player, ship, otherPlayers);
         }
     }
 }

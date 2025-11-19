@@ -80,6 +80,23 @@ class CrowsNestSystem {
     }
 
     /**
+     * Check if another player is in the crow's nest
+     * @param {Object} otherPlayers - Phaser group of other players
+     * @returns {boolean}
+     */
+    isOccupiedByOther(otherPlayers) {
+        if (!otherPlayers) return false;
+
+        const others = otherPlayers.getChildren();
+        for (let i = 0; i < others.length; i++) {
+            if (others[i].isInCrowsNest) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Create or get crow's nest indicator
      * @returns {Object} Text object
      */
@@ -99,12 +116,14 @@ class CrowsNestSystem {
      * Update crow's nest indicator
      * @param {Object} player - Player sprite
      * @param {Object} ship - Ship sprite
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    updateIndicator(player, ship) {
+    updateIndicator(player, ship, otherPlayers) {
         const indicator = this.getIndicator();
         const canUseCrowsNest = this.isNearCrowsNest(player, ship);
+        const occupiedByOther = this.isOccupiedByOther(otherPlayers);
 
-        if (canUseCrowsNest && !player.isControllingShip && !player.isOnCannon) {
+        if (canUseCrowsNest && !player.isControllingShip && !player.isOnCannon && !occupiedByOther) {
             const crowsNestPos = this.getCrowsNestPosition(ship);
             const text = 'Presiona E para subir a la cofa';
 
@@ -124,9 +143,15 @@ class CrowsNestSystem {
     /**
      * Toggle crow's nest state
      * @param {Object} player - Player sprite
+     * @param {Object} otherPlayers - Phaser group of other players
      * @returns {boolean} New crow's nest state
      */
-    toggleCrowsNest(player) {
+    toggleCrowsNest(player, otherPlayers) {
+        // Don't allow entering if another player is in crow's nest
+        if (!player.isInCrowsNest && this.isOccupiedByOther(otherPlayers)) {
+            return player.isInCrowsNest;
+        }
+
         player.isInCrowsNest = !player.isInCrowsNest;
 
         // Reset camera offset when descending from crow's nest
@@ -156,13 +181,14 @@ class CrowsNestSystem {
      * @param {boolean} interactPressed - Was interact key pressed
      * @param {boolean} nearHelm - Is player near helm (to avoid conflicts)
      * @param {boolean} nearAnchor - Is player near anchor (to avoid conflicts)
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    update(player, ship, interactPressed, nearHelm = false, nearAnchor = false) {
+    update(player, ship, interactPressed, nearHelm = false, nearAnchor = false, otherPlayers = null) {
         // Update visual position
         this.updateVisual(ship);
 
         // Update indicator
-        this.updateIndicator(player, ship);
+        this.updateIndicator(player, ship, otherPlayers);
 
         // Only toggle if near crow's nest, not controlling/on cannon, not near other interactions
         if (interactPressed &&
@@ -171,7 +197,7 @@ class CrowsNestSystem {
             !nearAnchor &&
             !player.isControllingShip &&
             !player.isOnCannon) {
-            this.toggleCrowsNest(player);
+            this.toggleCrowsNest(player, otherPlayers);
         }
     }
 }

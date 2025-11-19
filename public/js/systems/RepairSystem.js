@@ -90,6 +90,23 @@ class RepairSystem {
     }
 
     /**
+     * Check if another player is repairing
+     * @param {Object} otherPlayers - Phaser group of other players
+     * @returns {boolean}
+     */
+    isOccupiedByOther(otherPlayers) {
+        if (!otherPlayers) return false;
+
+        const others = otherPlayers.getChildren();
+        for (let i = 0; i < others.length; i++) {
+            if (others[i].isRepairing) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Get or create repair indicator
      * @returns {Object} Text sprite
      */
@@ -112,9 +129,11 @@ class RepairSystem {
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearCannon - Is player near cannon
      * @param {boolean} nearCrowsNest - Is player near crow's nest
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest) {
+    updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest, otherPlayers) {
         const indicator = this.getIndicator();
+        const occupiedByOther = this.isOccupiedByOther(otherPlayers);
 
         // If player is repairing, show repair progress
         if (player.isRepairing) {
@@ -129,8 +148,8 @@ class RepairSystem {
             return;
         }
 
-        // Don't show repair indicator if player is doing something else
-        if (nearHelm || nearCannon || nearCrowsNest) {
+        // Don't show repair indicator if player is doing something else or hatch is occupied
+        if (nearHelm || nearCannon || nearCrowsNest || occupiedByOther) {
             indicator.setVisible(false);
             return;
         }
@@ -158,8 +177,9 @@ class RepairSystem {
      * @param {boolean} nearCannon - Is player near cannon
      * @param {boolean} nearCrowsNest - Is player near crow's nest
      * @param {Object} socket - Socket instance
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    handleRepairInput(player, ship, interactPressed, nearHelm, nearCannon, nearCrowsNest, socket) {
+    handleRepairInput(player, ship, interactPressed, nearHelm, nearCannon, nearCrowsNest, socket, otherPlayers) {
         // Don't allow repair if player is doing something else
         if (nearHelm || nearCannon || nearCrowsNest) {
             if (player.isRepairing) {
@@ -170,6 +190,7 @@ class RepairSystem {
         }
 
         const nearHatch = this.isNearHatch(player, ship);
+        const occupiedByOther = this.isOccupiedByOther(otherPlayers);
 
         // Stop repairing if player moves away from hatch (only if not already repairing)
         // Note: We don't stop repair on movement since we're locking position
@@ -178,6 +199,12 @@ class RepairSystem {
         // Toggle repair on E press when near hatch
         if (nearHatch && interactPressed) {
             if (!player.isRepairing) {
+                // Don't allow starting repair if another player is repairing
+                if (occupiedByOther) {
+                    console.log('[REPAIR] Cannot repair - another player is repairing');
+                    return;
+                }
+
                 // Check if ship is at full health
                 const health = ship.health || 100;
                 const maxHealth = ship.maxHealth || 100;
@@ -220,8 +247,9 @@ class RepairSystem {
      * @param {boolean} nearHelm - Is player near helm
      * @param {boolean} nearCannon - Is player near cannon
      * @param {boolean} nearCrowsNest - Is player near crow's nest
+     * @param {Object} otherPlayers - Phaser group of other players
      */
-    update(player, ship, inputState, nearHelm, nearCannon, nearCrowsNest) {
+    update(player, ship, inputState, nearHelm, nearCannon, nearCrowsNest, otherPlayers) {
         // Update visual position
         this.updateVisual(ship);
 
@@ -241,10 +269,10 @@ class RepairSystem {
         }
 
         // Update indicator
-        this.updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest);
+        this.updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest, otherPlayers);
 
         // Handle repair input
         const interactPressed = inputState.interact || false;
-        this.handleRepairInput(player, ship, interactPressed, nearHelm, nearCannon, nearCrowsNest, this.scene.socket);
+        this.handleRepairInput(player, ship, interactPressed, nearHelm, nearCannon, nearCrowsNest, this.scene.socket, otherPlayers);
     }
 }

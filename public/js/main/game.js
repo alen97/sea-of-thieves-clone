@@ -758,10 +758,32 @@ function create() {
     });
   });
 
+  // Handle helm state changes for other players
+  this.socket.on('playerHelmChanged', function (data) {
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (data.playerId === otherPlayer.playerId) {
+        otherPlayer.isControllingShip = data.isControllingShip;
+        console.log(`Player ${data.playerId} helm state: ${data.isControllingShip ? 'CONTROLLING' : 'RELEASED'}`);
+      }
+    });
+  });
+
+  // Handle cannon state changes for other players
+  this.socket.on('playerCannonChanged', function (data) {
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (data.playerId === otherPlayer.playerId) {
+        otherPlayer.isOnCannon = data.isOnCannon;
+        otherPlayer.cannonSide = data.cannonSide;
+        console.log(`Player ${data.playerId} cannon state: ${data.isOnCannon ? `MOUNTED ${data.cannonSide}` : 'DISMOUNTED'}`);
+      }
+    });
+  });
+
   // Handle crow's nest state changes for other players
   this.socket.on('playerCrowsNestChanged', function (data) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (data.playerId === otherPlayer.playerId) {
+        otherPlayer.isInCrowsNest = data.isInCrowsNest;
         // Update depth based on crow's nest state
         if (data.isInCrowsNest) {
           otherPlayer.setDepth(4); // On top of crow's nest
@@ -784,6 +806,7 @@ function create() {
     // Handle other players
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (data.playerId === otherPlayer.playerId) {
+        otherPlayer.isRepairing = data.isRepairing;
         otherPlayer.setVisible(!data.isRepairing);
         console.log(`[REPAIR] ${data.isRepairing ? 'Hidden' : 'Shown'} player ${data.playerId}`);
       }
@@ -1505,7 +1528,7 @@ function update(time, delta) {
     }
 
     // ===== SISTEMA DE TIMÓN (usando HelmSystem) =====
-    this.helmSystem.update(this.player, this.ship, inputState.interact && inputEnabled);
+    this.helmSystem.update(this.player, this.ship, inputState.interact && inputEnabled, this.otherPlayers);
     const canUseHelm = this.helmSystem.isNearHelm(this.player, this.ship);
 
     // ===== SISTEMA DE ANCLA (usando AnchorSystem) =====
@@ -1513,12 +1536,12 @@ function update(time, delta) {
     const canUseAnchor = this.anchorSystem.isNearAnchor(this.player, this.ship);
 
     // ===== SISTEMA DE COFA (usando CrowsNestSystem) =====
-    this.crowsNestSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm, canUseAnchor);
+    this.crowsNestSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm, canUseAnchor, this.otherPlayers);
 
     // ===== SISTEMA DE REPARACIÓN (usando RepairSystem) =====
     const nearCannon = this.player.isOnCannon || false;
     const nearCrowsNest = this.player.isInCrowsNest || false;
-    this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, nearCannon, nearCrowsNest);
+    this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, nearCannon, nearCrowsNest, this.otherPlayers);
 
     // ===== SISTEMA DE CAÑONES (usando CannonSystem) =====
     if (this.ship.cannons) {
@@ -1531,7 +1554,8 @@ function update(time, delta) {
         time,
         canUseHelm,
         canUseAnchor,
-        this.shipModifiers // Pass modifiers for fire rate
+        this.shipModifiers, // Pass modifiers for fire rate
+        this.otherPlayers // Pass other players for occupation check
       );
     }
 
