@@ -235,6 +235,7 @@ function create() {
   this.mapVisible = false;
   this.chatMode = false;
   this.deathScreenShown = false; // Track if death screen has been shown
+  this.victoryTriggered = false; // Track if victory screen has been shown
 
   // Network optimization: track last sent values for throttling
   this.lastSentSteeringDirection = 0;
@@ -2010,6 +2011,27 @@ function update(time, delta) {
 
         this.portal.setPosition(localPortalX, localPortalY);
         this.portalInner.setPosition(localPortalX, localPortalY);
+
+        // ===== CHECK COLLISION WITH PORTAL =====
+        // Calculate distance between ship and portal
+        const distanceToPortal = Phaser.Math.Distance.Between(
+          this.ship.x,
+          this.ship.y,
+          localPortalX,
+          localPortalY
+        );
+
+        // Portal collision radius (outer circle radius is 80)
+        const portalRadius = 80;
+        const shipRadius = 50; // Approximate ship collision radius
+        const collisionDistance = portalRadius + shipRadius;
+
+        // Check if ship is close enough to portal
+        if (distanceToPortal < collisionDistance && !this.victoryTriggered) {
+          console.log('[PORTAL] Ship entered portal! Distance:', distanceToPortal);
+          this.victoryTriggered = true; // Prevent multiple triggers
+          showVictoryScreen.call(this);
+        }
       }
     }
   }
@@ -2095,6 +2117,126 @@ function showDeathScreen() {
 
   // Reload page after 3 seconds
   this.time.delayedCall(3000, () => {
+    window.location.reload();
+  });
+}
+
+/**
+ * Show victory screen when player reaches the portal
+ */
+function showVictoryScreen() {
+  console.log('[VICTORY SCREEN] Showing victory screen');
+
+  // Create semi-transparent black overlay (full screen)
+  const overlay = this.add.rectangle(
+    this.cameras.main.scrollX + this.cameras.main.width / 2,
+    this.cameras.main.scrollY + this.cameras.main.height / 2,
+    this.cameras.main.width,
+    this.cameras.main.height,
+    0x000000,
+    0.7
+  );
+  overlay.setScrollFactor(0);
+  overlay.setDepth(1000);
+
+  // Create modal background (centered box)
+  const modalWidth = 600;
+  const modalHeight = 350;
+  const modalBg = this.add.rectangle(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2,
+    modalWidth,
+    modalHeight,
+    0x1a1a1a,
+    1
+  );
+  modalBg.setScrollFactor(0);
+  modalBg.setDepth(1001);
+  modalBg.setStrokeStyle(4, 0x7A00FF); // Purple border (portal color)
+
+  // Create victory icon (portal/star symbol)
+  const victoryIcon = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 - 100,
+    '⭐',
+    {
+      fontSize: '84px',
+      fill: '#FFD700'
+    }
+  );
+  victoryIcon.setOrigin(0.5);
+  victoryIcon.setScrollFactor(0);
+  victoryIcon.setDepth(1002);
+
+  // Create victory title
+  const victoryTitle = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 - 20,
+    '¡VICTORIA!',
+    {
+      fontSize: '42px',
+      fill: '#FFD700',
+      fontStyle: 'bold',
+      align: 'center'
+    }
+  );
+  victoryTitle.setOrigin(0.5);
+  victoryTitle.setScrollFactor(0);
+  victoryTitle.setDepth(1002);
+
+  // Create subtitle
+  const subtitle = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 + 30,
+    'Has alcanzado el portal del abismo',
+    {
+      fontSize: '20px',
+      fill: '#7A00FF',
+      align: 'center'
+    }
+  );
+  subtitle.setOrigin(0.5);
+  subtitle.setScrollFactor(0);
+  subtitle.setDepth(1002);
+
+  // Show stats
+  const modifiersCollected = this.collectedModifiers ? this.collectedModifiers.length : 0;
+  const statsText = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 + 70,
+    `Modificadores recolectados: ${modifiersCollected}/8`,
+    {
+      fontSize: '18px',
+      fill: '#ffffff',
+      align: 'center'
+    }
+  );
+  statsText.setOrigin(0.5);
+  statsText.setScrollFactor(0);
+  statsText.setDepth(1002);
+
+  // Create reload message
+  const reloadText = this.add.text(
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2 + 110,
+    'Comenzando nueva aventura en 5 segundos...',
+    {
+      fontSize: '18px',
+      fill: '#aaaaaa',
+      align: 'center'
+    }
+  );
+  reloadText.setOrigin(0.5);
+  reloadText.setScrollFactor(0);
+  reloadText.setDepth(1002);
+
+  // Play victory sound if available
+  if (this.sound.get('enterGame')) {
+    this.sound.play('enterGame', { volume: 0.5 });
+  }
+
+  // Reload page after 5 seconds
+  this.time.delayedCall(5000, () => {
     window.location.reload();
   });
 }
