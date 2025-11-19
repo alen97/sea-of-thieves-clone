@@ -55,7 +55,10 @@ function createShipHealthBar(self, ship) {
     healthBar.setDepth(10);
 
     // Create damage smoke particles (initially invisible)
-    const smokeEmitter = self.add.particles(0, 0, 'bullet', {
+    const smokeParticles = self.add.particles('bullet');
+    const smokeEmitter = smokeParticles.createEmitter({
+        x: 0,
+        y: 0,
         speed: { min: 20, max: 40 },
         angle: { min: -100, max: -80 }, // Upward
         scale: { start: 0.3, end: 1.5 },
@@ -63,10 +66,10 @@ function createShipHealthBar(self, ship) {
         lifespan: 2000,
         frequency: 200,
         tint: [0x555555, 0x777777, 0x333333], // Gray smoke
-        blendMode: 'NORMAL'
+        blendMode: 'NORMAL',
+        on: false // Start stopped
     });
-    smokeEmitter.setDepth(1.5); // Below ship but above ocean
-    smokeEmitter.stop(); // Start stopped
+    smokeParticles.setDepth(1.5); // Below ship but above ocean
 
     // Store references
     ship.healthBarBg = healthBarBg;
