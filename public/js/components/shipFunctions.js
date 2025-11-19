@@ -114,17 +114,27 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
-    // Handle damage smoke effect (health < 30)
+    // Handle damage smoke effect (health < 10) - smoke comes from repair hatch
     if (ship.damageSmoke) {
-        if (currentHealth < 30 && currentHealth > 0) {
+        if (currentHealth < 10 && currentHealth > 0) {
             // Start smoke if not already emitting
             if (!ship.damageSmoke.on) {
                 ship.damageSmoke.start();
             }
-            // Update smoke position to ship center
-            ship.damageSmoke.setPosition(ship.x, ship.y);
+
+            // Calculate hatch position (same as RepairSystem)
+            const hatchOffsetX = 40;
+            const hatchOffsetY = 50;
+            const angle = ship.rotation - Math.PI / 2;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const rotatedX = hatchOffsetX * cos - hatchOffsetY * sin;
+            const rotatedY = hatchOffsetX * sin + hatchOffsetY * cos;
+
+            // Update smoke position to hatch
+            ship.damageSmoke.setPosition(ship.x + rotatedX, ship.y + rotatedY);
         } else {
-            // Stop smoke if health >= 30 or ship sunk
+            // Stop smoke if health >= 10 or ship sunk
             if (ship.damageSmoke.on) {
                 ship.damageSmoke.stop();
             }

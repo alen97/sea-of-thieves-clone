@@ -134,8 +134,8 @@ class RepairSystem {
         if (nearHatch) {
             const hatchPos = this.getHatchPosition(ship);
 
-            // Always show "Presiona E para reparar" when near hatch
-            indicator.setText('Presiona E para reparar');
+            // Always show "Presiona E para reparar el barco" when near hatch
+            indicator.setText('Presiona E para reparar el barco');
             indicator.setPosition(hatchPos.x, hatchPos.y - 25);
             indicator.setVisible(true);
         } else {
