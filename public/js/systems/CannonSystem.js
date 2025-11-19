@@ -182,11 +182,11 @@ class CannonSystem {
     canShoot(side, currentTime, modifiers = null) {
         const lastShot = side === 'left' ? this.leftLastShot : this.rightLastShot;
 
-        // Apply fire rate modifier (bonus = 0.6 means -60% cooldown, so multiply by (1 - 0.6) = 0.4)
+        // Apply fire rate modifier with cap to prevent spam
         let effectiveCooldown = this.cooldownTime;
         if (modifiers && modifiers.fireRate) {
-            const reduction = modifiers.fireRateBonus || 0.5; // Default -50% if no bonus specified
-            effectiveCooldown = this.cooldownTime * (1 - reduction); // e.g., 3000ms * 0.4 = 1200ms
+            const reduction = Math.min(modifiers.fireRateBonus || 0.5, 0.90); // Cap at 90% reduction
+            effectiveCooldown = this.cooldownTime * (1 - reduction); // e.g., 3000ms * (1-0.67) = 1000ms
         }
 
         return (currentTime - lastShot) >= effectiveCooldown;
@@ -283,7 +283,7 @@ class CannonSystem {
                 // Calculate effective cooldown with modifier (same logic as canShoot)
                 let effectiveCooldown = this.cooldownTime;
                 if (modifiers && modifiers.fireRate) {
-                    const reduction = modifiers.fireRateBonus || 0.5;
+                    const reduction = Math.min(modifiers.fireRateBonus || 0.5, 0.90); // Cap at 90%
                     effectiveCooldown = this.cooldownTime * (1 - reduction);
                 }
 

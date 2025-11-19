@@ -116,7 +116,7 @@ const MODIFIER_TYPES = {
     type: 'ENDLESS_BARRAGE',
     color: 0x7A00FF, // Violet
     effect: 'fireRate',
-    bonus: 0.7, // -70% cooldown
+    bonus: 0.67, // -67% cooldown (results in 1s cooldown from 3s base)
     rarity: 'epic',
     spawnChance: 0.25, // 25% spawn chance (epic)
     isAbyssal: true,
