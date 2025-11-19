@@ -266,6 +266,16 @@ function create() {
   this.crowsNestSystem = new CrowsNestSystem(this);
   this.repairSystem = new RepairSystem(this);
 
+  // DEV: Register number keys for instant modifier application
+  this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+  this.devKey2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+  this.devKey3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+  this.devKey4 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+  this.devKey5 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE);
+  this.devKey6 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX);
+  this.devKey7 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SEVEN);
+  this.devKey8 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.EIGHT);
+
   // Groups
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
   this.otherBullets = this.physics.add.group();
@@ -2351,16 +2361,6 @@ class UIScene extends Phaser.Scene {
     this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.keyBackspace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
-
-    // DEV: Register number keys for instant modifier application
-    this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
-    this.devKey2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
-    this.devKey3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
-    this.devKey4 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
-    this.devKey5 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE);
-    this.devKey6 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX);
-    this.devKey7 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SEVEN);
-    this.devKey8 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.EIGHT);
 
     // Capturar input de teclado para chat
     this.input.keyboard.on('keydown', (event) => {
