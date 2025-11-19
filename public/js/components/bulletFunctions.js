@@ -43,6 +43,7 @@ function addBullet(self, creationData) {
   console.log("Bullet alpha:", bullet.alpha);
   console.log("BULLET: ", bullet);
   console.log("creationData: ", creationData);
+  console.log("[BULLET] Will this bullet be destroyed by collision? ship.playerId !== bullet.shooterId:", self.ship.playerId !== creationData.shooterId);
 
   // Usar las velocidades ya calculadas en lugar de recalcular
   bullet.setVelocity(creationData.velocityX, creationData.velocityY);
