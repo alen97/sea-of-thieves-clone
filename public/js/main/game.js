@@ -322,6 +322,9 @@ function create() {
       // Create crow's nest visual
       self.crowsNestSystem.createVisual(self.ship);
 
+      // Create health bar
+      createShipHealthBar(self, self.ship);
+
       // Initialize steering variable from server state
       self.steeringDirection = shipData.steeringDirection || 0;
     } else {
@@ -547,8 +550,22 @@ function create() {
       }
     });
 
+    // Update ship health bar
+    if (data.shipHealth !== undefined && self.ship) {
+      updateShipHealthBar(self.ship, data.shipHealth, data.shipMaxHealth);
+      console.log(`[HEALTH] Ship damaged! Health: ${data.shipHealth}/${data.shipMaxHealth}, Leaking: ${data.isLeaking}, Sinking: ${data.isSinking}`);
+    }
+
     // TODO: Add shock sound effect here when available
     // self.sound.play('jellyShock', { volume: 0.3 });
+  });
+
+  // Handle ship health updates (from leak damage)
+  this.socket.on('shipHealthUpdated', function (data) {
+    if (self.ship) {
+      updateShipHealthBar(self.ship, data.shipHealth, data.shipMaxHealth);
+      console.log(`[HEALTH UPDATE] Health: ${data.shipHealth}/${data.shipMaxHealth}, Leaking: ${data.isLeaking}, Sinking: ${data.isSinking}`);
+    }
   });
 
   // Handle jelly destroyed by bullet
@@ -1330,6 +1347,13 @@ function update(time, delta) {
     // ===== SISTEMA DE FAROL =====
     // Update lantern position to follow ship
     updateLanternPosition(this.lantern, this.ship);
+
+    // ===== HEALTH BAR =====
+    // Update health bar position to follow ship
+    if (this.ship.healthBarBg && this.ship.healthBar) {
+      this.ship.healthBarBg.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
+      this.ship.healthBar.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
+    }
 
     // ===== FLOATING MODIFIER TEXTS =====
     // Update floating text positions to follow ship

@@ -37,6 +37,66 @@ function addOtherShip(self, shipInfo) {
     return ship;
 }
 
+function createShipHealthBar(self, ship) {
+    // Create health bar above the ship
+    const barWidth = 180; // Slightly wider than ship
+    const barHeight = 12;
+    const barX = 0; // Relative to ship
+    const barY = -250; // Above ship
+
+    // Create background (black/dark gray)
+    const healthBarBg = self.add.graphics();
+    healthBarBg.fillStyle(0x000000, 0.8);
+    healthBarBg.fillRect(-barWidth / 2, -barHeight / 2, barWidth, barHeight);
+    healthBarBg.setDepth(10); // High depth to always be visible
+
+    // Create health bar (green/yellow/red based on health)
+    const healthBar = self.add.graphics();
+    healthBar.setDepth(10);
+
+    // Store references
+    ship.healthBarBg = healthBarBg;
+    ship.healthBar = healthBar;
+    ship.healthBarWidth = barWidth;
+    ship.healthBarHeight = barHeight;
+    ship.healthBarOffsetY = barY;
+
+    // Initialize with full health
+    updateShipHealthBar(ship, 100, 100);
+}
+
+function updateShipHealthBar(ship, currentHealth, maxHealth) {
+    if (!ship.healthBar) return;
+
+    const healthPercent = Math.max(0, currentHealth / maxHealth);
+    const barWidth = ship.healthBarWidth;
+    const barHeight = ship.healthBarHeight;
+
+    // Determine color based on health percentage
+    let color;
+    if (healthPercent > 0.7) {
+        color = 0x00ff00; // Green
+    } else if (healthPercent > 0.4) {
+        color = 0xffff00; // Yellow
+    } else {
+        color = 0xff0000; // Red
+    }
+
+    // Clear and redraw health bar
+    ship.healthBar.clear();
+    ship.healthBar.fillStyle(color, 1);
+    ship.healthBar.fillRect(
+        -barWidth / 2,
+        -barHeight / 2,
+        barWidth * healthPercent,
+        barHeight
+    );
+
+    // Update position to follow ship
+    ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
+    ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
+}
+
 function setupShipCollisions(self, ship) {
     // NOTE: Removed ship-bullet collision for shared ship
     // In a shared ship with multiple crew members, bullets from any player
