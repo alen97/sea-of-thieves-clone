@@ -467,37 +467,34 @@ function create() {
       if (shipData.modifiers) {
         self.shipModifiers = shipData.modifiers;
 
-        // Build shipModifiersArray from synced modifiers
-        // (Note: order won't be preserved for mid-game joins, uses fixed order)
+        // Build shipModifiersArray from collectedModifiers array
+        // This properly handles all 8 modifier types
         self.shipModifiersArray = [];
-        if (shipData.modifiers.speed) {
-          self.shipModifiersArray.push({
-            type: 'RIOS_WINDS',
-            color: 0x00CED1,
-            name: "Río de la Plata's Winds"
-          });
-        }
-        if (shipData.modifiers.turning) {
-          self.shipModifiersArray.push({
-            type: 'CAPTAINS_WISDOM',
-            color: 0xFFD700,
-            name: "Captain's Wisdom"
-          });
-        }
-        if (shipData.modifiers.fireRate) {
-          self.shipModifiersArray.push({
-            type: 'PIRATES_TENACITY',
-            color: 0xDC143C,
-            name: "Pirate's Tenacity"
-          });
-        }
-        if (shipData.modifiers.abyssVision) {
-          self.shipModifiersArray.push({
-            type: 'ABYSS_LANTERN',
-            color: 0x7A00FF,
-            name: "Lantern of the Abyss"
-          });
-        }
+        self.collectedModifiers = shipData.collectedModifiers || [];
+
+        // Modifier info lookup for display
+        const MODIFIER_INFO = {
+          'RIOS_WINDS': { color: 0x00CED1, name: "Río de la Plata's Winds" },
+          'CAPTAINS_GUIDE': { color: 0xFFD700, name: "Captain's Wisdom" },
+          'PIRATES_TENACITY': { color: 0xDC143C, name: "Pirate's Tenacity" },
+          'ABYSS_LANTERN': { color: 0x7A00FF, name: "Lantern of the Abyss" },
+          'TEMPEST_ABYSS': { color: 0x7A00FF, name: "Tempest of the Abyss" },
+          'ETHEREAL_HELM': { color: 0x7A00FF, name: "Ethereal Helm" },
+          'ENDLESS_BARRAGE': { color: 0x7A00FF, name: "Endless Barrage" },
+          'ABYSSAL_COMPASS': { color: 0xFFD700, name: "Abyssal Compass" }
+        };
+
+        // Add each collected modifier to the array
+        self.collectedModifiers.forEach(modifierType => {
+          const info = MODIFIER_INFO[modifierType];
+          if (info) {
+            self.shipModifiersArray.push({
+              type: modifierType,
+              color: info.color,
+              name: info.name
+            });
+          }
+        });
       }
     }
   });
