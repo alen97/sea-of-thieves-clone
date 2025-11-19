@@ -131,9 +131,15 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
         }
     }
 
-    // Handle ship sinking visual (health < 10)
-    if (currentHealth < 10 && currentHealth > 0) {
-        // Sink ship below ocean (negative depth)
+    // Handle ship sinking visual
+    if (currentHealth <= 0) {
+        // Ship fully sunk - hide completely
+        if (ship.visible !== false) {
+            ship.setVisible(false);
+            console.log('[SHIP SUNK] Ship hidden (health = 0)');
+        }
+    } else if (currentHealth < 10) {
+        // Ship sinking (health < 10) - sink below ocean
         if (ship.depth !== -1) {
             ship.setDepth(-1);
             console.log('[SHIP SINKING] Ship depth set to -1 (below ocean)');
@@ -142,6 +148,9 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
         // Ship is above water
         if (ship.depth !== 2) {
             ship.setDepth(2);
+        }
+        if (ship.visible !== true) {
+            ship.setVisible(true);
         }
     }
 }

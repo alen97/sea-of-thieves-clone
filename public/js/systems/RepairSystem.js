@@ -134,19 +134,10 @@ class RepairSystem {
         if (nearHatch) {
             const hatchPos = this.getHatchPosition(ship);
 
-            // Check if ship is at full health
-            const health = ship.health || 100;
-            const maxHealth = ship.maxHealth || 100;
-
-            if (health >= maxHealth) {
-                indicator.setText('Barco con salud completa');
-                indicator.setPosition(hatchPos.x, hatchPos.y - 25);
-                indicator.setVisible(true);
-            } else {
-                indicator.setText('Presiona E para reparar');
-                indicator.setPosition(hatchPos.x, hatchPos.y - 25);
-                indicator.setVisible(true);
-            }
+            // Always show "Presiona E para reparar" when near hatch
+            indicator.setText('Presiona E para reparar');
+            indicator.setPosition(hatchPos.x, hatchPos.y - 25);
+            indicator.setVisible(true);
         } else {
             indicator.setVisible(false);
         }
@@ -230,6 +221,18 @@ class RepairSystem {
 
         // Lock player at hatch if repairing
         this.lockPlayerAtHatch(player, ship);
+
+        // Auto-stop repairing if ship reaches full health
+        if (player.isRepairing) {
+            const health = ship.health || 100;
+            const maxHealth = ship.maxHealth || 100;
+
+            if (health >= maxHealth) {
+                player.isRepairing = false;
+                this.scene.socket.emit('stopRepair');
+                console.log('[REPAIR] Auto-stopped repair - ship at full health');
+            }
+        }
 
         // Update indicator
         this.updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest);
