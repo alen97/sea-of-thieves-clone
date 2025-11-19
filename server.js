@@ -532,6 +532,7 @@ function createShip(x, y) {
       greed: false
     },
     collectedModifiers: [], // Array of collected modifier IDs to track total count
+    createdAt: Date.now(), // Timestamp when ship was created (for victory screen)
 
     // Health system
     health: 100,

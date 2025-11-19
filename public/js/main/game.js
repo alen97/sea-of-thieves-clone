@@ -324,7 +324,7 @@ function create() {
       // Create my ship for the first time
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
-      self.gameStartTime = Date.now(); // Track game start for victory screen
+      self.shipCreatedAt = shipData.createdAt; // Server timestamp for victory screen
 
       // Initialize health properties
       self.ship.health = shipData.health || 100;
@@ -2127,8 +2127,8 @@ function showDeathScreen() {
 function showVictoryScreen() {
   console.log('[VICTORY SCREEN] Showing victory screen');
 
-  // Calculate elapsed time
-  const elapsedMs = this.gameStartTime ? Date.now() - this.gameStartTime : 0;
+  // Calculate elapsed time from server's ship creation timestamp
+  const elapsedMs = this.shipCreatedAt ? Date.now() - this.shipCreatedAt : 0;
   const totalSeconds = Math.floor(elapsedMs / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
