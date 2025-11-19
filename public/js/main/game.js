@@ -1145,6 +1145,7 @@ function create() {
         color: data.modifierColor,
         name: data.modifierName
       });
+      console.log('[MODIFIER HUD] Added to shipModifiersArray:', self.shipModifiersArray);
     }
 
     // Play sound based on item type (usesCurseSound field determines sound)
