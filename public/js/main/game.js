@@ -324,6 +324,7 @@ function create() {
       // Create my ship for the first time
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
+      self.gameStartTime = Date.now(); // Track game start for victory screen
 
       // Initialize health properties
       self.ship.health = shipData.health || 100;
@@ -2126,6 +2127,13 @@ function showDeathScreen() {
 function showVictoryScreen() {
   console.log('[VICTORY SCREEN] Showing victory screen');
 
+  // Calculate elapsed time
+  const elapsedMs = this.gameStartTime ? Date.now() - this.gameStartTime : 0;
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
   // Create semi-transparent black overlay (full screen)
   const overlay = this.add.rectangle(
     this.cameras.main.scrollX + this.cameras.main.width / 2,
@@ -2140,7 +2148,7 @@ function showVictoryScreen() {
 
   // Create modal background (centered box)
   const modalWidth = 600;
-  const modalHeight = 350;
+  const modalHeight = 250;
   const modalBg = this.add.rectangle(
     this.cameras.main.width / 2,
     this.cameras.main.height / 2,
@@ -2153,27 +2161,13 @@ function showVictoryScreen() {
   modalBg.setDepth(1001);
   modalBg.setStrokeStyle(4, 0x7A00FF); // Purple border (portal color)
 
-  // Create victory icon (portal/star symbol)
-  const victoryIcon = this.add.text(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2 - 100,
-    '⭐',
-    {
-      fontSize: '84px',
-      fill: '#FFD700'
-    }
-  );
-  victoryIcon.setOrigin(0.5);
-  victoryIcon.setScrollFactor(0);
-  victoryIcon.setDepth(1002);
-
   // Create victory title
   const victoryTitle = this.add.text(
     this.cameras.main.width / 2,
-    this.cameras.main.height / 2 - 20,
-    '¡VICTORIA!',
+    this.cameras.main.height / 2 - 50,
+    '¡Escapaste del abismo!',
     {
-      fontSize: '42px',
+      fontSize: '36px',
       fill: '#FFD700',
       fontStyle: 'bold',
       align: 'center'
@@ -2183,44 +2177,28 @@ function showVictoryScreen() {
   victoryTitle.setScrollFactor(0);
   victoryTitle.setDepth(1002);
 
-  // Create subtitle
-  const subtitle = this.add.text(
+  // Show time
+  const timeText = this.add.text(
     this.cameras.main.width / 2,
-    this.cameras.main.height / 2 + 30,
-    'Has alcanzado el portal del abismo',
+    this.cameras.main.height / 2 + 10,
+    `Tiempo: ${timeString}`,
     {
-      fontSize: '20px',
-      fill: '#7A00FF',
-      align: 'center'
-    }
-  );
-  subtitle.setOrigin(0.5);
-  subtitle.setScrollFactor(0);
-  subtitle.setDepth(1002);
-
-  // Show stats
-  const modifiersCollected = this.collectedModifiers ? this.collectedModifiers.length : 0;
-  const statsText = this.add.text(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2 + 70,
-    `Modificadores recolectados: ${modifiersCollected}/8`,
-    {
-      fontSize: '18px',
+      fontSize: '28px',
       fill: '#ffffff',
       align: 'center'
     }
   );
-  statsText.setOrigin(0.5);
-  statsText.setScrollFactor(0);
-  statsText.setDepth(1002);
+  timeText.setOrigin(0.5);
+  timeText.setScrollFactor(0);
+  timeText.setDepth(1002);
 
   // Create reload message
   const reloadText = this.add.text(
     this.cameras.main.width / 2,
-    this.cameras.main.height / 2 + 110,
+    this.cameras.main.height / 2 + 70,
     'Comenzando nueva aventura en 5 segundos...',
     {
-      fontSize: '18px',
+      fontSize: '16px',
       fill: '#aaaaaa',
       align: 'center'
     }
