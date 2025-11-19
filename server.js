@@ -403,6 +403,25 @@ function checkJellyCollisions(ship, room) {
       ship.x += pushX;
       ship.y += pushY;
 
+      // Apply damage to ship
+      const JELLY_DAMAGE = 10;
+      ship.health = Math.max(0, ship.health - JELLY_DAMAGE);
+
+      // Check if ship starts leaking (health < 70)
+      if (ship.health < 70 && !ship.isLeaking && !ship.isSinking) {
+        ship.isLeaking = true;
+        console.log(`[SHIP DAMAGE] Ship is now leaking! Health: ${ship.health}`);
+      }
+
+      // Check if ship is sinking (health <= 0)
+      if (ship.health <= 0 && !ship.isSinking) {
+        ship.isSinking = true;
+        ship.health = 0;
+        console.log(`[SHIP DAMAGE] Ship is sinking!`);
+      }
+
+      console.log(`[SHIP DAMAGE] Jelly dealt ${JELLY_DAMAGE} damage. Ship health: ${ship.health}/${ship.maxHealth}`);
+
       // Update jelly cooldown
       jelly.lastShockTime = now;
 
@@ -505,6 +524,13 @@ function createShip(x, y) {
       greed: false
     },
     collectedModifiers: [], // Array of collected modifier IDs to track total count
+
+    // Health system
+    health: 100,
+    maxHealth: 100,
+    isLeaking: false,  // True when health < 70, causes automatic damage
+    isSinking: false,  // True when health <= 0, triggers sinking sequence
+    lastLeakDamage: Date.now(), // Timestamp for leak damage interval
 
     // Server-side input management
     pendingInputs: [],     // Queue of unprocessed inputs
@@ -1136,6 +1162,39 @@ setInterval(function() {
       }
     }
 
+    // Apply automatic leak damage if ship is leaking
+    if (room.ship.isLeaking && !room.ship.isSinking) {
+      const now = Date.now();
+      const LEAK_DAMAGE_INTERVAL = 1000; // 1 second
+      const LEAK_DAMAGE_PER_SECOND = 0.5;
+
+      if (now - room.ship.lastLeakDamage >= LEAK_DAMAGE_INTERVAL) {
+        room.ship.health = Math.max(0, room.ship.health - LEAK_DAMAGE_PER_SECOND);
+        room.ship.lastLeakDamage = now;
+
+        // Check if ship stopped leaking (repaired above 70 HP)
+        if (room.ship.health >= 70) {
+          room.ship.isLeaking = false;
+          console.log(`[SHIP REPAIR] Ship stopped leaking! Health: ${room.ship.health}`);
+        }
+
+        // Check if ship is now sinking
+        if (room.ship.health <= 0) {
+          room.ship.isSinking = true;
+          room.ship.health = 0;
+          console.log(`[SHIP DAMAGE] Ship sunk from leak damage!`);
+        }
+
+        // Broadcast health update to clients
+        io.to(roomId).emit('shipHealthUpdated', {
+          shipHealth: room.ship.health,
+          shipMaxHealth: room.ship.maxHealth,
+          isLeaking: room.ship.isLeaking,
+          isSinking: room.ship.isSinking
+        });
+      }
+    }
+
     // Update abyssal jellies movement
     if (room.jellies && room.jellies.length > 0) {
       room.jellies.forEach(jelly => {
@@ -1145,9 +1204,13 @@ setInterval(function() {
       // Check for jelly collisions with ship (shock/knockback)
       const shockedJellies = checkJellyCollisions(room.ship, room);
       if (shockedJellies.length > 0) {
-        // Notify all clients in the room about the shock
+        // Notify all clients in the room about the shock and updated health
         io.to(roomId).emit('jellyShock', {
-          shocks: shockedJellies
+          shocks: shockedJellies,
+          shipHealth: room.ship.health,
+          shipMaxHealth: room.ship.maxHealth,
+          isLeaking: room.ship.isLeaking,
+          isSinking: room.ship.isSinking
         });
       }
 
