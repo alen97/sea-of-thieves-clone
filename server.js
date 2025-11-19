@@ -413,13 +413,6 @@ function checkJellyCollisions(ship, room) {
         console.log(`[SHIP DAMAGE] Ship is now leaking! Health: ${ship.health}`);
       }
 
-      // Check if ship is sinking (health <= 0)
-      if (ship.health <= 0 && !ship.isSinking) {
-        ship.isSinking = true;
-        ship.health = 0;
-        console.log(`[SHIP DAMAGE] Ship is sinking!`);
-      }
-
       console.log(`[SHIP DAMAGE] Jelly dealt ${JELLY_DAMAGE} damage. Ship health: ${ship.health}/${ship.maxHealth}`);
 
       // Update jelly cooldown
@@ -439,6 +432,22 @@ function checkJellyCollisions(ship, room) {
   }
 
   return shockedJellies;
+}
+
+// Start ship sinking sequence
+function startShipSinking(ship, roomId, io) {
+  if (ship.isSinking) return; // Already sinking
+
+  ship.isSinking = true;
+  ship.health = 0;
+  ship.sinkingStartTime = Date.now();
+
+  console.log(`[SHIP SINKING] Ship started sinking in room ${roomId}!`);
+
+  // Broadcast sinking event to all players in room
+  io.to(roomId).emit('shipSinking', {
+    sinkingStartTime: ship.sinkingStartTime
+  });
 }
 
 // Apply modifier effect to ship
@@ -530,6 +539,7 @@ function createShip(x, y) {
     maxHealth: 100,
     isLeaking: false,  // True when health < 70, causes automatic damage
     isSinking: false,  // True when health <= 0, triggers sinking sequence
+    sinkingStartTime: null, // Timestamp when sinking started
     lastLeakDamage: Date.now(), // Timestamp for leak damage interval
 
     // Server-side input management

@@ -308,6 +308,12 @@ function create() {
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
 
+      // Initialize health properties
+      self.ship.health = shipData.health || 100;
+      self.ship.maxHealth = shipData.maxHealth || 100;
+      self.ship.isLeaking = shipData.isLeaking || false;
+      self.ship.isSinking = shipData.isSinking || false;
+
       // Don't create player yet - wait for currentPlayers event which has playerColor
 
       setupShipCollisions(self, self.ship);
@@ -556,6 +562,12 @@ function create() {
 
     // Update ship health bar
     if (data.shipHealth !== undefined && self.ship) {
+      // Store health on ship object for systems to access
+      self.ship.health = data.shipHealth;
+      self.ship.maxHealth = data.shipMaxHealth;
+      self.ship.isLeaking = data.isLeaking;
+      self.ship.isSinking = data.isSinking;
+
       updateShipHealthBar(self.ship, data.shipHealth, data.shipMaxHealth);
       console.log(`[HEALTH] Ship damaged! Health: ${data.shipHealth}/${data.shipMaxHealth}, Leaking: ${data.isLeaking}, Sinking: ${data.isSinking}`);
     }
@@ -567,6 +579,12 @@ function create() {
   // Handle ship health updates (from leak damage)
   this.socket.on('shipHealthUpdated', function (data) {
     if (self.ship) {
+      // Store health on ship object for systems to access
+      self.ship.health = data.shipHealth;
+      self.ship.maxHealth = data.shipMaxHealth;
+      self.ship.isLeaking = data.isLeaking;
+      self.ship.isSinking = data.isSinking;
+
       updateShipHealthBar(self.ship, data.shipHealth, data.shipMaxHealth);
       console.log(`[HEALTH UPDATE] Health: ${data.shipHealth}/${data.shipMaxHealth}, Leaking: ${data.isLeaking}, Sinking: ${data.isSinking}`);
     }
@@ -1374,6 +1392,11 @@ function update(time, delta) {
     if (this.ship.healthBarBg && this.ship.healthBar) {
       this.ship.healthBarBg.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
       this.ship.healthBar.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
+    }
+
+    // Update damage smoke position to follow ship
+    if (this.ship.damageSmoke && this.ship.damageSmoke.on) {
+      this.ship.damageSmoke.setPosition(this.ship.x, this.ship.y);
     }
 
     // ===== FLOATING MODIFIER TEXTS =====

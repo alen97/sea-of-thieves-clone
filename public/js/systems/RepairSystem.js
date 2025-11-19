@@ -80,6 +80,7 @@ class RepairSystem {
 
         const hatchPos = this.getHatchPosition(ship);
         this.visual.setPosition(hatchPos.x, hatchPos.y);
+        this.visual.setRotation(ship.rotation); // Rotate with ship
     }
 
     /**
@@ -109,8 +110,18 @@ class RepairSystem {
     updateIndicator(player, ship, nearHelm, nearCannon, nearCrowsNest) {
         const indicator = this.getIndicator();
 
+        // If player is repairing, show repair progress
+        if (player.isRepairing) {
+            const hatchPos = this.getHatchPosition(ship);
+            const healthPercent = Math.round((ship.health / ship.maxHealth) * 100);
+            indicator.setText(`Reparando... ${healthPercent}%`);
+            indicator.setPosition(hatchPos.x, hatchPos.y - 25);
+            indicator.setVisible(true);
+            return;
+        }
+
         // Don't show repair indicator if player is doing something else
-        if (nearHelm || nearCannon || nearCrowsNest || player.isRepairing) {
+        if (nearHelm || nearCannon || nearCrowsNest) {
             indicator.setVisible(false);
             return;
         }

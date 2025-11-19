@@ -54,12 +54,27 @@ function createShipHealthBar(self, ship) {
     const healthBar = self.add.graphics();
     healthBar.setDepth(10);
 
+    // Create damage smoke particles (initially invisible)
+    const smokeEmitter = self.add.particles(0, 0, 'bullet', {
+        speed: { min: 20, max: 40 },
+        angle: { min: -100, max: -80 }, // Upward
+        scale: { start: 0.3, end: 1.5 },
+        alpha: { start: 0.6, end: 0 },
+        lifespan: 2000,
+        frequency: 200,
+        tint: [0x555555, 0x777777, 0x333333], // Gray smoke
+        blendMode: 'NORMAL'
+    });
+    smokeEmitter.setDepth(1.5); // Below ship but above ocean
+    smokeEmitter.stop(); // Start stopped
+
     // Store references
     ship.healthBarBg = healthBarBg;
     ship.healthBar = healthBar;
     ship.healthBarWidth = barWidth;
     ship.healthBarHeight = barHeight;
     ship.healthBarOffsetY = barY;
+    ship.damageSmoke = smokeEmitter;
 
     // Initialize with full health
     updateShipHealthBar(ship, 100, 100);
@@ -95,6 +110,23 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     // Update position to follow ship
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
+
+    // Handle damage smoke effect (health < 30)
+    if (ship.damageSmoke) {
+        if (currentHealth < 30 && currentHealth > 0) {
+            // Start smoke if not already emitting
+            if (!ship.damageSmoke.on) {
+                ship.damageSmoke.start();
+            }
+            // Update smoke position to ship center
+            ship.damageSmoke.setPosition(ship.x, ship.y);
+        } else {
+            // Stop smoke if health >= 30 or ship sunk
+            if (ship.damageSmoke.on) {
+                ship.damageSmoke.stop();
+            }
+        }
+    }
 }
 
 function setupShipCollisions(self, ship) {
