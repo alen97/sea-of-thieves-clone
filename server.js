@@ -793,6 +793,45 @@ io.on('connection', function (socket) {
     }
   });
 
+  // Handle repair start/stop
+  socket.on('startRepair', function () {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id] && room.ship) {
+      // Mark player as repairing
+      room.players[socket.id].player.isRepairing = true;
+      room.players[socket.id].player.repairStartTime = Date.now();
+
+      console.log(`[REPAIR] Player ${socket.id} started repairing`);
+
+      // Broadcast repair state to all players
+      io.to(roomId).emit('playerRepairChanged', {
+        playerId: socket.id,
+        isRepairing: true
+      });
+    }
+  });
+
+  socket.on('stopRepair', function () {
+    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const room = rooms[roomId];
+
+    if (room && room.players[socket.id]) {
+      // Mark player as not repairing
+      room.players[socket.id].player.isRepairing = false;
+      room.players[socket.id].player.repairStartTime = null;
+
+      console.log(`[REPAIR] Player ${socket.id} stopped repairing`);
+
+      // Broadcast repair state to all players
+      io.to(roomId).emit('playerRepairChanged', {
+        playerId: socket.id,
+        isRepairing: false
+      });
+    }
+  });
+
   // Handle player avatar movement (still client-authoritative for now)
   socket.on('playerMovement', function (movementData) {
     const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
@@ -1193,6 +1232,42 @@ setInterval(function() {
           isSinking: room.ship.isSinking
         });
       }
+    }
+
+    // Handle ship repair from players
+    const repairingPlayers = Object.values(room.players).filter(p => p.player.isRepairing);
+    if (repairingPlayers.length > 0 && !room.ship.isSinking) {
+      const now = Date.now();
+      const REPAIR_INTERVAL = 3000; // 3 seconds
+      const REPAIR_AMOUNT = 10; // HP per player every 3 seconds
+
+      repairingPlayers.forEach(playerData => {
+        const repairStartTime = playerData.player.repairStartTime || now;
+        const timeSinceStart = now - repairStartTime;
+
+        // Check if it's time to repair (every 3 seconds)
+        if (timeSinceStart >= REPAIR_INTERVAL && timeSinceStart % REPAIR_INTERVAL < DELTA_TIME * 1000) {
+          // Repair ship
+          const oldHealth = room.ship.health;
+          room.ship.health = Math.min(room.ship.maxHealth, room.ship.health + REPAIR_AMOUNT);
+
+          console.log(`[REPAIR] Player ${playerData.playerId} repaired ship: ${oldHealth} -> ${room.ship.health}`);
+
+          // Check if ship stopped leaking
+          if (room.ship.health >= 70 && room.ship.isLeaking) {
+            room.ship.isLeaking = false;
+            console.log(`[REPAIR] Ship stopped leaking! Health: ${room.ship.health}`);
+          }
+
+          // Broadcast health update
+          io.to(roomId).emit('shipHealthUpdated', {
+            shipHealth: room.ship.health,
+            shipMaxHealth: room.ship.maxHealth,
+            isLeaking: room.ship.isLeaking,
+            isSinking: room.ship.isSinking
+          });
+        }
+      });
     }
 
     // Update abyssal jellies movement

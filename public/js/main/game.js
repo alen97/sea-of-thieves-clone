@@ -261,6 +261,7 @@ function create() {
   this.anchorSystem = new AnchorSystem(this);
   this.cannonSystem = new CannonSystem(this);
   this.crowsNestSystem = new CrowsNestSystem(this);
+  this.repairSystem = new RepairSystem(this);
 
   // Groups
   this.otherPlayers = this.physics.add.group(); // Renamed: now stores other player avatars
@@ -321,6 +322,9 @@ function create() {
 
       // Create crow's nest visual
       self.crowsNestSystem.createVisual(self.ship);
+
+      // Create repair hatch visual
+      self.repairSystem.createVisual(self.ship);
 
       // Create health bar
       createShipHealthBar(self, self.ship);
@@ -734,6 +738,23 @@ function create() {
           otherPlayer.setDepth(3); // Normal depth (walking/under crow's nest)
         }
         console.log(`Player ${data.playerId} crow's nest depth updated: ${data.isInCrowsNest ? 'UP' : 'DOWN'}`);
+      }
+    });
+  });
+
+  // Handle repair state changes (hide/show player)
+  this.socket.on('playerRepairChanged', function (data) {
+    // Handle own player
+    if (data.playerId === self.socket.id && self.player) {
+      self.player.setVisible(!data.isRepairing);
+      console.log(`[REPAIR] ${data.isRepairing ? 'Hidden' : 'Shown'} own player`);
+    }
+
+    // Handle other players
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (data.playerId === otherPlayer.playerId) {
+        otherPlayer.setVisible(!data.isRepairing);
+        console.log(`[REPAIR] ${data.isRepairing ? 'Hidden' : 'Shown'} player ${data.playerId}`);
       }
     });
   });
@@ -1438,6 +1459,11 @@ function update(time, delta) {
 
     // ===== SISTEMA DE COFA (usando CrowsNestSystem) =====
     this.crowsNestSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm, canUseAnchor);
+
+    // ===== SISTEMA DE REPARACIÓN (usando RepairSystem) =====
+    const nearCannon = this.player.isOnCannon || false;
+    const nearCrowsNest = this.player.isInCrowsNest || false;
+    this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, nearCannon, nearCrowsNest);
 
     // ===== SISTEMA DE CAÑONES (usando CannonSystem) =====
     if (this.ship.cannons) {

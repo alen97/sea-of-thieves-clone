@@ -20,6 +20,7 @@ function addPlayer(self, playerInfo, ship, playerColor = 'default') {
     player.isOnCannon = false; // Para sistema de cañones
     player.cannonSide = null; // 'left' o 'right'
     player.isInCrowsNest = false; // Para sistema de cofa
+    player.isRepairing = false; // Para sistema de reparación
     player.canMove = true; // Control de movimiento
     player.ship = ship; // Referencia al barco
     player.playerColor = playerColor; // Store color for animation
