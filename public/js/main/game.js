@@ -1362,8 +1362,8 @@ function update(time, delta) {
       keySpace: this.inputSystem.keys.SPACE
     };
 
-    // Toggle mapa con M, o cerrar con ESC
-    if (inputState.map) {
+    // Toggle mapa con M, o cerrar con ESC (but not after victory)
+    if (inputState.map && !this.victoryTriggered) {
       this.mapVisible = !this.mapVisible;
       console.log(`Map ${this.mapVisible ? 'shown' : 'hidden'}`);
 
@@ -2032,6 +2032,9 @@ function update(time, delta) {
           console.log('[PORTAL] Ship entered portal! Distance:', distanceToPortal);
           this.victoryTriggered = true; // Prevent multiple triggers
 
+          // Close map if open
+          this.mapVisible = false;
+
           // Play portal exit sound
           const portalSound = this.sound.add('portalExit', { volume: 1.0 });
           portalSound.play();
@@ -2177,6 +2180,14 @@ function showVictoryScreen() {
   // Reset camera fade effect so modal is visible
   this.cameras.main.resetFX();
 
+  // Hide ship and player
+  if (this.ship) {
+    this.ship.setVisible(false);
+  }
+  if (this.player) {
+    this.player.setVisible(false);
+  }
+
   // Calculate elapsed time from server's ship creation timestamp
   const elapsedMs = this.shipCreatedAt ? Date.now() - this.shipCreatedAt : 0;
   const totalSeconds = Math.floor(elapsedMs / 1000);
@@ -2246,7 +2257,7 @@ function showVictoryScreen() {
   const reloadText = this.add.text(
     this.cameras.main.width / 2,
     this.cameras.main.height / 2 + 70,
-    'Presiona ESC para reiniciar',
+    'Presiona ENTER para reiniciar',
     {
       fontSize: '16px',
       fill: '#aaaaaa',
@@ -2257,11 +2268,11 @@ function showVictoryScreen() {
   reloadText.setScrollFactor(0);
   reloadText.setDepth(1002);
 
-  // Re-enable keyboard for ESC
+  // Re-enable keyboard for ENTER
   this.input.keyboard.enabled = true;
 
-  // Listen for ESC key to reload
-  this.input.keyboard.once('keydown-ESC', () => {
+  // Listen for ENTER key to reload
+  this.input.keyboard.once('keydown-ENTER', () => {
     window.location.reload();
   });
 }
