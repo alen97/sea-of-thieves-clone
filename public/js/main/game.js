@@ -2319,28 +2319,24 @@ class UIScene extends Phaser.Scene {
     this.mapContainer.setScrollFactor(0);
     this.mapContainer.setDepth(2000);
 
-    // Fondo del mapa (tema pirata - marrón madera)
-    this.mapBackground = this.add.rectangle(cameraX, cameraY, mapWidth + 40, mapHeight + 80, 0x2a1810, 0.95);
+    // Fondo del mapa (minimalista - negro con borde blanco)
+    this.mapBackground = this.add.rectangle(cameraX, cameraY, mapWidth + 40, mapHeight + 80, 0x000000, 0.9);
     this.mapBackground.setScrollFactor(0);
     this.mapBackground.setDepth(1999);
-    this.mapBackground.setStrokeStyle(3, 0xc9a227); // Borde dorado
+    this.mapBackground.setStrokeStyle(2, 0xffffff); // Borde blanco
 
-    // Título del mapa (dorado pirata)
+    // Título del mapa
     this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M)', {
-      fontSize: '16px',
-      fill: '#f4d03f',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 3
+      fontSize: '14px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
     }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
 
-    // Coordenadas del jugador (color pergamino)
+    // Coordenadas del jugador
     this.mapCoordinates = this.add.text(cameraX, mapY + mapHeight + 20, 'X: 0, Y: 0', {
       fontSize: '14px',
-      fill: '#f5e6c8',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2
+      fill: '#00ff00',
+      fontStyle: 'bold'
     }).setScrollFactor(0).setDepth(2001).setOrigin(0.5);
 
     // Grid de celdas (9x9 = 81 celdas)
@@ -2350,11 +2346,11 @@ class UIScene extends Phaser.Scene {
         const cellX = mapX + col * cellSize + cellSize / 2;
         const cellY = mapY + row * cellSize + cellSize / 2;
 
-        // Crear celda (tema pirata)
-        const cell = this.add.rectangle(cellX, cellY, cellSize - 2, cellSize - 2, 0x1a0f0a);
+        // Crear celda
+        const cell = this.add.rectangle(cellX, cellY, cellSize - 2, cellSize - 2, 0x222222);
         cell.setScrollFactor(0);
         cell.setDepth(2000);
-        cell.setStrokeStyle(1, 0x5c4033); // Borde marrón oscuro
+        cell.setStrokeStyle(1, 0x444444);
 
         this.mapCells.push({
           rect: cell,
