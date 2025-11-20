@@ -211,11 +211,12 @@
             }
 
             .pause-item .room-code {
-                font-family: 'Pirata One', cursive;
+                font-family: 'Courier New', monospace;
                 color: #f4d03f;
-                font-size: 24px;
-                letter-spacing: 4px;
+                font-size: 28px;
+                letter-spacing: 6px;
                 text-shadow: 2px 2px 4px #000;
+                font-weight: bold;
             }
 
             #volumeSlider {
@@ -534,17 +535,16 @@
         <!-- Pause Menu (ESC) -->
         <div id="pauseMenu">
             <div id="pauseBox">
-                <h2>Pausa</h2>
+                <h2>Menú</h2>
                 <div class="pause-item">
                     <label>Código de Sala</label>
                     <span id="pauseRoomCode" class="room-code"></span>
                 </div>
                 <div class="pause-item">
-                    <label>Volumen</label>
+                    <label>Volumen <span id="volumeValue">50%</span></label>
                     <input type="range" id="volumeSlider" min="0" max="100" value="50">
-                    <div id="volumeValue">50%</div>
                 </div>
-                <p class="pause-hint">Presiona ESC para continuar</p>
+                <p class="pause-hint">Flechas ← → para ajustar volumen | ESC para cerrar</p>
             </div>
         </div>
 

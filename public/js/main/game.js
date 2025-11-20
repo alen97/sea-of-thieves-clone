@@ -274,20 +274,39 @@ function create() {
   const volumeSlider = document.getElementById('volumeSlider');
   const volumeValue = document.getElementById('volumeValue');
 
-  // Volume control
-  volumeSlider.addEventListener('input', function(e) {
-    const volume = e.target.value / 100;
-    volumeValue.textContent = `${e.target.value}%`;
+  // Volume control function
+  const updateVolume = (value) => {
+    volumeSlider.value = value;
+    volumeValue.textContent = `${value}%`;
     if (self.sound) {
-      self.sound.volume = volume;
+      self.sound.volume = value / 100;
     }
+  };
+
+  volumeSlider.addEventListener('input', function(e) {
+    updateVolume(parseInt(e.target.value));
   });
 
-  // ESC key for pause menu
+  // Keyboard controls for pause menu
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       this.pauseMenuVisible = !this.pauseMenuVisible;
       pauseMenu.style.display = this.pauseMenuVisible ? 'flex' : 'none';
+      return;
+    }
+
+    // Only handle arrow keys when menu is visible
+    if (this.pauseMenuVisible) {
+      const currentVolume = parseInt(volumeSlider.value);
+      const step = 5;
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        updateVolume(Math.max(0, currentVolume - step));
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        updateVolume(Math.min(100, currentVolume + step));
+      }
     }
   });
 
