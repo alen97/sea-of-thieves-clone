@@ -2041,8 +2041,10 @@ function update(time, delta) {
 
           // Stop any current player action and control
           if (this.player) {
-            this.player.currentAction = null;
-            this.player.isControlling = false;
+            this.player.isControllingShip = false;
+            this.player.isOnCannon = false;
+            this.player.isInCrowsNest = false;
+            this.player.isRepairing = false;
           }
 
           // Disable all input
