@@ -2032,25 +2032,6 @@ function update(time, delta) {
           console.log('[PORTAL] Ship entered portal! Distance:', distanceToPortal);
           this.victoryTriggered = true; // Prevent multiple triggers
 
-          // Stop the ship completely
-          if (this.ship) {
-            this.ship.isAnchored = true;
-            this.ship.body.setVelocity(0, 0);
-            this.ship.body.setAngularVelocity(0);
-          }
-
-          // Stop any current player action and control
-          if (this.player) {
-            this.player.isControllingShip = false;
-            this.player.isOnCannon = false;
-            this.player.isInCrowsNest = false;
-            this.player.isRepairing = false;
-          }
-
-          // Disable all input
-          this.input.keyboard.enabled = false;
-          this.input.mouse.enabled = false;
-
           // Play portal exit sound
           const portalSound = this.sound.add('portalExit', { volume: 1.0 });
           portalSound.play();
@@ -2070,6 +2051,28 @@ function update(time, delta) {
 
           // Use camera fade to black
           this.cameras.main.fadeOut(2000, 0, 0, 0);
+
+          // After fade completes, stop player actions and ship
+          this.time.delayedCall(2000, () => {
+            // Stop the ship completely
+            if (this.ship) {
+              this.ship.isAnchored = true;
+              this.ship.body.setVelocity(0, 0);
+              this.ship.body.setAngularVelocity(0);
+            }
+
+            // Stop any current player action and control
+            if (this.player) {
+              this.player.isControllingShip = false;
+              this.player.isOnCannon = false;
+              this.player.isInCrowsNest = false;
+              this.player.isRepairing = false;
+            }
+
+            // Disable all input
+            this.input.keyboard.enabled = false;
+            this.input.mouse.enabled = false;
+          });
 
           // Show victory screen after fade completes (2s fade + 1.5s delay)
           this.time.delayedCall(3500, () => {
@@ -2181,14 +2184,14 @@ function showVictoryScreen() {
   const seconds = totalSeconds % 60;
   const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-  // Create semi-transparent black overlay (full screen)
+  // Create black overlay (full screen coverage)
   const overlay = this.add.rectangle(
-    this.cameras.main.scrollX + this.cameras.main.width / 2,
-    this.cameras.main.scrollY + this.cameras.main.height / 2,
-    this.cameras.main.width,
-    this.cameras.main.height,
+    this.cameras.main.width / 2,
+    this.cameras.main.height / 2,
+    this.cameras.main.width * 2,
+    this.cameras.main.height * 2,
     0x000000,
-    0.7
+    0.95
   );
   overlay.setScrollFactor(0);
   overlay.setDepth(1000);
