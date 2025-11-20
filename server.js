@@ -57,7 +57,7 @@ const MODIFIER_TYPES = {
   PIRATES_TENACITY: {
     id: 'pirates_tenacity',
     name: "Pirate's Tenacity",
-    lore: "Those who persist are never truly defeated.",
+    lore: "Adrenaline drives every shot.", // "Those who persist are never truly defeated.",
     type: 'PIRATES_TENACITY',
     color: 0xDC143C, // Crimson - relentless fire
     effect: 'fireRate',
@@ -86,7 +86,7 @@ const MODIFIER_TYPES = {
   TEMPEST_ABYSS: {
     id: 'tempest_abyss',
     name: "Tempest of the Abyss",
-    lore: "The abyss commands the storm.",
+    lore: "The void pushes you toward your fate.",
     type: 'TEMPEST_ABYSS',
     color: 0x7A00FF, // Violet
     effect: 'speed',
@@ -99,7 +99,7 @@ const MODIFIER_TYPES = {
   ETHEREAL_HELM: {
     id: 'ethereal_helm',
     name: "Ethereal Helm",
-    lore: "Steer through dimensions.",
+    lore: "The void guides your turns.",
     type: 'ETHEREAL_HELM',
     color: 0x7A00FF, // Violet
     effect: 'turning',
@@ -112,7 +112,7 @@ const MODIFIER_TYPES = {
   ENDLESS_BARRAGE: {
     id: 'endless_barrage',
     name: "Endless Barrage",
-    lore: "The void reloads your cannons.",
+    lore: "The void’s energy is embedded in your cannons.",
     type: 'ENDLESS_BARRAGE',
     color: 0x7A00FF, // Violet
     effect: 'fireRate',
@@ -125,7 +125,7 @@ const MODIFIER_TYPES = {
   ABYSSAL_COMPASS: {
     id: 'abyssal_compass',
     name: "Abyssal Compass",
-    lore: "Points toward hidden riches.",
+    lore: "Shows the way out of the void.",
     type: 'ABYSSAL_COMPASS',
     color: 0xFFD700, // Gold
     effect: 'compass',
