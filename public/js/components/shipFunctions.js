@@ -61,7 +61,8 @@ function createShipHealthBar(self, ship) {
         y: 0,
         speed: { min: 30, max: 60 },
         angle: { min: -110, max: -70 }, // Upward spray
-        scale: { start: 0.2, end: 0.6 },
+        scaleX: { start: 0.4, end: 1.0 }, // Wider
+        scaleY: { start: 0.2, end: 0.5 }, // Shorter - makes particles wider than tall
         alpha: { start: 0.8, end: 0 },
         lifespan: 1200,
         frequency: 80,
@@ -78,6 +79,7 @@ function createShipHealthBar(self, ship) {
     ship.healthBarHeight = barHeight;
     ship.healthBarOffsetY = barY;
     ship.leakWater = waterEmitter;
+    ship.leakWaterContainer = waterParticles; // Store container for position updates
 
     // Hide health bar (not used)
     healthBarBg.setVisible(false);
@@ -119,7 +121,7 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
     // Handle leak water effect (health < 30) - water sprays from repair hatch
-    if (ship.leakWater) {
+    if (ship.leakWater && ship.leakWaterContainer) {
         if (currentHealth < 30 && currentHealth > 0) {
             // Start water if not already emitting
             if (!ship.leakWater.on) {
@@ -132,7 +134,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             // Scale emitter properties based on intensity
             ship.leakWater.setFrequency(120 - (100 * leakIntensity)); // 120ms → 20ms
             ship.leakWater.setSpeed({ min: 30 + (40 * leakIntensity), max: 60 + (80 * leakIntensity) }); // Faster spray
-            ship.leakWater.setScale({ start: 0.2 + (0.3 * leakIntensity), end: 0.6 + (0.6 * leakIntensity) }); // Bigger particles
+            ship.leakWater.setScaleX({ start: 0.4 + (0.6 * leakIntensity), end: 1.0 + (1.0 * leakIntensity) }); // Wider
+            ship.leakWater.setScaleY({ start: 0.2 + (0.3 * leakIntensity), end: 0.5 + (0.5 * leakIntensity) }); // Shorter
             ship.leakWater.setQuantity(1 + Math.floor(3 * leakIntensity)); // 1 → 4 particles per emission
 
             // Calculate hatch position (same offsets as RepairSystem)
@@ -144,8 +147,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             const rotatedX = hatchOffsetX * cos - hatchOffsetY * sin;
             const rotatedY = hatchOffsetX * sin + hatchOffsetY * cos;
 
-            // Update water position to hatch
-            ship.leakWater.setPosition(ship.x + rotatedX, ship.y + rotatedY);
+            // Update container position to follow ship's hatch
+            ship.leakWaterContainer.setPosition(ship.x + rotatedX, ship.y + rotatedY);
         } else {
             // Stop water if health >= 30 or ship sunk
             if (ship.leakWater.on) {
