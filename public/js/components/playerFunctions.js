@@ -67,8 +67,8 @@ function addOtherPlayer(self, playerInfo, ship, playerColor = 'default') {
 function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
     const playerSpeed = 100;
 
-    if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest) {
-        // El jugador NO está en el timón, ni en el cañón, ni en la cofa - puede caminar
+    if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest && !player.isRepairing) {
+        // El jugador NO está en el timón, ni en el cañón, ni en la cofa, ni reparando - puede caminar
 
         // Player below crow's nest when walking
         player.setDepth(3);
