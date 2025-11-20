@@ -636,9 +636,19 @@ io.on('connection', function (socket) {
     return;
   }
 
-  // Initialize player in room (0, 0)
-  const initialRoomX = 0;
-  const initialRoomY = 0;
+  // Find existing room with players, or use default (0, 0)
+  let initialRoomX = 0;
+  let initialRoomY = 0;
+
+  // Search for a room that already has players (join their ship)
+  for (const [existingRoomId, roomData] of Object.entries(rooms)) {
+    if (roomData.ship && Object.keys(roomData.players).length > 0) {
+      [initialRoomX, initialRoomY] = existingRoomId.split(',').map(Number);
+      console.log(`Found existing ship in room (${initialRoomX}, ${initialRoomY})`);
+      break;
+    }
+  }
+
   const roomId = getRoomId(initialRoomX, initialRoomY);
   const room = getOrCreateRoom(initialRoomX, initialRoomY);
 

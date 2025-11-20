@@ -356,6 +356,39 @@ function create() {
 
       // Initialize steering variable from server state
       self.steeringDirection = shipData.steeringDirection || 0;
+
+      // Initialize modifiers from server state (for joining existing ship)
+      if (shipData.modifiers) {
+        self.shipModifiers = shipData.modifiers;
+
+        if (shipData.collectedModifiers && shipData.collectedModifiers.length > 0) {
+          self.collectedModifiers = shipData.collectedModifiers;
+
+          // Modifier info lookup for display
+          const MODIFIER_INFO = {
+            'RIOS_WINDS': { color: 0x00CED1, name: "Río de la Plata's Winds" },
+            'CAPTAINS_GUIDE': { color: 0xFFD700, name: "Captain's Wisdom" },
+            'PIRATES_TENACITY': { color: 0xDC143C, name: "Pirate's Tenacity" },
+            'ABYSS_LANTERN': { color: 0x7A00FF, name: "Lantern of the Abyss" },
+            'TEMPEST_ABYSS': { color: 0x7A00FF, name: "Tempest of the Abyss" },
+            'ETHEREAL_HELM': { color: 0x7A00FF, name: "Ethereal Helm" },
+            'ENDLESS_BARRAGE': { color: 0x7A00FF, name: "Endless Barrage" },
+            'ABYSSAL_COMPASS': { color: 0xFFD700, name: "Abyssal Compass" }
+          };
+
+          // Add each collected modifier to the array
+          self.collectedModifiers.forEach(modifierType => {
+            const info = MODIFIER_INFO[modifierType];
+            if (info) {
+              self.shipModifiersArray.push({
+                type: modifierType,
+                color: info.color,
+                name: info.name
+              });
+            }
+          });
+        }
+      }
     } else {
       // Update existing ship position (for room transitions)
       self.ship.setPosition(shipData.x, shipData.y);
