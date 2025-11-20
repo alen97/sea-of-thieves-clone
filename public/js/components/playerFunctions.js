@@ -67,8 +67,8 @@ function addOtherPlayer(self, playerInfo, ship, playerColor = 'default') {
 function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
     const playerSpeed = 100;
 
-    if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest && !player.isRepairing) {
-        // El jugador NO está en el timón, ni en el cañón, ni en la cofa, ni reparando - puede caminar
+    if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest) {
+        // El jugador NO está en el timón, ni en el cañón, ni en la cofa - puede caminar
 
         // Player below crow's nest when walking
         player.setDepth(3);
@@ -81,8 +81,8 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
         let isMoving = false;
         let playerRotation = player.rotation;
 
-        // Solo procesar input WASD si inputEnabled = true
-        if (inputEnabled) {
+        // Solo procesar input WASD si inputEnabled = true y no está reparando
+        if (inputEnabled && !player.isRepairing) {
             // Aplicar movimiento en coordenadas DEL MUNDO (absolutas)
             let worldVelX = 0;
             let worldVelY = 0;
