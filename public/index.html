@@ -6,6 +6,34 @@
         <title>Client</title>
         <link href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap" rel="stylesheet">
         <style>
+            /* Loading spinner */
+            #loadingScreen {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: #000;
+                z-index: 2000;
+            }
+
+            .spinner {
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(201, 162, 39, 0.3);
+                border-top: 4px solid #c9a227;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
             html,
             body {
                 margin: 0px;
@@ -237,8 +265,13 @@
     </head>
 
     <body>
+        <!-- Loading Screen -->
+        <div id="loadingScreen">
+            <div class="spinner"></div>
+        </div>
+
         <!-- Login Screen -->
-        <div id="loginScreen">
+        <div id="loginScreen" style="display: none;">
             <div id="loginBox">
                 <h1>Endless Sea of Rooms</h1>
                 <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" autocomplete="off">
@@ -268,18 +301,38 @@
             </div>
         </div>
 
-        <!-- Set day/night background based on system time -->
+        <!-- Font loading and day/night background -->
         <script>
             (function() {
-                const hour = new Date().getHours();
+                const loadingScreen = document.getElementById('loadingScreen');
                 const loginScreen = document.getElementById('loginScreen');
-                // Daytime: 6am to 6pm (6-18)
-                // Nighttime: 6pm to 6am (18-24 and 0-6)
+
+                // Set day/night background
+                const hour = new Date().getHours();
                 if (hour >= 6 && hour < 18) {
                     loginScreen.classList.add('daytime');
                 } else {
                     loginScreen.classList.add('nighttime');
                 }
+
+                // Wait for Pirata One font to load
+                document.fonts.ready.then(function() {
+                    // Check if font is loaded
+                    if (document.fonts.check('1em "Pirata One"')) {
+                        showLoginScreen();
+                    } else {
+                        // Load font explicitly
+                        document.fonts.load('1em "Pirata One"').then(showLoginScreen).catch(showLoginScreen);
+                    }
+                }).catch(showLoginScreen);
+
+                function showLoginScreen() {
+                    loadingScreen.style.display = 'none';
+                    loginScreen.style.display = 'flex';
+                }
+
+                // Fallback timeout in case font loading takes too long
+                setTimeout(showLoginScreen, 5000);
             })();
         </script>
 
