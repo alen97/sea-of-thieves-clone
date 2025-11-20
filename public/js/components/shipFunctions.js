@@ -150,21 +150,49 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
         // Ship fully sunk - hide completely
         if (ship.visible !== false) {
             ship.setVisible(false);
+            // Hide cannons
+            if (ship.cannons) {
+                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setVisible(false);
+                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setVisible(false);
+            }
+            // Hide hatch
+            if (ship.hatchVisual) ship.hatchVisual.setVisible(false);
             console.log('[SHIP SUNK] Ship hidden (health = 0)');
         }
     } else if (currentHealth < 10) {
         // Ship sinking (health < 10) - sink below ocean
         if (ship.depth !== -1) {
             ship.setDepth(-1);
+            // Sink cannons
+            if (ship.cannons) {
+                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setDepth(-1);
+                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setDepth(-1);
+            }
+            // Sink hatch
+            if (ship.hatchVisual) ship.hatchVisual.setDepth(-1);
             console.log('[SHIP SINKING] Ship depth set to -1 (below ocean)');
         }
     } else {
         // Ship is above water
         if (ship.depth !== 2) {
             ship.setDepth(2);
+            // Restore cannons depth
+            if (ship.cannons) {
+                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setDepth(2.5);
+                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setDepth(2.5);
+            }
+            // Restore hatch depth
+            if (ship.hatchVisual) ship.hatchVisual.setDepth(2.5);
         }
         if (ship.visible !== true) {
             ship.setVisible(true);
+            // Show cannons
+            if (ship.cannons) {
+                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setVisible(true);
+                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setVisible(true);
+            }
+            // Show hatch
+            if (ship.hatchVisual) ship.hatchVisual.setVisible(true);
         }
     }
 }

@@ -349,7 +349,7 @@ function create() {
       self.crowsNestSystem.createVisual(self.ship);
 
       // Create repair hatch visual
-      self.repairSystem.createVisual(self.ship);
+      self.ship.hatchVisual = self.repairSystem.createVisual(self.ship);
 
       // Create health bar
       createShipHealthBar(self, self.ship);
@@ -610,6 +610,35 @@ function create() {
         self.deathScreenShown = true;
         console.log('[SHIP SINKING] Ship is sinking! Death screen in 5 seconds...');
 
+        // Close map if open
+        self.mapVisible = false;
+
+        // Start fade out
+        self.cameras.main.fadeOut(4000, 0, 0, 0);
+
+        // Disable player actions
+        self.time.delayedCall(2000, () => {
+          // Stop the ship
+          if (self.ship) {
+            self.ship.isAnchored = true;
+            self.ship.body.setVelocity(0, 0);
+            self.ship.body.setAngularVelocity(0);
+          }
+
+          // Stop player actions
+          if (self.player) {
+            self.player.isControllingShip = false;
+            self.player.isOnCannon = false;
+            self.player.isInCrowsNest = false;
+            self.player.isRepairing = false;
+          }
+
+          // Disable input
+          self.input.keyboard.enabled = false;
+          self.input.mouse.enabled = false;
+        });
+
+        // Show death screen after fade
         self.time.delayedCall(5000, () => {
           showDeathScreen.call(self);
         });
