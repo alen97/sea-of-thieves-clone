@@ -59,12 +59,12 @@ function createShipHealthBar(self, ship) {
     const waterEmitter = waterParticles.createEmitter({
         x: 0,
         y: 0,
-        speed: { min: 30, max: 60 },
+        speed: { min: 50, max: 100 },
         angle: { min: -110, max: -70 }, // Upward spray
-        scaleX: { start: 0.4, end: 1.0 }, // Wider
-        scaleY: { start: 0.2, end: 0.5 }, // Shorter - makes particles wider than tall
-        alpha: { start: 0.8, end: 0 },
-        lifespan: 1200,
+        scaleX: { start: 0.6, end: 0.8 }, // Wider
+        scaleY: { start: 0.3, end: 0.4 }, // Shorter - makes particles wider than tall
+        alpha: { start: 0.9, end: 0.3 },
+        lifespan: 400, // Short lifespan - discrete drops, not trails
         frequency: 80,
         tint: [0x4A90D9, 0x87CEEB, 0x5DADE2], // Blue water tones
         blendMode: 'NORMAL',
@@ -132,11 +132,11 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             const leakIntensity = 1 - ((currentHealth - 1) / 28); // 0 to 1
 
             // Scale emitter properties based on intensity
-            ship.leakWater.setFrequency(120 - (100 * leakIntensity)); // 120ms → 20ms
-            ship.leakWater.setSpeed({ min: 30 + (40 * leakIntensity), max: 60 + (80 * leakIntensity) }); // Faster spray
-            ship.leakWater.setScaleX({ start: 0.4 + (0.6 * leakIntensity), end: 1.0 + (1.0 * leakIntensity) }); // Wider
-            ship.leakWater.setScaleY({ start: 0.2 + (0.3 * leakIntensity), end: 0.5 + (0.5 * leakIntensity) }); // Shorter
-            ship.leakWater.setQuantity(1 + Math.floor(3 * leakIntensity)); // 1 → 4 particles per emission
+            ship.leakWater.setFrequency(100 - (80 * leakIntensity)); // 100ms → 20ms
+            ship.leakWater.setSpeed({ min: 50 + (50 * leakIntensity), max: 100 + (100 * leakIntensity) }); // Faster spray
+            ship.leakWater.setScaleX({ start: 0.6 + (0.4 * leakIntensity), end: 0.8 + (0.4 * leakIntensity) }); // Wider
+            ship.leakWater.setScaleY({ start: 0.3 + (0.2 * leakIntensity), end: 0.4 + (0.2 * leakIntensity) }); // Shorter
+            ship.leakWater.setQuantity(1 + Math.floor(4 * leakIntensity)); // 1 → 5 particles per emission
 
             // Calculate hatch position (same offsets as RepairSystem)
             const hatchOffsetX = -57; // Slightly to the right of helm
