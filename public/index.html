@@ -292,20 +292,18 @@
                 position: absolute;
                 top: 10px;
                 right: 10px;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
+                padding: 8px 16px;
+                border-radius: 5px;
                 background: linear-gradient(135deg, #c9a227 0%, #a67c00 100%);
                 border: 2px solid #f4d03f;
                 color: #1a0f0a;
                 font-family: 'Pirata One', cursive;
-                font-size: 18px;
+                font-size: 14px;
                 cursor: pointer;
-                display: flex;
-                justify-content: center;
-                align-items: center;
                 transition: all 0.3s;
                 box-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
+                letter-spacing: 1px;
             }
 
             #helpButton:hover {
@@ -539,7 +537,7 @@
         <!-- Login Screen -->
         <div id="loginScreen" style="display: none;">
             <div id="loginBox">
-                <button id="helpButton">?</button>
+                <button id="helpButton">Cómo jugar</button>
                 <h1>Endless Sea of Rooms</h1>
                 <input type="text" id="roomCodeInput" placeholder="Código de sala" maxlength="6" autocomplete="off" autofocus>
                 <div class="button-container">
@@ -657,6 +655,16 @@
                 helpModal.addEventListener('click', function(e) {
                     if (e.target === helpModal) {
                         helpModal.style.display = 'none';
+                    }
+                });
+
+                // Close help modal with ESC or Enter
+                document.addEventListener('keydown', function(e) {
+                    if (helpModal.style.display === 'flex') {
+                        if (e.key === 'Escape' || e.key === 'Enter') {
+                            helpModal.style.display = 'none';
+                            e.preventDefault();
+                        }
                     }
                 });
             })();
