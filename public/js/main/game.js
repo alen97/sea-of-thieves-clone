@@ -2125,10 +2125,10 @@ function showDeathScreen() {
   // Show HTML death screen
   document.getElementById('deathScreen').style.display = 'flex';
 
-  // Reload page after 3 seconds
-  setTimeout(() => {
+  // Add click handler for restart button
+  document.getElementById('deathRestartButton').onclick = () => {
     window.location.reload();
-  }, 3000);
+  };
 }
 
 /**

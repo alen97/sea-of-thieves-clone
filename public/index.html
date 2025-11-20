@@ -254,12 +254,28 @@
                 letter-spacing: 2px;
             }
 
-            #deathMessage {
+            #deathRestartButton {
+                width: 280px;
+                padding: 12px;
+                font-size: 18px;
                 font-family: 'Pirata One', cursive;
-                color: #ffcccc;
-                font-size: 20px;
-                margin: 0;
-                text-shadow: 1px 1px 3px #000;
+                background: linear-gradient(135deg, #8b0000 0%, #5c0000 100%);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: all 0.3s;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+                letter-spacing: 1px;
+            }
+
+            #deathRestartButton:hover {
+                background: linear-gradient(135deg, #aa0000 0%, #8b0000 100%);
+                box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
+            }
+
+            #deathRestartButton:active {
+                background: linear-gradient(135deg, #5c0000 0%, #3a0000 100%);
             }
         </style>
     </head>
@@ -297,7 +313,7 @@
             <div id="deathBox">
                 <p id="deathSkull">☠</p>
                 <h1>Tu barco se hundió</h1>
-                <p id="deathMessage">Recargando en 3 segundos...</p>
+                <button id="deathRestartButton">Volver al inicio</button>
             </div>
         </div>
 
