@@ -184,6 +184,55 @@
             #restartButton:active {
                 background: linear-gradient(135deg, #7A00FF 0%, #5800BB 100%);
             }
+
+            #deathScreen {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                background: rgba(0, 0, 0, 0.85);
+            }
+
+            #deathBox {
+                background: linear-gradient(135deg, #1a0a0a 0%, #2d1010 100%);
+                padding: 40px 60px;
+                border-radius: 8px;
+                text-align: center;
+                border: 3px solid #8b0000;
+                box-shadow: 0 0 30px rgba(139, 0, 0, 0.5),
+                            inset 0 0 40px rgba(0, 0, 0, 0.6);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #deathSkull {
+                font-size: 64px;
+                margin: 0 0 10px 0;
+                filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.6));
+            }
+
+            #deathBox h1 {
+                font-family: 'Pirata One', cursive;
+                color: #ff3333;
+                margin: 0 0 20px 0;
+                font-size: 36px;
+                text-shadow: 2px 2px 4px #000, 0 0 15px rgba(255, 0, 0, 0.6);
+                letter-spacing: 2px;
+            }
+
+            #deathMessage {
+                font-family: 'Pirata One', cursive;
+                color: #ffcccc;
+                font-size: 20px;
+                margin: 0;
+                text-shadow: 1px 1px 3px #000;
+            }
         </style>
     </head>
 
@@ -207,6 +256,15 @@
                 <h1>¡Escapaste del abismo!</h1>
                 <p id="victoryTime">Tiempo: 0:00</p>
                 <button id="restartButton">Volver al inicio</button>
+            </div>
+        </div>
+
+        <!-- Death Screen (hidden initially) -->
+        <div id="deathScreen">
+            <div id="deathBox">
+                <p id="deathSkull">☠</p>
+                <h1>Tu barco se hundió</h1>
+                <p id="deathMessage">Recargando en 3 segundos...</p>
             </div>
         </div>
 
