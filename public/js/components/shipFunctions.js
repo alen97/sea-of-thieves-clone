@@ -120,16 +120,16 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
-    // Handle leak water effect (health < 30) - water sprays from repair hatch
+    // Handle leak water effect (health < 60) - water sprays from repair hatch
     if (ship.leakWater && ship.leakWaterContainer) {
-        if (currentHealth < 30 && currentHealth > 0) {
+        if (currentHealth < 60 && currentHealth > 0) {
             // Start water if not already emitting
             if (!ship.leakWater.on) {
                 ship.leakWater.start();
             }
 
-            // Calculate leak intensity based on health (29 → minimal, 1 → maximum)
-            const leakIntensity = 1 - ((currentHealth - 1) / 28); // 0 to 1
+            // Calculate leak intensity based on health (59 → minimal, 1 → maximum)
+            const leakIntensity = 1 - ((currentHealth - 1) / 58); // 0 to 1
 
             // Scale emitter properties based on intensity
             ship.leakWater.setFrequency(100 - (80 * leakIntensity)); // 100ms → 20ms
@@ -150,7 +150,7 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             // Update container position to follow ship's hatch
             ship.leakWaterContainer.setPosition(ship.x + rotatedX, ship.y + rotatedY);
         } else {
-            // Stop water if health >= 30 or ship sunk
+            // Stop water if health >= 60 or ship sunk
             if (ship.leakWater.on) {
                 ship.leakWater.stop();
             }
