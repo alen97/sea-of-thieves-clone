@@ -2177,7 +2177,7 @@ function showDeathScreen() {
 function showVictoryScreen() {
   console.log('[VICTORY SCREEN] Showing victory screen');
 
-  // Reset camera fade effect so modal is visible
+  // Reset camera fade effect
   this.cameras.main.resetFX();
 
   // Hide ship and player
@@ -2195,84 +2195,12 @@ function showVictoryScreen() {
   const seconds = totalSeconds % 60;
   const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-  // Create black overlay (full screen coverage)
-  const overlay = this.add.rectangle(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2,
-    this.cameras.main.width * 2,
-    this.cameras.main.height * 2,
-    0x000000,
-    1
-  );
-  overlay.setScrollFactor(0);
-  overlay.setDepth(1000);
+  // Update and show HTML victory screen
+  document.getElementById('victoryTime').textContent = `Tiempo: ${timeString}`;
+  document.getElementById('victoryScreen').style.display = 'flex';
 
-  // Create modal background (centered box)
-  const modalWidth = 600;
-  const modalHeight = 250;
-  const modalBg = this.add.rectangle(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2,
-    modalWidth,
-    modalHeight,
-    0x1a1a1a,
-    1
-  );
-  modalBg.setScrollFactor(0);
-  modalBg.setDepth(1001);
-  modalBg.setStrokeStyle(4, 0x7A00FF); // Purple border (portal color)
-
-  // Create victory title
-  const victoryTitle = this.add.text(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2 - 50,
-    '¡Escapaste del abismo!',
-    {
-      fontSize: '36px',
-      fill: '#FFD700',
-      fontStyle: 'bold',
-      align: 'center'
-    }
-  );
-  victoryTitle.setOrigin(0.5);
-  victoryTitle.setScrollFactor(0);
-  victoryTitle.setDepth(1002);
-
-  // Show time
-  const timeText = this.add.text(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2 + 10,
-    `Tiempo: ${timeString}`,
-    {
-      fontSize: '28px',
-      fill: '#ffffff',
-      align: 'center'
-    }
-  );
-  timeText.setOrigin(0.5);
-  timeText.setScrollFactor(0);
-  timeText.setDepth(1002);
-
-  // Create reload message
-  const reloadText = this.add.text(
-    this.cameras.main.width / 2,
-    this.cameras.main.height / 2 + 70,
-    'Presiona ENTER para volver al inicio',
-    {
-      fontSize: '16px',
-      fill: '#aaaaaa',
-      align: 'center'
-    }
-  );
-  reloadText.setOrigin(0.5);
-  reloadText.setScrollFactor(0);
-  reloadText.setDepth(1002);
-
-  // Re-enable keyboard for ENTER
-  this.input.keyboard.enabled = true;
-
-  // Listen for ENTER key to reload
-  this.input.keyboard.once('keydown-ENTER', () => {
+  // Setup restart button
+  document.getElementById('restartButton').addEventListener('click', () => {
     window.location.reload();
   });
 }
