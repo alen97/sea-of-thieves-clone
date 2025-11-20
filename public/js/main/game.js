@@ -341,8 +341,8 @@ function create() {
       // Create cannons for the ship
       self.ship.cannons = self.cannonSystem.createCannons(self.ship)
 
-      // Create lantern at ship center
-      self.lanternLit = false;
+      // Create lantern at ship center (use server state)
+      self.lanternLit = shipData.lanternLit || false;
       self.lantern = createLantern(self, self.ship, self.lanternLit);
 
       // Create crow's nest visual
