@@ -395,6 +395,11 @@ function create() {
             }
           });
         }
+
+        // Update lantern visual with abyss state
+        if (self.lantern && self.shipModifiers.abyssVision) {
+          updateLanternVisual(self.lantern, self.lanternLit, self.shipModifiers.abyssVision);
+        }
       }
     } else {
       // Update existing ship position (for room transitions)
