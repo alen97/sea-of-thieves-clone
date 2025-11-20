@@ -1742,14 +1742,9 @@ function update(time, delta) {
     // Update lantern position to follow ship
     updateLanternPosition(this.lantern, this.ship);
 
-    // ===== HEALTH BAR =====
-    // Update health bar position to follow ship
-    if (this.ship.healthBarBg && this.ship.healthBar) {
-      this.ship.healthBarBg.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
-      this.ship.healthBar.setPosition(this.ship.x, this.ship.y + this.ship.healthBarOffsetY);
-    }
-
-    // Note: Damage smoke position is updated in updateShipHealthBar() to follow hatch position
+    // ===== HEALTH BAR & WATER LEAK =====
+    // Update health bar and water leak position to follow ship
+    updateShipHealthBar(this.ship, this.ship.health, this.ship.maxHealth);
 
     // ===== FLOATING MODIFIER TEXTS =====
     // Update floating text positions to follow ship
