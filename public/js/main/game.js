@@ -2286,7 +2286,7 @@ class UIScene extends Phaser.Scene {
     this.mapBackground.setStrokeStyle(2, 0xffffff); // Borde blanco
 
     // Título del mapa
-    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA (M)', {
+    this.mapTitle = this.add.text(cameraX, mapY - 20, 'MAPA', {
       fontSize: '14px',
       fill: '#ffffff',
       fontStyle: 'bold'
