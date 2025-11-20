@@ -265,12 +265,32 @@ function create() {
   // Store room code for display
   this.roomCode = roomCode;
 
-  // Show room code display
-  const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-  const roomCodeText = document.getElementById('roomCodeText');
+  // Set room code in pause menu
+  document.getElementById('pauseRoomCode').textContent = roomCode;
 
-  roomCodeText.textContent = `Sala: ${roomCode}`;
-  roomCodeDisplay.style.display = 'block';
+  // Pause menu handling
+  this.pauseMenuVisible = false;
+  const pauseMenu = document.getElementById('pauseMenu');
+  const volumeSlider = document.getElementById('volumeSlider');
+  const volumeValue = document.getElementById('volumeValue');
+
+  // Volume control
+  const self = this;
+  volumeSlider.addEventListener('input', function(e) {
+    const volume = e.target.value / 100;
+    volumeValue.textContent = `${e.target.value}%`;
+    if (self.sound) {
+      self.sound.volume = volume;
+    }
+  });
+
+  // ESC key for pause menu
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      this.pauseMenuVisible = !this.pauseMenuVisible;
+      pauseMenu.style.display = this.pauseMenuVisible ? 'flex' : 'none';
+    }
+  });
 
   // Handle room errors
   this.socket.on('roomNotFound', function() {
