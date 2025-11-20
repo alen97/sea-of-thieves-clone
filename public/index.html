@@ -306,6 +306,7 @@
             (function() {
                 const loadingScreen = document.getElementById('loadingScreen');
                 const loginScreen = document.getElementById('loginScreen');
+                let fontLoaded = false;
 
                 // Set day/night background
                 const hour = new Date().getHours();
@@ -327,6 +328,8 @@
                 }).catch(showLoginScreen);
 
                 function showLoginScreen() {
+                    if (fontLoaded) return;
+                    fontLoaded = true;
                     loadingScreen.style.display = 'none';
                     loginScreen.style.display = 'flex';
                 }
