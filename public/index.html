@@ -119,8 +119,14 @@
 
             .button-container {
                 display: flex;
+                flex-direction: column;
                 gap: 10px;
                 width: 100%;
+            }
+
+            /* Hide cursor globally */
+            * {
+                cursor: none !important;
             }
 
             /* Selected state for keyboard navigation */
