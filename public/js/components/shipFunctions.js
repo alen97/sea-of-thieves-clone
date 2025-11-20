@@ -126,6 +126,15 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
                 ship.leakWater.start();
             }
 
+            // Calculate leak intensity based on health (29 → minimal, 1 → maximum)
+            const leakIntensity = 1 - ((currentHealth - 1) / 28); // 0 to 1
+
+            // Scale emitter properties based on intensity
+            ship.leakWater.setFrequency(120 - (100 * leakIntensity)); // 120ms → 20ms
+            ship.leakWater.setSpeed({ min: 30 + (40 * leakIntensity), max: 60 + (80 * leakIntensity) }); // Faster spray
+            ship.leakWater.setScale({ start: 0.2 + (0.3 * leakIntensity), end: 0.6 + (0.6 * leakIntensity) }); // Bigger particles
+            ship.leakWater.setQuantity(1 + Math.floor(3 * leakIntensity)); // 1 → 4 particles per emission
+
             // Calculate hatch position (same offsets as RepairSystem)
             const hatchOffsetX = -57; // Slightly to the right of helm
             const hatchOffsetY = 0; // Below helm
