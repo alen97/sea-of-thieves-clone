@@ -306,6 +306,14 @@ function create() {
       } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         updateVolume(Math.min(100, currentVolume + step));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        navigator.clipboard.writeText(roomCode).then(() => {
+          const codeEl = document.getElementById('pauseRoomCode');
+          const original = codeEl.textContent;
+          codeEl.textContent = '¡Copiado!';
+          setTimeout(() => { codeEl.textContent = original; }, 1000);
+        });
       }
     }
   });
