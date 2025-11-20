@@ -123,6 +123,12 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     // Handle leak water effect - starts at health < 70 (or when server says isLeaking)
     if (ship.leakWater && ship.leakWaterContainer) {
         const shouldLeak = (ship.isLeaking || currentHealth < 70) && currentHealth > 0;
+
+        // Debug log
+        if (currentHealth < 80 && currentHealth > 0) {
+            console.log(`[WATER DEBUG] health=${currentHealth}, isLeaking=${ship.isLeaking}, shouldLeak=${shouldLeak}, emitterOn=${ship.leakWater.on}`);
+        }
+
         if (shouldLeak) {
             // Start water if not already emitting
             if (!ship.leakWater.on) {
