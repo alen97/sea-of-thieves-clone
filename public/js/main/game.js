@@ -1568,7 +1568,8 @@ function update(time, delta) {
   if (this.ship && this.player) {
 
     // ===== INPUT =====
-    const inputEnabled = !this.chatMode;
+    // Disable all input if chat is active or ship is sinking
+    const inputEnabled = !this.chatMode && !this.ship.isSinking;
     const inputState = this.inputSystem.getInputState(inputEnabled);
 
     // Legacy input object for compatibility with old functions

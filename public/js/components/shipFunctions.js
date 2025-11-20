@@ -54,22 +54,22 @@ function createShipHealthBar(self, ship) {
     const healthBar = self.add.graphics();
     healthBar.setDepth(10);
 
-    // Create damage smoke particles (initially invisible)
-    const smokeParticles = self.add.particles('bullet');
-    const smokeEmitter = smokeParticles.createEmitter({
+    // Create leak water particles (initially invisible) - water rushing into ship
+    const waterParticles = self.add.particles('bullet');
+    const waterEmitter = waterParticles.createEmitter({
         x: 0,
         y: 0,
-        speed: { min: 20, max: 40 },
-        angle: { min: -100, max: -80 }, // Upward
-        scale: { start: 0.3, end: 1.5 },
-        alpha: { start: 0.6, end: 0 },
-        lifespan: 2000,
-        frequency: 200,
-        tint: [0x555555, 0x777777, 0x333333], // Gray smoke
+        speed: { min: 30, max: 60 },
+        angle: { min: -110, max: -70 }, // Upward spray
+        scale: { start: 0.2, end: 0.6 },
+        alpha: { start: 0.8, end: 0 },
+        lifespan: 1200,
+        frequency: 80,
+        tint: [0x4A90D9, 0x87CEEB, 0x5DADE2], // Blue water tones
         blendMode: 'NORMAL',
         on: false // Start stopped
     });
-    smokeParticles.setDepth(1.5); // Below ship but above ocean
+    waterParticles.setDepth(1.5); // Below ship but above ocean
 
     // Store references
     ship.healthBarBg = healthBarBg;
@@ -77,7 +77,7 @@ function createShipHealthBar(self, ship) {
     ship.healthBarWidth = barWidth;
     ship.healthBarHeight = barHeight;
     ship.healthBarOffsetY = barY;
-    ship.damageSmoke = smokeEmitter;
+    ship.leakWater = waterEmitter;
 
     // Hide health bar (not used)
     healthBarBg.setVisible(false);
@@ -118,12 +118,12 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
-    // Handle damage smoke effect (health < 30) - smoke comes from repair hatch
-    if (ship.damageSmoke) {
+    // Handle leak water effect (health < 30) - water sprays from repair hatch
+    if (ship.leakWater) {
         if (currentHealth < 30 && currentHealth > 0) {
-            // Start smoke if not already emitting
-            if (!ship.damageSmoke.on) {
-                ship.damageSmoke.start();
+            // Start water if not already emitting
+            if (!ship.leakWater.on) {
+                ship.leakWater.start();
             }
 
             // Calculate hatch position (same offsets as RepairSystem)
@@ -135,12 +135,12 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             const rotatedX = hatchOffsetX * cos - hatchOffsetY * sin;
             const rotatedY = hatchOffsetX * sin + hatchOffsetY * cos;
 
-            // Update smoke position to hatch
-            ship.damageSmoke.setPosition(ship.x + rotatedX, ship.y + rotatedY);
+            // Update water position to hatch
+            ship.leakWater.setPosition(ship.x + rotatedX, ship.y + rotatedY);
         } else {
-            // Stop smoke if health >= 30 or ship sunk
-            if (ship.damageSmoke.on) {
-                ship.damageSmoke.stop();
+            // Stop water if health >= 30 or ship sunk
+            if (ship.leakWater.on) {
+                ship.leakWater.stop();
             }
         }
     }
