@@ -13,6 +13,10 @@ const DEV_MODE = true;
 var rooms = {};
 const MAX_PLAYERS = 4;
 
+// Private rooms: stores private room data by code
+// Each private room has: code, ship, players, currentRoomX, currentRoomY
+var privateRooms = {};
+
 // Portal position for Abyssal Compass (generated when first compass is collected)
 var portalPosition = null; // Will be generated when someone collects Abyssal Compass
 
@@ -173,12 +177,17 @@ const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 3200;
 
 // Helper functions
-function getRoomId(roomX, roomY) {
+function getRoomId(privateCode, roomX, roomY) {
+  return `${privateCode}_${roomX},${roomY}`;
+}
+
+// Get map cell ID (without private code, for spawning modifiers/jellies)
+function getMapCellId(roomX, roomY) {
   return `${roomX},${roomY}`;
 }
 
-function getOrCreateRoom(roomX, roomY) {
-  const roomId = getRoomId(roomX, roomY);
+function getOrCreateRoom(privateCode, roomX, roomY) {
+  const roomId = getRoomId(privateCode, roomX, roomY);
   if (!rooms[roomId]) {
     rooms[roomId] = {
       ship: null, // Shared ship for all players in room (created with first player)
@@ -195,6 +204,24 @@ function getOrCreateRoom(roomX, roomY) {
     spawnJelliesInRoom(rooms[roomId], roomX, roomY);
   }
   return rooms[roomId];
+}
+
+// Create or get private room by code
+function getOrCreatePrivateRoom(code) {
+  if (!privateRooms[code]) {
+    privateRooms[code] = {
+      code: code,
+      currentRoomX: 0,
+      currentRoomY: 0
+    };
+    console.log(`[PRIVATE] Created private room: ${code}`);
+  }
+  return privateRooms[code];
+}
+
+// Get private room by code (returns null if not found)
+function getPrivateRoom(code) {
+  return privateRooms[code] || null;
 }
 
 // Get player count in a room
@@ -553,14 +580,14 @@ function createShip(x, y) {
 }
 
 // Get all adjacent rooms (3x3 grid: current room + 8 neighbors)
-function getAdjacentRooms(roomX, roomY) {
+function getAdjacentRooms(privateCode, roomX, roomY) {
   const adjacentRooms = [];
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
       adjacentRooms.push({
         roomX: roomX + dx,
         roomY: roomY + dy,
-        roomId: getRoomId(roomX + dx, roomY + dy)
+        roomId: getRoomId(privateCode, roomX + dx, roomY + dy)
       });
     }
   }
@@ -568,13 +595,13 @@ function getAdjacentRooms(roomX, roomY) {
 }
 
 // Join socket to all adjacent rooms for awareness
-function joinAdjacentRooms(socket, roomX, roomY) {
+function joinAdjacentRooms(socket, privateCode, roomX, roomY) {
   if (!socket || !socket.connected) {
     console.log('Cannot join rooms: socket not connected');
     return;
   }
 
-  const adjacentRooms = getAdjacentRooms(roomX, roomY);
+  const adjacentRooms = getAdjacentRooms(privateCode, roomX, roomY);
   adjacentRooms.forEach(room => {
     try {
       socket.join(room.roomId);
@@ -585,13 +612,13 @@ function joinAdjacentRooms(socket, roomX, roomY) {
 }
 
 // Leave all adjacent rooms
-function leaveAdjacentRooms(socket, roomX, roomY) {
+function leaveAdjacentRooms(socket, privateCode, roomX, roomY) {
   if (!socket || !socket.connected) {
     console.log('Cannot leave rooms: socket not connected');
     return;
   }
 
-  const adjacentRooms = getAdjacentRooms(roomX, roomY);
+  const adjacentRooms = getAdjacentRooms(privateCode, roomX, roomY);
   adjacentRooms.forEach(room => {
     try {
       socket.leave(room.roomId);
@@ -602,8 +629,8 @@ function leaveAdjacentRooms(socket, roomX, roomY) {
 }
 
 // Get all players in adjacent rooms for seamless rendering
-function getPlayersInAdjacentRooms(roomX, roomY) {
-  const adjacentRooms = getAdjacentRooms(roomX, roomY);
+function getPlayersInAdjacentRooms(privateCode, roomX, roomY) {
+  const adjacentRooms = getAdjacentRooms(privateCode, roomX, roomY);
   const allPlayers = {};
 
   adjacentRooms.forEach(room => {
@@ -625,9 +652,12 @@ app.get('/', function (req, res) {
 });
 
 io.on('connection', function (socket) {
-  // Get player name from connection query
+  // Get player name and room info from connection query
   const playerName = socket.handshake.query.playerName || 'Unknown';
-  console.log('a user connected: ', socket.id, '(', playerName, ')');
+  const roomCode = socket.handshake.query.roomCode || '';
+  const roomAction = socket.handshake.query.roomAction || 'create';
+
+  console.log('a user connected: ', socket.id, '(', playerName, ') Room:', roomCode, 'Action:', roomAction);
 
   // Validate player name
   if (!playerName || playerName === 'Unknown' || playerName.trim().length < 2) {
@@ -639,29 +669,41 @@ io.on('connection', function (socket) {
     return;
   }
 
-  // Find existing room with players, or use default (0, 0)
+  // Handle private room logic
+  let privateRoom;
   let initialRoomX = 0;
   let initialRoomY = 0;
 
-  // Search for a room that already has players (join their ship)
-  for (const [existingRoomId, roomData] of Object.entries(rooms)) {
-    if (roomData.ship && Object.keys(roomData.players).length > 0) {
-      [initialRoomX, initialRoomY] = existingRoomId.split(',').map(Number);
-      console.log(`Found existing ship in room (${initialRoomX}, ${initialRoomY})`);
-      break;
+  if (roomAction === 'join') {
+    // Joining existing room - verify it exists
+    privateRoom = getPrivateRoom(roomCode);
+    if (!privateRoom) {
+      console.log(`[PRIVATE] Room not found: ${roomCode}`);
+      socket.emit('roomNotFound');
+      socket.disconnect(true);
+      return;
     }
+    // Get the current position of the existing ship
+    initialRoomX = privateRoom.currentRoomX;
+    initialRoomY = privateRoom.currentRoomY;
+    console.log(`[PRIVATE] Joining existing room ${roomCode} at (${initialRoomX}, ${initialRoomY})`);
+  } else {
+    // Creating new room
+    privateRoom = getOrCreatePrivateRoom(roomCode);
+    console.log(`[PRIVATE] Created/retrieved room ${roomCode}`);
   }
 
-  const roomId = getRoomId(initialRoomX, initialRoomY);
-  const room = getOrCreateRoom(initialRoomX, initialRoomY);
+  // Store private code in socket for later use
+  socket.privateCode = roomCode;
+
+  const roomId = getRoomId(roomCode, initialRoomX, initialRoomY);
+  const room = getOrCreateRoom(roomCode, initialRoomX, initialRoomY);
 
   // Validate max 4 players
   const currentPlayerCount = getPlayerCount(room);
   if (currentPlayerCount >= MAX_PLAYERS) {
-    console.log(`Server full: ${currentPlayerCount}/${MAX_PLAYERS} players. Rejecting ${socket.id}`);
-    socket.emit('serverFull', {
-      message: `Server is full (${MAX_PLAYERS}/${MAX_PLAYERS} players)`
-    });
+    console.log(`Room full: ${currentPlayerCount}/${MAX_PLAYERS} players. Rejecting ${socket.id}`);
+    socket.emit('roomFull');
     socket.disconnect(true);
     return;
   }
@@ -734,7 +776,7 @@ io.on('connection', function (socket) {
       return;
     }
 
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (!room || !room.ship) {
@@ -793,7 +835,7 @@ io.on('connection', function (socket) {
   // when a player disconnects, remove them from their room
   socket.on('disconnect', function () {
     console.log('user disconnected: ', socket.id);
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id]) {
@@ -806,6 +848,12 @@ io.on('connection', function (socket) {
         console.log(`Last player left room ${roomId}. Destroying ship.`);
         room.ship = null;
         io.to(roomId).emit('shipDestroyed');
+
+        // Clean up private room when empty
+        if (socket.privateCode && privateRooms[socket.privateCode]) {
+          console.log(`[PRIVATE] Deleting empty private room: ${socket.privateCode}`);
+          delete privateRooms[socket.privateCode];
+        }
       }
 
       // Emit to players in the same room only
@@ -815,7 +863,7 @@ io.on('connection', function (socket) {
 
   // Handle ship control inputs (NEW: Input-based, not state-based)
   socket.on('shipInput', function (inputData) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.ship && inputData) {
@@ -848,7 +896,7 @@ io.on('connection', function (socket) {
 
   // Handle anchor toggle
   socket.on('anchorToggle', function (data) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.ship && data) {
@@ -864,7 +912,7 @@ io.on('connection', function (socket) {
 
   // Handle helm control toggle
   socket.on('helmToggle', function (data) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id] && data !== undefined) {
@@ -881,7 +929,7 @@ io.on('connection', function (socket) {
 
   // Handle cannon mount/dismount
   socket.on('cannonToggle', function (data) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id] && data !== undefined) {
@@ -900,7 +948,7 @@ io.on('connection', function (socket) {
 
   // Handle crow's nest toggle
   socket.on('crowsNestToggle', function (data) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id] && data) {
@@ -917,7 +965,7 @@ io.on('connection', function (socket) {
 
   // Handle repair start/stop
   socket.on('startRepair', function () {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id] && room.ship) {
@@ -936,7 +984,7 @@ io.on('connection', function (socket) {
   });
 
   socket.on('stopRepair', function () {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id]) {
@@ -957,7 +1005,7 @@ io.on('connection', function (socket) {
 
   // Handle player avatar movement (still client-authoritative for now)
   socket.on('playerMovement', function (movementData) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id] && movementData) {
@@ -997,7 +1045,7 @@ io.on('connection', function (socket) {
 
   // CREATE BULLET
   socket.on('createBullet', function (creationData) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room) {
@@ -1019,7 +1067,7 @@ io.on('connection', function (socket) {
 
   // JELLY DESTROYED (by cannon bullet)
   socket.on('jellyDestroyed', function (data) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.jellies) {
@@ -1039,7 +1087,7 @@ io.on('connection', function (socket) {
 
   // when a player sends a chat message
   socket.on('chatMessage', function (messageData) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
 
     // Validar que el mensaje existe y no está vacío
     if (!messageData.message || messageData.message.trim() === '') {
@@ -1061,7 +1109,7 @@ io.on('connection', function (socket) {
 
   // when a player toggles the lantern
   socket.on('toggleLantern', function () {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.ship) {
@@ -1085,8 +1133,8 @@ io.on('connection', function (socket) {
         return;
       }
 
-      const oldRoomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
-      const newRoomId = getRoomId(roomData.roomX, roomData.roomY);
+      const oldRoomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
+      const newRoomId = getRoomId(socket.privateCode, roomData.roomX, roomData.roomY);
 
       // Skip if already in target room
       if (oldRoomId === newRoomId) {
@@ -1103,7 +1151,13 @@ io.on('connection', function (socket) {
 
       // Get all players on the ship (they all move together)
       const playersOnShip = Object.keys(oldRoom.players);
-      const newRoom = getOrCreateRoom(roomData.roomX, roomData.roomY);
+      const newRoom = getOrCreateRoom(socket.privateCode, roomData.roomX, roomData.roomY);
+
+      // Update private room coordinates
+      if (privateRooms[socket.privateCode]) {
+        privateRooms[socket.privateCode].currentRoomX = roomData.roomX;
+        privateRooms[socket.privateCode].currentRoomY = roomData.roomY;
+      }
 
       // Move ship to new room
       const ship = oldRoom.ship;
@@ -1112,9 +1166,10 @@ io.on('connection', function (socket) {
       newRoom.ship = ship;
       oldRoom.ship = null;
 
-      // Track visited room for shared map
-      if (!ship.visitedRooms.includes(newRoomId)) {
-        ship.visitedRooms.push(newRoomId);
+      // Track visited room for shared map (using map cell ID, not socket room ID)
+      const mapCellId = getMapCellId(roomData.roomX, roomData.roomY);
+      if (!ship.visitedRooms.includes(mapCellId)) {
+        ship.visitedRooms.push(mapCellId);
       }
 
       // Move all players to new room and update their coordinates
@@ -1163,7 +1218,7 @@ io.on('connection', function (socket) {
   });
 
   socket.on('cannonRotation', function(data) {
-    const roomId = getRoomId(socket.currentRoomX, socket.currentRoomY);
+    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
     if (room && room.ship && data) {
       room.ship.cannons = {

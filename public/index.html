@@ -110,28 +110,112 @@
                 color: rgba(245, 230, 200, 0.5);
             }
 
-            #joinButton {
-                width: 320px;
+
+            #roomCodeInput {
+                width: 300px;
                 padding: 12px;
-                font-size: 18px;
+                font-size: 16px;
+                border: 2px solid #c9a227;
+                border-radius: 5px;
+                background: rgba(0, 0, 0, 0.5);
+                color: #f5e6c8;
+                margin-bottom: 20px;
+                outline: none;
+                text-transform: uppercase;
+                letter-spacing: 3px;
+                text-align: center;
+            }
+
+            #roomCodeInput:focus {
+                border-color: #f4d03f;
+                box-shadow: 0 0 10px rgba(244, 208, 63, 0.5);
+            }
+
+            #roomCodeInput::placeholder {
+                color: rgba(245, 230, 200, 0.5);
+                text-transform: none;
+                letter-spacing: normal;
+            }
+
+            .button-container {
+                display: flex;
+                gap: 10px;
+                width: 100%;
+            }
+
+            #createRoomButton, #joinRoomButton {
+                flex: 1;
+                padding: 12px;
+                font-size: 16px;
                 font-family: 'Pirata One', cursive;
-                background: linear-gradient(135deg, #c9a227 0%, #a67c00 100%);
-                color: #1a0f0a;
                 border: none;
                 border-radius: 5px;
                 cursor: pointer;
                 transition: all 0.3s;
-                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
                 letter-spacing: 1px;
             }
 
-            #joinButton:hover {
+            #createRoomButton {
+                background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+                color: white;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            }
+
+            #createRoomButton:hover {
+                background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+                box-shadow: 0 0 15px rgba(67, 160, 71, 0.5);
+            }
+
+            #createRoomButton:active {
+                background: linear-gradient(135deg, #1b5e20 0%, #0d3d12 100%);
+            }
+
+            #joinRoomButton {
+                background: linear-gradient(135deg, #c9a227 0%, #a67c00 100%);
+                color: #1a0f0a;
+                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
+            }
+
+            #joinRoomButton:hover {
                 background: linear-gradient(135deg, #f4d03f 0%, #c9a227 100%);
                 box-shadow: 0 0 15px rgba(244, 208, 63, 0.5);
             }
 
-            #joinButton:active {
+            #joinRoomButton:active {
                 background: linear-gradient(135deg, #a67c00 0%, #7a5a00 100%);
+            }
+
+            /* Room code display during game */
+            #roomCodeDisplay {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 8px 12px;
+                border-radius: 5px;
+                border: 2px solid #c9a227;
+                z-index: 100;
+                display: none;
+            }
+
+            #roomCodeDisplay span {
+                font-family: 'Pirata One', cursive;
+                color: #f4d03f;
+                font-size: 14px;
+                letter-spacing: 2px;
+            }
+
+            #roomCodeDisplay button {
+                background: none;
+                border: none;
+                color: #c9a227;
+                cursor: pointer;
+                margin-left: 8px;
+                font-size: 12px;
+            }
+
+            #roomCodeDisplay button:hover {
+                color: #f4d03f;
             }
 
             #errorMessage {
@@ -395,10 +479,20 @@
             <div id="loginBox">
                 <button id="helpButton">?</button>
                 <h1>Endless Sea of Rooms</h1>
-                <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" autocomplete="off">
-                <button id="joinButton">Ingresar</button>
+                <input type="text" id="playerNameInput" placeholder="Tu nombre" maxlength="20" autocomplete="off">
+                <input type="text" id="roomCodeInput" placeholder="Código de sala (opcional)" maxlength="6" autocomplete="off">
+                <div class="button-container">
+                    <button id="createRoomButton">Crear Sala</button>
+                    <button id="joinRoomButton">Ingresar</button>
+                </div>
                 <p id="errorMessage"></p>
             </div>
+        </div>
+
+        <!-- Room Code Display (shown during game) -->
+        <div id="roomCodeDisplay">
+            <span id="roomCodeText"></span>
+            <button id="copyRoomCode" title="Copiar código">📋</button>
         </div>
 
         <!-- Help Modal -->
