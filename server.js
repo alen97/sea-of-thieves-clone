@@ -425,8 +425,8 @@ function checkJellyCollisions(ship, room) {
       const JELLY_DAMAGE = 10;
       ship.health = Math.max(0, ship.health - JELLY_DAMAGE);
 
-      // Check if ship starts leaking (health < 70)
-      if (ship.health < 70 && !ship.isLeaking && !ship.isSinking) {
+      // Check if ship starts leaking (health < 75)
+      if (ship.health < 75 && !ship.isLeaking && !ship.isSinking) {
         ship.isLeaking = true;
         console.log(`[SHIP DAMAGE] Ship is now leaking! Health: ${ship.health}`);
       }

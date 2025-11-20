@@ -120,14 +120,9 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
-    // Handle leak water effect - starts at health < 70 (or when server says isLeaking)
+    // Handle leak water effect - starts at health < 75 (or when server says isLeaking)
     if (ship.leakWater && ship.leakWaterContainer) {
-        const shouldLeak = (ship.isLeaking || currentHealth < 70) && currentHealth > 0;
-
-        // Debug log
-        if (currentHealth < 80 && currentHealth > 0) {
-            console.log(`[WATER DEBUG] health=${currentHealth}, isLeaking=${ship.isLeaking}, shouldLeak=${shouldLeak}, emitterOn=${ship.leakWater.on}`);
-        }
+        const shouldLeak = (ship.isLeaking || currentHealth < 75) && currentHealth > 0;
 
         if (shouldLeak) {
             // Start water if not already emitting
@@ -135,8 +130,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
                 ship.leakWater.start();
             }
 
-            // Calculate leak intensity based on health (69 → minimal, 1 → maximum)
-            const leakIntensity = 1 - ((currentHealth - 1) / 68); // 0 to 1
+            // Calculate leak intensity based on health (74 → minimal, 1 → maximum)
+            const leakIntensity = 1 - ((currentHealth - 1) / 73); // 0 to 1
 
             // Scale emitter properties based on intensity
             ship.leakWater.setFrequency(100 - (80 * leakIntensity)); // 100ms → 20ms
