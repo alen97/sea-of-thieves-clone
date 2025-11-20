@@ -62,8 +62,9 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Initial selection
+  // Initial selection and focus
   updateSelection();
+  roomCodeInput.focus();
 
   // Keyboard navigation
   document.addEventListener('keydown', function(e) {
@@ -71,13 +72,13 @@ window.addEventListener('DOMContentLoaded', function() {
     const victoryScreen = document.getElementById('victoryScreen');
     const deathScreen = document.getElementById('deathScreen');
 
-    // Login screen navigation
+    // Login screen navigation (arrows only, not WASD - let user type)
     if (loginScreen.style.display !== 'none') {
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+      if (e.key === 'ArrowUp') {
         e.preventDefault();
         selectedIndex = (selectedIndex - 1 + navItems.length) % navItems.length;
         updateSelection();
-      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         selectedIndex = (selectedIndex + 1) % navItems.length;
         updateSelection();
