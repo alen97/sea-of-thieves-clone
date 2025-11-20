@@ -2257,7 +2257,7 @@ function showVictoryScreen() {
   const reloadText = this.add.text(
     this.cameras.main.width / 2,
     this.cameras.main.height / 2 + 70,
-    'Presiona ENTER para reiniciar',
+    'Presiona ENTER para volver al inicio',
     {
       fontSize: '16px',
       fill: '#aaaaaa',
