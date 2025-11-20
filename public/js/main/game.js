@@ -357,6 +357,13 @@ function create() {
       // Initialize steering variable from server state
       self.steeringDirection = shipData.steeringDirection || 0;
 
+      // Initialize visited rooms from server state (shared map)
+      if (shipData.visitedRooms && shipData.visitedRooms.length > 0) {
+        shipData.visitedRooms.forEach(roomKey => {
+          self.visitedRooms.add(roomKey);
+        });
+      }
+
       // Initialize modifiers from server state (for joining existing ship)
       if (shipData.modifiers) {
         self.shipModifiers = shipData.modifiers;

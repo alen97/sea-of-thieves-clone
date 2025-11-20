@@ -545,7 +545,10 @@ function createShip(x, y) {
     // Server-side input management
     pendingInputs: [],     // Queue of unprocessed inputs
     lastProcessedInput: 0, // Sequence number of last processed input
-    controllingPlayer: null // Socket ID of player controlling ship
+    controllingPlayer: null, // Socket ID of player controlling ship
+
+    // Exploration state (shared map)
+    visitedRooms: ['0,0'] // Rooms the ship has visited
   };
 }
 
@@ -1108,6 +1111,11 @@ io.on('connection', function (socket) {
       ship.y = roomData.shipY;
       newRoom.ship = ship;
       oldRoom.ship = null;
+
+      // Track visited room for shared map
+      if (!ship.visitedRooms.includes(newRoomId)) {
+        ship.visitedRooms.push(newRoomId);
+      }
 
       // Move all players to new room and update their coordinates
       playersOnShip.forEach(playerId => {
