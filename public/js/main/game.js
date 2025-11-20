@@ -2202,7 +2202,7 @@ function showVictoryScreen() {
     this.cameras.main.width * 2,
     this.cameras.main.height * 2,
     0x000000,
-    0.95
+    1
   );
   overlay.setScrollFactor(0);
   overlay.setDepth(1000);
