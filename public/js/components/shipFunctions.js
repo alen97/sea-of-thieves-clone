@@ -161,8 +161,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             ship.setVisible(false);
             // Hide cannons
             if (ship.cannons) {
-                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setVisible(false);
-                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setVisible(false);
+                if (ship.cannons.left) ship.cannons.left.setVisible(false);
+                if (ship.cannons.right) ship.cannons.right.setVisible(false);
             }
             // Hide hatch
             if (ship.hatchVisual) ship.hatchVisual.setVisible(false);
@@ -174,8 +174,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             ship.setDepth(-1);
             // Sink cannons
             if (ship.cannons) {
-                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setDepth(-1);
-                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setDepth(-1);
+                if (ship.cannons.left) ship.cannons.left.setDepth(-1);
+                if (ship.cannons.right) ship.cannons.right.setDepth(-1);
             }
             // Sink hatch
             if (ship.hatchVisual) ship.hatchVisual.setDepth(-1);
@@ -187,8 +187,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             ship.setDepth(2);
             // Restore cannons depth
             if (ship.cannons) {
-                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setDepth(2.5);
-                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setDepth(2.5);
+                if (ship.cannons.left) ship.cannons.left.setDepth(2.5);
+                if (ship.cannons.right) ship.cannons.right.setDepth(2.5);
             }
             // Restore hatch depth
             if (ship.hatchVisual) ship.hatchVisual.setDepth(2.5);
@@ -197,8 +197,8 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
             ship.setVisible(true);
             // Show cannons
             if (ship.cannons) {
-                if (ship.cannons.left && ship.cannons.left.sprite) ship.cannons.left.sprite.setVisible(true);
-                if (ship.cannons.right && ship.cannons.right.sprite) ship.cannons.right.sprite.setVisible(true);
+                if (ship.cannons.left) ship.cannons.left.setVisible(true);
+                if (ship.cannons.right) ship.cannons.right.setVisible(true);
             }
             // Show hatch
             if (ship.hatchVisual) ship.hatchVisual.setVisible(true);
