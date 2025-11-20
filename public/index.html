@@ -289,26 +289,23 @@
 
             /* Help button */
             #helpButton {
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                padding: 8px 16px;
-                border-radius: 5px;
-                background: linear-gradient(135deg, #c9a227 0%, #a67c00 100%);
-                border: 2px solid #f4d03f;
-                color: #1a0f0a;
+                flex: 1;
+                padding: 12px;
+                font-size: 16px;
                 font-family: 'Pirata One', cursive;
-                font-size: 14px;
+                border: none;
+                border-radius: 5px;
                 cursor: pointer;
                 transition: all 0.3s;
-                box-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
-                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
                 letter-spacing: 1px;
+                background: linear-gradient(135deg, #c9a227 0%, #a67c00 100%);
+                color: #1a0f0a;
+                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
             }
 
             #helpButton:hover {
                 background: linear-gradient(135deg, #f4d03f 0%, #c9a227 100%);
-                box-shadow: 0 0 15px rgba(244, 208, 63, 0.6);
+                box-shadow: 0 0 15px rgba(244, 208, 63, 0.5);
             }
 
             /* Help modal */
@@ -537,12 +534,12 @@
         <!-- Login Screen -->
         <div id="loginScreen" style="display: none;">
             <div id="loginBox">
-                <button id="helpButton">Cómo jugar</button>
                 <h1>Endless Sea of Rooms</h1>
                 <input type="text" id="roomCodeInput" placeholder="Código de sala" maxlength="6" autocomplete="off" autofocus>
                 <div class="button-container">
                     <button id="createRoomButton">Crear Sala</button>
                     <button id="joinRoomButton">Ingresar</button>
+                    <button id="helpButton">Cómo jugar</button>
                 </div>
                 <p id="errorMessage"></p>
                 <p class="nav-hint">↑ ↓ Navegar | Enter Seleccionar</p>
