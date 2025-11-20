@@ -44,11 +44,59 @@ window.addEventListener('DOMContentLoaded', function() {
   const joinRoomButton = document.getElementById('joinRoomButton');
   const roomCodeInput = document.getElementById('roomCodeInput');
   const errorMessage = document.getElementById('errorMessage');
+  const restartButton = document.getElementById('restartButton');
+  const deathRestartButton = document.getElementById('deathRestartButton');
 
-  // Allow Enter key to join
-  roomCodeInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      joinRoomButton.click();
+  // Keyboard navigation for login screen
+  const navItems = [roomCodeInput, createRoomButton, joinRoomButton];
+  let selectedIndex = 0;
+
+  function updateSelection() {
+    navItems.forEach((item, i) => {
+      if (i === selectedIndex) {
+        item.classList.add('nav-selected');
+        if (item === roomCodeInput) item.focus();
+      } else {
+        item.classList.remove('nav-selected');
+      }
+    });
+  }
+
+  // Initial selection
+  updateSelection();
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    const loginScreen = document.getElementById('loginScreen');
+    const victoryScreen = document.getElementById('victoryScreen');
+    const deathScreen = document.getElementById('deathScreen');
+
+    // Login screen navigation
+    if (loginScreen.style.display !== 'none') {
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        selectedIndex = (selectedIndex - 1 + navItems.length) % navItems.length;
+        updateSelection();
+      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        selectedIndex = (selectedIndex + 1) % navItems.length;
+        updateSelection();
+      } else if (e.key === 'Enter' && selectedIndex !== 0) {
+        e.preventDefault();
+        navItems[selectedIndex].click();
+      }
+    }
+
+    // Victory screen - Enter to restart
+    if (victoryScreen.style.display === 'flex' && e.key === 'Enter') {
+      e.preventDefault();
+      restartButton.click();
+    }
+
+    // Death screen - Enter to restart
+    if (deathScreen.style.display === 'flex' && e.key === 'Enter') {
+      e.preventDefault();
+      deathRestartButton.click();
     }
   });
 

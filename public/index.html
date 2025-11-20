@@ -123,7 +123,19 @@
                 width: 100%;
             }
 
-            #createRoomButton, #joinRoomButton {
+            /* Selected state for keyboard navigation */
+            .nav-selected {
+                outline: 3px solid #f4d03f !important;
+                box-shadow: 0 0 20px rgba(244, 208, 63, 0.8) !important;
+            }
+
+            .nav-hint {
+                color: rgba(245, 230, 200, 0.5);
+                font-size: 11px;
+                margin-top: 15px;
+            }
+
+            #createRoomButton, #joinRoomButton, #restartButton, #deathRestartButton {
                 flex: 1;
                 padding: 12px;
                 font-size: 16px;
@@ -529,6 +541,7 @@
                     <button id="joinRoomButton">Ingresar</button>
                 </div>
                 <p id="errorMessage"></p>
+                <p class="nav-hint">↑ ↓ Navegar | Enter Seleccionar</p>
             </div>
         </div>
 
@@ -572,6 +585,7 @@
                 <h1>¡Escapaste del abismo!</h1>
                 <p id="victoryTime">Tiempo: 0:00</p>
                 <button id="restartButton">Volver al inicio</button>
+                <p class="nav-hint">Enter para continuar</p>
             </div>
         </div>
 
@@ -581,6 +595,7 @@
                 <p id="deathSkull">☠</p>
                 <h1>Tu barco se hundió</h1>
                 <button id="deathRestartButton">Volver al inicio</button>
+                <p class="nav-hint">Enter para continuar</p>
             </div>
         </div>
 
