@@ -275,7 +275,6 @@ function create() {
   const volumeValue = document.getElementById('volumeValue');
 
   // Volume control
-  const self = this;
   volumeSlider.addEventListener('input', function(e) {
     const volume = e.target.value / 100;
     volumeValue.textContent = `${e.target.value}%`;
