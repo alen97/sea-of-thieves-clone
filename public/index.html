@@ -141,6 +141,110 @@
                 font-size: 14px;
             }
 
+            /* Help button */
+            #helpButton {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #c9a227 0%, #a67c00 100%);
+                border: 2px solid #f4d03f;
+                color: #1a0f0a;
+                font-family: 'Pirata One', cursive;
+                font-size: 18px;
+                cursor: pointer;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                transition: all 0.3s;
+                box-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+            }
+
+            #helpButton:hover {
+                background: linear-gradient(135deg, #f4d03f 0%, #c9a227 100%);
+                box-shadow: 0 0 15px rgba(244, 208, 63, 0.6);
+            }
+
+            /* Help modal */
+            #helpModal {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 1100;
+                background: rgba(0, 0, 0, 0.8);
+            }
+
+            #helpBox {
+                background: linear-gradient(135deg, #2a1810 0%, #3d2314 100%);
+                padding: 30px 40px;
+                border-radius: 8px;
+                text-align: center;
+                border: 3px solid #c9a227;
+                box-shadow: 0 0 25px rgba(201, 162, 39, 0.4),
+                            inset 0 0 40px rgba(0, 0, 0, 0.6);
+                max-width: 500px;
+                position: relative;
+            }
+
+            #helpBox h2 {
+                font-family: 'Pirata One', cursive;
+                color: #f4d03f;
+                margin: 0 0 20px 0;
+                font-size: 28px;
+                text-shadow: 2px 2px 4px #000, 0 0 10px rgba(201, 162, 39, 0.5);
+            }
+
+            #helpBox p {
+                color: #f5e6c8;
+                font-size: 14px;
+                line-height: 1.6;
+                margin: 0 0 15px 0;
+                text-align: left;
+            }
+
+            #helpBox .controls {
+                color: #c9a227;
+                font-size: 12px;
+                text-align: left;
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid rgba(201, 162, 39, 0.3);
+            }
+
+            #helpBox .controls span {
+                color: #f4d03f;
+                font-weight: bold;
+            }
+
+            #closeHelpButton {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: rgba(0, 0, 0, 0.5);
+                border: 1px solid #c9a227;
+                color: #f4d03f;
+                font-size: 16px;
+                cursor: pointer;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                transition: all 0.3s;
+            }
+
+            #closeHelpButton:hover {
+                background: rgba(201, 162, 39, 0.3);
+            }
+
             #gameContainer {
                 width: 100%;
                 height: 100%;
@@ -289,10 +393,27 @@
         <!-- Login Screen -->
         <div id="loginScreen" style="display: none;">
             <div id="loginBox">
+                <button id="helpButton">?</button>
                 <h1>Endless Sea of Rooms</h1>
                 <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" autocomplete="off">
                 <button id="joinButton">Ingresar</button>
                 <p id="errorMessage"></p>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="helpModal">
+            <div id="helpBox">
+                <button id="closeHelpButton">×</button>
+                <h2>Bienvenido, Pirata</h2>
+                <p>Tu barco ha quedado atrapado en un mar infinito de habitaciones misteriosas. Para escapar, debes encontrar y atravesar el portal violeta que te llevara de vuelta al mundo real.</p>
+                <p>Explora las habitaciones, recoge pociones con poderes especiales, y ten cuidado con las criaturas del abismo. El tiempo corre en tu contra.</p>
+                <div class="controls">
+                    <span>WASD</span> - Mover personaje |
+                    <span>Click</span> - Interactuar |
+                    <span>M</span> - Mapa |
+                    <span>Enter</span> - Chat
+                </div>
             </div>
         </div>
 
@@ -352,6 +473,25 @@
 
                 // Fallback timeout in case font loading takes too long
                 setTimeout(showLoginScreen, 5000);
+
+                // Help modal functionality
+                const helpButton = document.getElementById('helpButton');
+                const helpModal = document.getElementById('helpModal');
+                const closeHelpButton = document.getElementById('closeHelpButton');
+
+                helpButton.addEventListener('click', function() {
+                    helpModal.style.display = 'flex';
+                });
+
+                closeHelpButton.addEventListener('click', function() {
+                    helpModal.style.display = 'none';
+                });
+
+                helpModal.addEventListener('click', function(e) {
+                    if (e.target === helpModal) {
+                        helpModal.style.display = 'none';
+                    }
+                });
             })();
         </script>
 
