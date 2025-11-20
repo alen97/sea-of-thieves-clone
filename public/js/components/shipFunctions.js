@@ -70,7 +70,7 @@ function createShipHealthBar(self, ship) {
         blendMode: 'NORMAL',
         on: false // Start stopped
     });
-    waterParticles.setDepth(1.5); // Below ship but above ocean
+    waterParticles.setDepth(3); // Above ship so water leak is visible
 
     // Store references
     ship.healthBarBg = healthBarBg;
