@@ -42,13 +42,14 @@ function generatePlayerName() {
 window.addEventListener('DOMContentLoaded', function() {
   const createRoomButton = document.getElementById('createRoomButton');
   const joinRoomButton = document.getElementById('joinRoomButton');
+  const helpButton = document.getElementById('helpButton');
   const roomCodeInput = document.getElementById('roomCodeInput');
   const errorMessage = document.getElementById('errorMessage');
   const restartButton = document.getElementById('restartButton');
   const deathRestartButton = document.getElementById('deathRestartButton');
 
   // Keyboard navigation for login screen
-  const navItems = [roomCodeInput, createRoomButton, joinRoomButton];
+  const navItems = [roomCodeInput, createRoomButton, joinRoomButton, helpButton];
   let selectedIndex = 0;
 
   function updateSelection() {
