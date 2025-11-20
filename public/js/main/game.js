@@ -28,11 +28,20 @@ function generateRoomCode() {
   return code;
 }
 
+// Generate random player name
+function generatePlayerName() {
+  const adjectives = ['Brave', 'Swift', 'Bold', 'Salty', 'Wild'];
+  const nouns = ['Pirate', 'Captain', 'Sailor', 'Buccaneer', 'Corsair'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(Math.random() * 100);
+  return `${adj}${noun}${num}`;
+}
+
 // Login screen handling
 window.addEventListener('DOMContentLoaded', function() {
   const createRoomButton = document.getElementById('createRoomButton');
   const joinRoomButton = document.getElementById('joinRoomButton');
-  const playerNameInput = document.getElementById('playerNameInput');
   const roomCodeInput = document.getElementById('roomCodeInput');
   const errorMessage = document.getElementById('errorMessage');
 
@@ -43,29 +52,9 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  playerNameInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      roomCodeInput.focus();
-    }
-  });
-
   // Create Room button
   createRoomButton.addEventListener('click', function() {
-    const name = playerNameInput.value.trim();
-
-    // Validation
-    if (name.length === 0) {
-      errorMessage.textContent = 'Ingresa tu nombre';
-      return;
-    }
-
-    if (name.length < 2) {
-      errorMessage.textContent = 'El nombre debe tener al menos 2 caracteres';
-      return;
-    }
-
-    // Store player name and generate room code
-    playerName = name;
+    playerName = generatePlayerName();
     roomCode = generateRoomCode();
     roomAction = 'create';
     startGame();
@@ -73,22 +62,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Join Room button
   joinRoomButton.addEventListener('click', function() {
-    const name = playerNameInput.value.trim();
     const code = roomCodeInput.value.trim().toUpperCase();
 
-    // Validation
-    if (name.length === 0) {
-      errorMessage.textContent = 'Ingresa tu nombre';
-      return;
-    }
-
-    if (name.length < 2) {
-      errorMessage.textContent = 'El nombre debe tener al menos 2 caracteres';
-      return;
-    }
-
     if (code.length === 0) {
-      errorMessage.textContent = 'Ingresa el código de sala para unirte';
+      errorMessage.textContent = 'Ingresa el código de sala';
       return;
     }
 
@@ -97,8 +74,7 @@ window.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Store player name and room code
-    playerName = name;
+    playerName = generatePlayerName();
     roomCode = code;
     roomAction = 'join';
     startGame();
@@ -292,20 +268,9 @@ function create() {
   // Show room code display
   const roomCodeDisplay = document.getElementById('roomCodeDisplay');
   const roomCodeText = document.getElementById('roomCodeText');
-  const copyRoomCodeBtn = document.getElementById('copyRoomCode');
 
   roomCodeText.textContent = `Sala: ${roomCode}`;
   roomCodeDisplay.style.display = 'block';
-
-  // Copy room code to clipboard
-  copyRoomCodeBtn.addEventListener('click', function() {
-    navigator.clipboard.writeText(roomCode).then(() => {
-      copyRoomCodeBtn.textContent = '✓';
-      setTimeout(() => {
-        copyRoomCodeBtn.textContent = '📋';
-      }, 2000);
-    });
-  });
 
   // Handle room errors
   this.socket.on('roomNotFound', function() {
