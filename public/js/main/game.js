@@ -2032,15 +2032,22 @@ function update(time, delta) {
           console.log('[PORTAL] Ship entered portal! Distance:', distanceToPortal);
           this.victoryTriggered = true; // Prevent multiple triggers
 
-          // Disable all input
-          this.input.keyboard.enabled = false;
-          this.input.mouse.enabled = false;
+          // Stop the ship completely
+          if (this.ship) {
+            this.ship.isAnchored = true;
+            this.ship.body.setVelocity(0, 0);
+            this.ship.body.setAngularVelocity(0);
+          }
 
-          // Stop any current player action
+          // Stop any current player action and control
           if (this.player) {
             this.player.currentAction = null;
             this.player.isControlling = false;
           }
+
+          // Disable all input
+          this.input.keyboard.enabled = false;
+          this.input.mouse.enabled = false;
 
           // Play portal exit sound
           const portalSound = this.sound.add('portalExit', { volume: 1.0 });
