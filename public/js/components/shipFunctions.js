@@ -120,9 +120,10 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
     ship.healthBarBg.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
     ship.healthBar.setPosition(ship.x, ship.y + ship.healthBarOffsetY);
 
-    // Handle leak water effect - uses server's isLeaking flag (health < 70)
+    // Handle leak water effect - starts at health < 70 (or when server says isLeaking)
     if (ship.leakWater && ship.leakWaterContainer) {
-        if (ship.isLeaking && currentHealth > 0) {
+        const shouldLeak = (ship.isLeaking || currentHealth < 70) && currentHealth > 0;
+        if (shouldLeak) {
             // Start water if not already emitting
             if (!ship.leakWater.on) {
                 ship.leakWater.start();
