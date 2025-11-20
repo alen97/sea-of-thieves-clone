@@ -2169,6 +2169,9 @@ function showDeathScreen() {
 function showVictoryScreen() {
   console.log('[VICTORY SCREEN] Showing victory screen');
 
+  // Reset camera fade effect so modal is visible
+  this.cameras.main.resetFX();
+
   // Calculate elapsed time from server's ship creation timestamp
   const elapsedMs = this.shipCreatedAt ? Date.now() - this.shipCreatedAt : 0;
   const totalSeconds = Math.floor(elapsedMs / 1000);
