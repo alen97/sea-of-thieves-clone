@@ -14,7 +14,7 @@ var rooms = {};
 const MAX_PLAYERS = 4;
 
 // Private rooms: stores private room data by code
-// Each private room has: code, ship, players, currentRoomX, currentRoomY
+// Each private room has: code, ship, players, currentRoomX, currentRoomY, portalPosition
 var privateRooms = {};
 
 // Portal position for Abyssal Compass (generated when first compass is collected)
@@ -212,7 +212,8 @@ function getOrCreatePrivateRoom(code) {
     privateRooms[code] = {
       code: code,
       currentRoomX: 0,
-      currentRoomY: 0
+      currentRoomY: 0,
+      portalPosition: null
     };
     console.log(`[PRIVATE] Created private room: ${code}`);
   }
@@ -759,9 +760,9 @@ io.on('connection', function (socket) {
   socket.emit('roomChanged', { roomX: initialRoomX, roomY: initialRoomY });
   socket.emit('roomModifiers', getAvailableModifiers(room, room.ship)); // Send only modifiers not yet collected
 
-  // Send portal position only if it exists (generated when Abyssal Compass is collected)
-  if (portalPosition) {
-    socket.emit('portalPosition', portalPosition);
+  // Send portal position only if it exists for this private room
+  if (privateRoom.portalPosition) {
+    socket.emit('portalPosition', privateRoom.portalPosition);
   }
 
   socket.emit('roomJellies', room.jellies); // Send abyssal jellies in the room
@@ -816,16 +817,17 @@ io.on('connection', function (socket) {
       });
 
       // Special handling for Abyssal Compass: Generate portal
-      if (modifierType === 'ABYSSAL_COMPASS' && !portalPosition) {
-        // Parse room coordinates from roomId (format: "x,y")
-        const [roomX, roomY] = roomId.split(',').map(Number);
+      const privateRoom = privateRooms[socket.privateCode];
+      if (modifierType === 'ABYSSAL_COMPASS' && privateRoom && !privateRoom.portalPosition) {
+        const roomX = socket.currentRoomX;
+        const roomY = socket.currentRoomY;
 
         // Generate portal position relative to ship's current room
-        portalPosition = generatePortalPosition(roomX, roomY);
-        console.log(`[PORTAL] [DEV] Generated portal at room (${portalPosition.roomX}, ${portalPosition.roomY}) - 10 rooms from ship at (${roomX}, ${roomY})`);
+        privateRoom.portalPosition = generatePortalPosition(roomX, roomY);
+        console.log(`[PORTAL] [DEV] Generated portal at room (${privateRoom.portalPosition.roomX}, ${privateRoom.portalPosition.roomY}) - 10 rooms from ship at (${roomX}, ${roomY})`);
 
-        // Broadcast portal position to ALL clients (not just current room)
-        io.emit('portalPosition', portalPosition);
+        // Broadcast portal position to all clients in this private room
+        io.to(roomId).emit('portalPosition', privateRoom.portalPosition);
       }
     } else {
       console.log(`[DEV] Failed to apply ${modifierType} (already collected?)`);
@@ -1200,9 +1202,10 @@ io.on('connection', function (socket) {
           playerSocket.emit('sharedShip', newRoom.ship);
           playerSocket.emit('roomModifiers', getAvailableModifiers(newRoom, newRoom.ship)); // Send only modifiers not yet collected
 
-          // Send portal position if it exists
-          if (portalPosition) {
-            playerSocket.emit('portalPosition', portalPosition);
+          // Send portal position if it exists for this private room
+          const privateRoom = privateRooms[socket.privateCode];
+          if (privateRoom && privateRoom.portalPosition) {
+            playerSocket.emit('portalPosition', privateRoom.portalPosition);
           }
 
           playerSocket.emit('roomJellies', newRoom.jellies); // Send abyssal jellies in the new room
@@ -1376,16 +1379,18 @@ setInterval(function() {
         });
 
         // Special handling for Abyssal Compass: Generate portal
-        if (collision.modifier.type === 'ABYSSAL_COMPASS' && !portalPosition) {
-          // Parse room coordinates from roomId (format: "x,y")
-          const [roomX, roomY] = roomId.split(',').map(Number);
+        // Extract privateCode from roomId (format: "ABC123_0,0")
+        const [privateCode, coordsPart] = roomId.split('_');
+        const [roomX, roomY] = coordsPart.split(',').map(Number);
+        const privateRoom = privateRooms[privateCode];
 
+        if (collision.modifier.type === 'ABYSSAL_COMPASS' && privateRoom && !privateRoom.portalPosition) {
           // Generate portal position relative to ship's current room
-          portalPosition = generatePortalPosition(roomX, roomY);
-          console.log(`[PORTAL] Generated portal at room (${portalPosition.roomX}, ${portalPosition.roomY}) - 10 rooms from ship at (${roomX}, ${roomY})`);
+          privateRoom.portalPosition = generatePortalPosition(roomX, roomY);
+          console.log(`[PORTAL] Generated portal at room (${privateRoom.portalPosition.roomX}, ${privateRoom.portalPosition.roomY}) - 10 rooms from ship at (${roomX}, ${roomY})`);
 
-          // Broadcast portal position to ALL clients (not just current room)
-          io.emit('portalPosition', portalPosition);
+          // Broadcast portal position to all clients in this private room
+          io.to(roomId).emit('portalPosition', privateRoom.portalPosition);
         }
       }
     }
