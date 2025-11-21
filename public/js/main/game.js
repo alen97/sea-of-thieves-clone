@@ -203,6 +203,9 @@ function preload() {
   this.load.audio('curse', 'sounds/curse.wav');
   this.load.audio('portalExit', 'sounds/portal_exit.mp3');
 
+  // Jelly shock sound
+  this.load.audio('jellyShock', 'sounds/electric_shot.mp3');
+
   // Load player sprite sheets (one per player color)
   this.load.spritesheet('playerDefault', 'assets/Prota-Spritesheet.png', { frameWidth: 28, frameHeight: 28 });
   this.load.spritesheet('playerBlue', 'assets/Prota-Spritesheet-blue.png', { frameWidth: 28, frameHeight: 28 });
@@ -790,8 +793,8 @@ function create() {
       console.log(`[HEALTH] Ship damaged! Health: ${data.shipHealth}/${data.shipMaxHealth}, Leaking: ${data.isLeaking}, Sinking: ${data.isSinking}`);
     }
 
-    // TODO: Add shock sound effect here when available
-    // self.sound.play('jellyShock', { volume: 0.3 });
+    // Play shock sound effect
+    self.sound.play('jellyShock', { volume: 0.4 });
   });
 
   // Handle ship health updates (from leak damage)
