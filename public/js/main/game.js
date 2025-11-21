@@ -597,7 +597,7 @@ function create() {
 
         // Check for prediction error (mismatch between client and server)
         const POSITION_THRESHOLD = 5; // pixels
-        const ROTATION_THRESHOLD = 0.3; // radians (~17 degrees) - higher to reduce warping with fast turns
+        const ROTATION_THRESHOLD = 0.5; // radians (~28 degrees) - only reconcile for large rotation errors
 
         const posError = Math.sqrt(
           Math.pow(self.ship.x - shipData.x, 2) +
@@ -606,13 +606,22 @@ function create() {
         // Use angle wrapping to handle -PI/PI boundary correctly
         const rotError = Math.abs(Phaser.Math.Angle.Wrap(self.ship.rotation - shipData.rotation));
 
-        if (posError > POSITION_THRESHOLD || rotError > ROTATION_THRESHOLD) {
+        // Only reconcile position if position error is large
+        // Only reconcile rotation if rotation error is very large
+        const needsPosReconcile = posError > POSITION_THRESHOLD;
+        const needsRotReconcile = rotError > ROTATION_THRESHOLD;
+
+        if (needsPosReconcile || needsRotReconcile) {
           // Significant mismatch - reconcile!
           console.log(`Reconciling: posError=${posError.toFixed(2)}, rotError=${rotError.toFixed(2)}`);
 
-          // Step 1: Rewind to server state
-          self.ship.setPosition(shipData.x, shipData.y);
-          self.ship.setRotation(shipData.rotation);
+          // Step 1: Rewind to server state (only what needs reconciling)
+          if (needsPosReconcile) {
+            self.ship.setPosition(shipData.x, shipData.y);
+          }
+          if (needsRotReconcile) {
+            self.ship.setRotation(shipData.rotation);
+          }
           self.ship.currentSpeed = shipData.currentSpeed;
           self.steeringDirection = shipData.steeringDirection;
 
