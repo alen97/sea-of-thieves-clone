@@ -137,8 +137,11 @@ function updateShipPhysics(state, input, deltaTime = 1/60, modifiers = null) {
         ? baseAngularVelocity * SHIP_CONSTANTS.ANCHOR_ANGULAR_DAMPING
         : baseAngularVelocity;
 
-    // Calculate new rotation
-    const newRotation = state.rotation + angularVelocity * deltaTime;
+    // Calculate new rotation and wrap to [-PI, PI]
+    let newRotation = state.rotation + angularVelocity * deltaTime;
+    // Wrap rotation to prevent unbounded growth
+    while (newRotation > Math.PI) newRotation -= 2 * Math.PI;
+    while (newRotation < -Math.PI) newRotation += 2 * Math.PI;
 
     // Calculate new speed with modifier
     const targetSpeed = SHIP_CONSTANTS.CONSTANT_SPEED * SPEED_MULTIPLIER; // Apply speed modifier here

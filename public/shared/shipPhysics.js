@@ -123,8 +123,11 @@ function updateShipPhysics(state, input, deltaTime = 1/60) {
         state.isAnchored
     );
 
-    // Calculate new rotation
-    const newRotation = state.rotation + angularVelocity * deltaTime;
+    // Calculate new rotation and wrap to [-PI, PI]
+    let newRotation = state.rotation + angularVelocity * deltaTime;
+    // Wrap rotation to prevent unbounded growth
+    while (newRotation > Math.PI) newRotation -= 2 * Math.PI;
+    while (newRotation < -Math.PI) newRotation += 2 * Math.PI;
 
     // Calculate new speed
     const newSpeed = calculateSpeed(state.currentSpeed, state.isAnchored);
