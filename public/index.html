@@ -81,6 +81,16 @@
                 font-size: 72px;
                 text-shadow: 3px 3px 6px #000, 0 0 30px rgba(201, 162, 39, 0.6);
                 letter-spacing: 4px;
+                animation: levitate 3s ease-in-out infinite;
+            }
+
+            @keyframes levitate {
+                0%, 100% {
+                    transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-10px);
+                }
             }
 
             /* Menu items - videogame style */
