@@ -1229,8 +1229,8 @@ function create() {
       jelly.setDisplaySize(64, 64);
 
       // Set up physics body for collision detection
-      // Use center=true to automatically center the hitbox on the sprite
-      jelly.body.setSize(80, 80, true); // 80x80 hitbox, centered
+      // Use large circle to cover most of the 1024x1024 texture
+      jelly.body.setCircle(400, 112, 112); // radius 400, centered in texture
 
       // Add glow/aura effect
       const aura = self.add.circle(
