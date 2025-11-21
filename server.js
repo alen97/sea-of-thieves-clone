@@ -1,7 +1,12 @@
 var express = require('express');
 var app = express();
 var server = require('http').Server(app);
-var io = require('socket.io').listen(server);
+var io = require('socket.io')(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
 // Load shared physics module
 const shipPhysics = require('./shared/shipPhysics.js');
