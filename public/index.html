@@ -358,61 +358,51 @@
                 justify-content: center;
                 align-items: center;
                 z-index: 1000;
-                background: rgba(0, 0, 0, 1);
+                background: rgba(0, 0, 0, 0.9);
             }
 
             #victoryBox {
-                background: linear-gradient(135deg, #1a0a20 0%, #2d1040 100%);
-                padding: 40px 60px;
-                border-radius: 8px;
-                text-align: center;
-                border: 3px solid #9B30FF;
-                box-shadow: 0 0 30px rgba(155, 48, 255, 0.5),
-                            inset 0 0 40px rgba(0, 0, 0, 0.6);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+                text-align: center;
             }
 
             #victoryBox h1 {
                 font-family: 'Pirata One', cursive;
-                color: #f4d03f;
-                margin: 0 0 20px 0;
-                font-size: 42px;
-                text-shadow: 2px 2px 4px #000, 0 0 15px rgba(244, 208, 63, 0.6);
-                letter-spacing: 2px;
+                color: #9B30FF;
+                margin: 0 0 30px 0;
+                font-size: 64px;
+                text-shadow: 3px 3px 6px #000, 0 0 30px rgba(155, 48, 255, 0.6);
+                letter-spacing: 4px;
+                animation: levitate 3s ease-in-out infinite;
             }
 
             #victoryTime {
                 font-family: 'Pirata One', cursive;
-                color: #e8d5ff;
-                font-size: 28px;
-                margin: 0 0 30px 0;
-                text-shadow: 1px 1px 3px #000;
+                color: rgba(232, 213, 255, 0.7);
+                font-size: 24px;
+                margin: 0 0 40px 0;
+                text-shadow: 2px 2px 4px #000;
             }
 
             #restartButton {
-                width: 280px;
-                padding: 12px;
-                font-size: 18px;
                 font-family: 'Pirata One', cursive;
-                background: linear-gradient(135deg, #9B30FF 0%, #7A00FF 100%);
-                color: white;
+                font-size: 28px;
+                color: rgba(232, 213, 255, 0.5);
+                padding: 12px 30px;
+                background: none;
                 border: none;
-                border-radius: 5px;
                 cursor: pointer;
-                transition: all 0.3s;
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-                letter-spacing: 1px;
+                transition: all 0.2s;
+                letter-spacing: 2px;
+                text-shadow: 2px 2px 4px #000;
             }
 
             #restartButton:hover {
-                background: linear-gradient(135deg, #b366ff 0%, #9B30FF 100%);
-                box-shadow: 0 0 15px rgba(155, 48, 255, 0.6);
-            }
-
-            #restartButton:active {
-                background: linear-gradient(135deg, #7A00FF 0%, #5800BB 100%);
+                color: #9B30FF;
+                text-shadow: 2px 2px 4px #000, 0 0 20px rgba(155, 48, 255, 0.8);
+                transform: scale(1.05);
             }
 
             #deathScreen {
@@ -425,59 +415,49 @@
                 justify-content: center;
                 align-items: center;
                 z-index: 1000;
-                background: rgba(0, 0, 0, 0.85);
+                background: rgba(0, 0, 0, 0.9);
             }
 
             #deathBox {
-                background: linear-gradient(135deg, #1a0a0a 0%, #2d1010 100%);
-                padding: 40px 60px;
-                border-radius: 8px;
-                text-align: center;
-                border: 3px solid #8b0000;
-                box-shadow: 0 0 30px rgba(139, 0, 0, 0.5),
-                            inset 0 0 40px rgba(0, 0, 0, 0.6);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+                text-align: center;
             }
 
             #deathSkull {
-                font-size: 64px;
-                margin: 0 0 10px 0;
-                filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.6));
+                font-size: 80px;
+                margin: 0 0 20px 0;
+                filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.6));
+                animation: levitate 3s ease-in-out infinite;
             }
 
             #deathBox h1 {
                 font-family: 'Pirata One', cursive;
                 color: #ff3333;
-                margin: 0 0 20px 0;
-                font-size: 36px;
-                text-shadow: 2px 2px 4px #000, 0 0 15px rgba(255, 0, 0, 0.6);
-                letter-spacing: 2px;
+                margin: 0 0 40px 0;
+                font-size: 48px;
+                text-shadow: 3px 3px 6px #000, 0 0 30px rgba(255, 0, 0, 0.6);
+                letter-spacing: 4px;
             }
 
             #deathRestartButton {
-                width: 280px;
-                padding: 12px;
-                font-size: 18px;
                 font-family: 'Pirata One', cursive;
-                background: linear-gradient(135deg, #8b0000 0%, #5c0000 100%);
-                color: white;
+                font-size: 28px;
+                color: rgba(255, 150, 150, 0.5);
+                padding: 12px 30px;
+                background: none;
                 border: none;
-                border-radius: 5px;
                 cursor: pointer;
-                transition: all 0.3s;
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-                letter-spacing: 1px;
+                transition: all 0.2s;
+                letter-spacing: 2px;
+                text-shadow: 2px 2px 4px #000;
             }
 
             #deathRestartButton:hover {
-                background: linear-gradient(135deg, #aa0000 0%, #8b0000 100%);
-                box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
-            }
-
-            #deathRestartButton:active {
-                background: linear-gradient(135deg, #5c0000 0%, #3a0000 100%);
+                color: #ff3333;
+                text-shadow: 2px 2px 4px #000, 0 0 20px rgba(255, 0, 0, 0.8);
+                transform: scale(1.05);
             }
         </style>
     </head>
