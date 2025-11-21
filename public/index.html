@@ -573,12 +573,40 @@
                     }
                 }).catch(showLoginScreen);
 
+                // Ambient sound for login screen
+                let menuAmbient = null;
+
                 function showLoginScreen() {
                     if (fontLoaded) return;
                     fontLoaded = true;
                     loadingScreen.style.display = 'none';
                     loginScreen.style.display = 'flex';
+
+                    // Start ambient sound with fade in
+                    menuAmbient = new Audio('sounds/deep_sea_noise.mp3');
+                    menuAmbient.loop = true;
+                    menuAmbient.volume = 0;
+                    menuAmbient.play().catch(() => {}); // Ignore autoplay errors
+
+                    // Fade in
+                    let volume = 0;
+                    const fadeIn = setInterval(() => {
+                        volume += 0.01;
+                        if (volume >= 0.25) {
+                            volume = 0.25;
+                            clearInterval(fadeIn);
+                        }
+                        menuAmbient.volume = volume;
+                    }, 50);
                 }
+
+                // Stop ambient when game starts (called from game.js)
+                window.stopMenuAmbient = function() {
+                    if (menuAmbient) {
+                        menuAmbient.pause();
+                        menuAmbient = null;
+                    }
+                };
 
                 // Fallback timeout in case font loading takes too long
                 setTimeout(showLoginScreen, 5000);

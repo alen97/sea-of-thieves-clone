@@ -59,6 +59,10 @@ window.addEventListener('DOMContentLoaded', function() {
   let selectedIndex = 0;
   let inputMode = false; // Track if we're in input mode
 
+  // Navigation sound
+  const navSound = new Audio('sounds/menu-navigation.wav');
+  navSound.volume = 0.3;
+
   function updateSelection() {
     menuItems.forEach((item, i) => {
       if (i === selectedIndex) {
@@ -121,10 +125,14 @@ window.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         selectedIndex = (selectedIndex - 1 + menuItems.length) % menuItems.length;
         updateSelection();
+        navSound.currentTime = 0;
+        navSound.play().catch(() => {});
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         selectedIndex = (selectedIndex + 1) % menuItems.length;
         updateSelection();
+        navSound.currentTime = 0;
+        navSound.play().catch(() => {});
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (selectedIndex === 1) {
@@ -529,6 +537,9 @@ function create() {
       // Room connection confirmed - show game and play sounds
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('gameContainer').style.display = 'block';
+
+      // Stop menu ambient sound
+      if (window.stopMenuAmbient) window.stopMenuAmbient();
 
       // Play enter game sound
       if (self.enterGameSound) {
