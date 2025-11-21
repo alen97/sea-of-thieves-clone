@@ -373,6 +373,10 @@ function create() {
   const volumeSlider = document.getElementById('volumeSlider');
   const volumeValue = document.getElementById('volumeValue');
 
+  // Navigation sound for pause menu
+  const pauseNavSound = new Audio('sounds/menu-navigation.wav');
+  pauseNavSound.volume = 0.3;
+
   // Volume control function
   const updateVolume = (value) => {
     volumeSlider.value = value;
@@ -395,6 +399,8 @@ function create() {
     if (e.key === 'Escape') {
       this.pauseMenuVisible = !this.pauseMenuVisible;
       pauseMenu.style.display = this.pauseMenuVisible ? 'flex' : 'none';
+      pauseNavSound.currentTime = 0;
+      pauseNavSound.play().catch(() => {});
       return;
     }
 
@@ -406,11 +412,17 @@ function create() {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         updateVolume(Math.max(0, currentVolume - step));
+        pauseNavSound.currentTime = 0;
+        pauseNavSound.play().catch(() => {});
       } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         updateVolume(Math.min(100, currentVolume + step));
+        pauseNavSound.currentTime = 0;
+        pauseNavSound.play().catch(() => {});
       } else if (e.key === 'Enter') {
         e.preventDefault();
+        pauseNavSound.currentTime = 0;
+        pauseNavSound.play().catch(() => {});
         navigator.clipboard.writeText(roomCode).then(() => {
           const codeEl = document.getElementById('pauseRoomCode');
           const original = codeEl.textContent;
