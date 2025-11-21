@@ -368,6 +368,10 @@ function create() {
 
   // Keyboard controls for pause menu
   document.addEventListener('keydown', (e) => {
+    // Don't show pause menu if we're on login screen
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen.style.display !== 'none') return;
+
     if (e.key === 'Escape') {
       this.pauseMenuVisible = !this.pauseMenuVisible;
       pauseMenu.style.display = this.pauseMenuVisible ? 'flex' : 'none';
@@ -401,6 +405,7 @@ function create() {
   this.socket.on('roomNotFound', function() {
     if (game) game.destroy(true);
     document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('pauseMenu').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'La sala no existe';
   });
@@ -408,6 +413,7 @@ function create() {
   this.socket.on('roomFull', function() {
     if (game) game.destroy(true);
     document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('pauseMenu').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'La sala está llena (máximo 4 jugadores)';
   });
