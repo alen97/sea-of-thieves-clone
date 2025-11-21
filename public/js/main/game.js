@@ -596,24 +596,29 @@ function create() {
         }
 
         // Check for prediction error (mismatch between client and server)
-        // Only reconcile position - rotation is handled by client-side prediction
         const POSITION_THRESHOLD = 5; // pixels
+        const ROTATION_THRESHOLD = 0.15; // radians (~8.5 degrees)
 
         const posError = Math.sqrt(
           Math.pow(self.ship.x - shipData.x, 2) +
           Math.pow(self.ship.y - shipData.y, 2)
         );
+        // Use angle wrapping to handle -PI/PI boundary correctly
+        const rotError = Math.abs(Phaser.Math.Angle.Wrap(self.ship.rotation - shipData.rotation));
 
-        if (posError > POSITION_THRESHOLD) {
-          // Position mismatch - reconcile position only
-          console.log(`Reconciling position: posError=${posError.toFixed(2)}`);
+        if (posError > POSITION_THRESHOLD || rotError > ROTATION_THRESHOLD) {
+          // Significant mismatch - reconcile!
+          console.log(`Reconciling: posError=${posError.toFixed(2)}, rotError=${rotError.toFixed(2)}`);
 
+          // Step 1: Rewind to server state
           self.ship.setPosition(shipData.x, shipData.y);
+          // Use smooth interpolation for rotation to avoid harsh snapping
+          const angleDiff = Phaser.Math.Angle.Wrap(shipData.rotation - self.ship.rotation);
+          self.ship.setRotation(self.ship.rotation + angleDiff * 0.5);
           self.ship.currentSpeed = shipData.currentSpeed;
           self.steeringDirection = shipData.steeringDirection;
 
-          // Replay pending inputs for position only (keep current rotation)
-          const currentRotation = self.ship.rotation;
+          // Step 2: Replay pending inputs to re-predict
           self.pendingInputs.forEach(input => {
             const newState = updateShipPhysics(
               {
@@ -632,17 +637,15 @@ function create() {
               self.shipModifiers // Pass modifiers to physics
             );
 
-            // Apply replayed state - position and speed only, preserve smooth rotation
+            // Apply replayed state
             self.ship.setPosition(newState.x, newState.y);
+            self.ship.setRotation(newState.rotation);
             self.ship.currentSpeed = newState.currentSpeed;
             self.steeringDirection = newState.steeringDirection;
           });
 
           console.log(`Reconciliation complete. Replayed ${self.pendingInputs.length} inputs.`);
         }
-
-        // Always sync steering direction from server to prevent drift
-        self.steeringDirection = shipData.steeringDirection;
       }
 
       // Always sync non-physics properties
