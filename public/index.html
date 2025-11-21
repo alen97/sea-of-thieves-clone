@@ -34,6 +34,17 @@
                 100% { transform: rotate(360deg); }
             }
 
+            .menu-spinner {
+                width: 30px;
+                height: 30px;
+                border: 3px solid rgba(201, 162, 39, 0.3);
+                border-top: 3px solid #c9a227;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                display: none;
+                margin: 20px auto 0;
+            }
+
             html,
             body {
                 margin: 0px;
@@ -470,6 +481,7 @@
                     <input type="text" id="roomCodeInput" placeholder="______" maxlength="6" autocomplete="off">
                     <button id="helpButton" class="menu-item">Cómo jugar</button>
                 </div>
+                <div id="menuSpinner" class="menu-spinner"></div>
                 <p id="errorMessage"></p>
                 <p class="nav-hint">↑ ↓ Navegar | Enter Seleccionar</p>
             </div>
