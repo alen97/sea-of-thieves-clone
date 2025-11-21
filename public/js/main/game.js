@@ -86,6 +86,12 @@ window.addEventListener('DOMContentLoaded', function() {
     const loginScreen = document.getElementById('loginScreen');
     const victoryScreen = document.getElementById('victoryScreen');
     const deathScreen = document.getElementById('deathScreen');
+    const helpModal = document.getElementById('helpModal');
+
+    // Skip keyboard navigation if help modal is open
+    if (helpModal.style.display === 'flex') {
+      return;
+    }
 
     // Login screen navigation
     if (loginScreen.style.display !== 'none') {
