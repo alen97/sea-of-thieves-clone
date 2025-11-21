@@ -194,7 +194,7 @@ function startGame() {
   isStartingGame = true;
 
   // Show loading spinner
-  document.getElementById('menuSpinner').style.display = 'block';
+  document.getElementById('loadingOverlay').style.display = 'flex';
 
   // Don't show game yet - wait for server confirmation
   // Login screen stays visible until sharedShip event
@@ -444,7 +444,7 @@ function create() {
     if (game) game.destroy(true);
     document.getElementById('gameContainer').style.display = 'none';
     document.getElementById('pauseMenu').style.display = 'none';
-    document.getElementById('menuSpinner').style.display = 'none';
+    document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'La sala no existe';
     isStartingGame = false;
@@ -454,7 +454,7 @@ function create() {
     if (game) game.destroy(true);
     document.getElementById('gameContainer').style.display = 'none';
     document.getElementById('pauseMenu').style.display = 'none';
-    document.getElementById('menuSpinner').style.display = 'none';
+    document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'La sala está llena (máximo 4 jugadores)';
     isStartingGame = false;
@@ -555,7 +555,7 @@ function create() {
   this.socket.on('sharedShip', function (shipData) {
     if (!self.ship) {
       // Room connection confirmed - show game and play sounds
-      document.getElementById('menuSpinner').style.display = 'none';
+      document.getElementById('loadingOverlay').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('gameContainer').style.display = 'block';
 
