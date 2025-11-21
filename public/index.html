@@ -483,10 +483,10 @@
             <div id="loginBox">
                 <h1>Endless Sea of Rooms</h1>
                 <div class="menu-container">
-                    <button id="createRoomButton" class="menu-item selected">Crear Sala</button>
-                    <button id="joinRoomButton" class="menu-item">Ingresar a Sala</button>
+                    <button id="createRoomButton" class="menu-item selected">Crear sala</button>
+                    <button id="joinRoomButton" class="menu-item">Ingresar a sala</button>
                     <input type="text" id="roomCodeInput" placeholder="______" maxlength="6" autocomplete="off">
-                    <button id="helpButton" class="menu-item">Cómo Jugar</button>
+                    <button id="helpButton" class="menu-item">Cómo jugar</button>
                 </div>
                 <p id="errorMessage"></p>
                 <p class="nav-hint">↑ ↓ Navegar | Enter Seleccionar</p>
@@ -597,6 +597,7 @@
                         if (e.key === 'Escape' || e.key === 'Enter') {
                             helpModal.style.display = 'none';
                             e.preventDefault();
+                            e.stopImmediatePropagation();
                         }
                     }
                 });
