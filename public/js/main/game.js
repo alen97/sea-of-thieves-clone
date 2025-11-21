@@ -103,6 +103,12 @@ window.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
+    // Skip keyboard navigation if loading overlay is visible
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay.style.display === 'flex') {
+      return;
+    }
+
     // Login screen navigation
     if (loginScreen.style.display !== 'none') {
       // If in input mode, handle differently
