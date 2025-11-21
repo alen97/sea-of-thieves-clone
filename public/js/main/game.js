@@ -399,8 +399,11 @@ function create() {
     if (e.key === 'Escape') {
       this.pauseMenuVisible = !this.pauseMenuVisible;
       pauseMenu.style.display = this.pauseMenuVisible ? 'flex' : 'none';
-      pauseNavSound.currentTime = 0;
-      pauseNavSound.play().catch(() => {});
+      // Only play sound when opening menu
+      if (this.pauseMenuVisible) {
+        pauseNavSound.currentTime = 0;
+        pauseNavSound.play().catch(() => {});
+      }
       return;
     }
 
