@@ -173,11 +173,8 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 function startGame() {
-  // Hide login screen
-  document.getElementById('loginScreen').style.display = 'none';
-
-  // Show game container
-  document.getElementById('gameContainer').style.display = 'block';
+  // Don't show game yet - wait for server confirmation
+  // Login screen stays visible until sharedShip event
 
   // Initialize Phaser game
   var config = {
@@ -260,26 +257,14 @@ function create() {
   let canvas = this.sys.canvas;
   canvas.style.cursor = 'none';
 
-  var enterGame = this.sound.add('enterGame');
-  enterGame.setVolume(0.1)
-  enterGame.play()
-  game.sound.context.resume();
+  // Prepare sounds but don't play yet - wait for server confirmation
+  this.enterGameSound = this.sound.add('enterGame');
+  this.enterGameSound.setVolume(0.1);
 
   // Ambient deep sea noise with fade in
   this.deepSeaAmbient = this.sound.add('deepSeaNoise', {
     loop: true, // Continuous loop
     volume: 0 // Start at 0 for fade in
-  });
-
-  // Play the ambient sound
-  this.deepSeaAmbient.play();
-
-  // Fade in at the start
-  this.tweens.add({
-    targets: this.deepSeaAmbient,
-    volume: 0.25, // Target volume (15% to keep it ambient)
-    duration: 3000, // 3 second fade in
-    ease: 'Sine.easeInOut'
   });
 
   let { width, height } = this.sys.game.canvas;
@@ -521,6 +506,27 @@ function create() {
   // Handle shared ship data from server
   this.socket.on('sharedShip', function (shipData) {
     if (!self.ship) {
+      // Room connection confirmed - show game and play sounds
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('gameContainer').style.display = 'block';
+
+      // Play enter game sound
+      if (self.enterGameSound) {
+        game.sound.context.resume();
+        self.enterGameSound.play();
+      }
+
+      // Start ambient sound with fade in
+      if (self.deepSeaAmbient) {
+        self.deepSeaAmbient.play();
+        self.tweens.add({
+          targets: self.deepSeaAmbient,
+          volume: 0.25,
+          duration: 3000,
+          ease: 'Sine.easeInOut'
+        });
+      }
+
       // Create my ship for the first time
       self.ship = addShip(self, shipData);
       self.ship.playerId = self.socket.id;
