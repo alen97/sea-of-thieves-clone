@@ -300,7 +300,6 @@
                 box-shadow: 0 0 25px rgba(201, 162, 39, 0.4),
                             inset 0 0 40px rgba(0, 0, 0, 0.6);
                 max-width: 500px;
-                position: relative;
             }
 
             #helpBox h2 {
@@ -333,27 +332,6 @@
                 font-weight: bold;
             }
 
-            #closeHelpButton {
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                background: rgba(0, 0, 0, 0.5);
-                border: 1px solid #c9a227;
-                color: #f4d03f;
-                font-size: 16px;
-                cursor: pointer;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                transition: all 0.3s;
-            }
-
-            #closeHelpButton:hover {
-                background: rgba(201, 162, 39, 0.3);
-            }
 
             #gameContainer {
                 width: 100%;
@@ -534,7 +512,6 @@
         <!-- Help Modal -->
         <div id="helpModal">
             <div id="helpBox">
-                <button id="closeHelpButton">×</button>
                 <h2>Nota</h2>
                 <p>Tu barco quedó atrapado en un mar infinito compuesto por habitaciones interconectadas llamadas fragmentos. La única forma de escapar es avanzar hacia El Abismo: ahí se oculta la respuesta para volver al mundo real.</p>
                 <div class="controls">
@@ -543,6 +520,7 @@
                     <span>Flechas</span> - Desplazar en mapa |
                     <span>T + Enter</span> - Chat
                 </div>
+                <p class="nav-hint">Enter o ESC para cerrar</p>
             </div>
         </div>
 
@@ -608,20 +586,9 @@
                 // Help modal functionality
                 const helpButton = document.getElementById('helpButton');
                 const helpModal = document.getElementById('helpModal');
-                const closeHelpButton = document.getElementById('closeHelpButton');
 
                 helpButton.addEventListener('click', function() {
                     helpModal.style.display = 'flex';
-                });
-
-                closeHelpButton.addEventListener('click', function() {
-                    helpModal.style.display = 'none';
-                });
-
-                helpModal.addEventListener('click', function(e) {
-                    if (e.target === helpModal) {
-                        helpModal.style.display = 'none';
-                    }
                 });
 
                 // Close help modal with ESC or Enter
