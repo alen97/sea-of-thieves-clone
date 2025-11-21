@@ -21,6 +21,9 @@ var game = null;
 // Dev mode - enable with ?dev=true in URL
 const isDevMode = new URLSearchParams(window.location.search).get('dev') === 'true';
 
+// Prevent multiple game starts
+var isStartingGame = false;
+
 // Generate random room code
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -148,6 +151,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Create Room button
   createRoomButton.addEventListener('click', function() {
+    if (isStartingGame) return;
     playerName = generatePlayerName();
     roomCode = generateRoomCode();
     roomAction = 'create';
@@ -156,6 +160,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Join Room button
   joinRoomButton.addEventListener('click', function() {
+    if (isStartingGame) return;
     const code = roomCodeInput.value.trim().toUpperCase();
 
     if (code.length === 0) {
@@ -176,6 +181,10 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 function startGame() {
+  // Prevent multiple calls
+  if (isStartingGame) return;
+  isStartingGame = true;
+
   // Don't show game yet - wait for server confirmation
   // Login screen stays visible until sharedShip event
 
@@ -411,6 +420,7 @@ function create() {
     document.getElementById('pauseMenu').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'La sala no existe';
+    isStartingGame = false;
   });
 
   this.socket.on('roomFull', function() {
@@ -419,6 +429,7 @@ function create() {
     document.getElementById('pauseMenu').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'La sala está llena (máximo 4 jugadores)';
+    isStartingGame = false;
   });
 
   // Room tracking
