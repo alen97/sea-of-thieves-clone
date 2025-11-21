@@ -48,24 +48,31 @@ window.addEventListener('DOMContentLoaded', function() {
   const restartButton = document.getElementById('restartButton');
   const deathRestartButton = document.getElementById('deathRestartButton');
 
-  // Keyboard navigation for login screen
-  const navItems = [roomCodeInput, createRoomButton, joinRoomButton, helpButton];
+  // Keyboard navigation for login screen - only menu items
+  const menuItems = [createRoomButton, joinRoomButton, helpButton];
   let selectedIndex = 0;
 
   function updateSelection() {
-    navItems.forEach((item, i) => {
+    menuItems.forEach((item, i) => {
       if (i === selectedIndex) {
-        item.classList.add('nav-selected');
-        if (item === roomCodeInput) item.focus();
+        item.classList.add('selected');
       } else {
-        item.classList.remove('nav-selected');
+        item.classList.remove('selected');
       }
     });
+
+    // Show/hide input based on selection
+    if (selectedIndex === 1) { // "Ingresar a Sala" selected
+      roomCodeInput.classList.add('visible');
+      roomCodeInput.focus();
+    } else {
+      roomCodeInput.classList.remove('visible');
+      errorMessage.textContent = '';
+    }
   }
 
-  // Initial selection and focus
+  // Initial selection
   updateSelection();
-  roomCodeInput.focus();
 
   // Keyboard navigation
   document.addEventListener('keydown', function(e) {
@@ -73,19 +80,19 @@ window.addEventListener('DOMContentLoaded', function() {
     const victoryScreen = document.getElementById('victoryScreen');
     const deathScreen = document.getElementById('deathScreen');
 
-    // Login screen navigation (arrows only, not WASD - let user type)
+    // Login screen navigation
     if (loginScreen.style.display !== 'none') {
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        selectedIndex = (selectedIndex - 1 + navItems.length) % navItems.length;
+        selectedIndex = (selectedIndex - 1 + menuItems.length) % menuItems.length;
         updateSelection();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        selectedIndex = (selectedIndex + 1) % navItems.length;
+        selectedIndex = (selectedIndex + 1) % menuItems.length;
         updateSelection();
-      } else if (e.key === 'Enter' && selectedIndex !== 0) {
+      } else if (e.key === 'Enter') {
         e.preventDefault();
-        navItems[selectedIndex].click();
+        menuItems[selectedIndex].click();
       }
     }
 
