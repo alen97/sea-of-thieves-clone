@@ -412,15 +412,19 @@ function create() {
     }
   });
 
-  // Handle room errors
+  // Handle room errors - return to login screen with error message
   this.socket.on('roomNotFound', function() {
-    alert('Sala no encontrada. Verifica el código.');
-    window.location.reload();
+    if (game) game.destroy(true);
+    document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('errorMessage').textContent = 'La sala no existe';
   });
 
   this.socket.on('roomFull', function() {
-    alert('La sala está llena (máximo 4 jugadores).');
-    window.location.reload();
+    if (game) game.destroy(true);
+    document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('errorMessage').textContent = 'La sala está llena (máximo 4 jugadores)';
   });
 
   // Room tracking
