@@ -18,6 +18,9 @@ var roomCode = '';
 var roomAction = '';
 var game = null;
 
+// Dev mode - enable with ?dev=true in URL
+const isDevMode = new URLSearchParams(window.location.search).get('dev') === 'true';
+
 // Generate random room code
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1682,8 +1685,8 @@ function update(time, delta) {
       }
     }
 
-    // DEV: Number keys to instantly apply modifiers
-    if (!this.chatMode) {
+    // DEV: Number keys to instantly apply modifiers (only in dev mode)
+    if (!this.chatMode && isDevMode) {
       const devModifierMap = {
         1: { type: 'RIOS_WINDS', name: "Río de la Plata's Winds", color: 0x00CED1 },
         2: { type: 'CAPTAINS_GUIDE', name: "Captain's Wisdom", color: 0xFFD700 },
