@@ -576,7 +576,11 @@ function create() {
         const newX = Phaser.Math.Linear(self.ship.x, shipData.x, lerpFactor);
         const newY = Phaser.Math.Linear(self.ship.y, shipData.y, lerpFactor);
         self.ship.setPosition(newX, newY);
-        self.ship.setRotation(shipData.rotation);
+
+        // Interpolate rotation using shortest angle path
+        const angleDiff = Phaser.Math.Angle.Wrap(shipData.rotation - self.ship.rotation);
+        const newRotation = self.ship.rotation + angleDiff * lerpFactor;
+        self.ship.setRotation(newRotation);
 
         // Update velocity and physics state
         self.ship.currentSpeed = shipData.currentSpeed;
