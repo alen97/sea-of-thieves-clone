@@ -612,9 +612,7 @@ function create() {
 
           // Step 1: Rewind to server state
           self.ship.setPosition(shipData.x, shipData.y);
-          // Use smooth interpolation for rotation to avoid harsh snapping
-          const angleDiff = Phaser.Math.Angle.Wrap(shipData.rotation - self.ship.rotation);
-          self.ship.setRotation(self.ship.rotation + angleDiff * 0.5);
+          self.ship.setRotation(shipData.rotation);
           self.ship.currentSpeed = shipData.currentSpeed;
           self.steeringDirection = shipData.steeringDirection;
 
