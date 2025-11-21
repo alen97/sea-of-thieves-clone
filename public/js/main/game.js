@@ -597,7 +597,7 @@ function create() {
 
         // Check for prediction error (mismatch between client and server)
         const POSITION_THRESHOLD = 5; // pixels
-        const ROTATION_THRESHOLD = 0.1; // radians (~5.7 degrees)
+        const ROTATION_THRESHOLD = 0.3; // radians (~17 degrees) - higher to reduce warping with fast turns
 
         const posError = Math.sqrt(
           Math.pow(self.ship.x - shipData.x, 2) +
