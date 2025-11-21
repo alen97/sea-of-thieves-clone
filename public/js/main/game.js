@@ -599,7 +599,8 @@ function create() {
           Math.pow(self.ship.x - shipData.x, 2) +
           Math.pow(self.ship.y - shipData.y, 2)
         );
-        const rotError = Math.abs(self.ship.rotation - shipData.rotation);
+        // Use angle wrapping to handle -PI/PI boundary correctly
+        const rotError = Math.abs(Phaser.Math.Angle.Wrap(self.ship.rotation - shipData.rotation));
 
         if (posError > POSITION_THRESHOLD || rotError > ROTATION_THRESHOLD) {
           // Significant mismatch - reconcile!
