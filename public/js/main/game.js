@@ -51,6 +51,7 @@ window.addEventListener('DOMContentLoaded', function() {
   // Keyboard navigation for login screen - only menu items
   const menuItems = [createRoomButton, joinRoomButton, helpButton];
   let selectedIndex = 0;
+  let inputMode = false; // Track if we're in input mode
 
   function updateSelection() {
     menuItems.forEach((item, i) => {
@@ -61,14 +62,20 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     });
 
-    // Show/hide input based on selection
-    if (selectedIndex === 1) { // "Ingresar a Sala" selected
-      roomCodeInput.classList.add('visible');
-      roomCodeInput.focus();
-    } else {
+    // Reset input mode when navigating away from join
+    if (selectedIndex !== 1 && inputMode) {
+      inputMode = false;
       roomCodeInput.classList.remove('visible');
+      joinRoomButton.style.display = '';
       errorMessage.textContent = '';
     }
+  }
+
+  function enterInputMode() {
+    inputMode = true;
+    joinRoomButton.style.display = 'none';
+    roomCodeInput.classList.add('visible');
+    roomCodeInput.focus();
   }
 
   // Initial selection
@@ -82,6 +89,22 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // Login screen navigation
     if (loginScreen.style.display !== 'none') {
+      // If in input mode, handle differently
+      if (inputMode) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          inputMode = false;
+          roomCodeInput.classList.remove('visible');
+          joinRoomButton.style.display = '';
+          roomCodeInput.value = '';
+          errorMessage.textContent = '';
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          joinRoomButton.click();
+        }
+        return;
+      }
+
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         selectedIndex = (selectedIndex - 1 + menuItems.length) % menuItems.length;
@@ -92,7 +115,12 @@ window.addEventListener('DOMContentLoaded', function() {
         updateSelection();
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        menuItems[selectedIndex].click();
+        if (selectedIndex === 1) {
+          // "Ingresar a Sala" - enter input mode first
+          enterInputMode();
+        } else {
+          menuItems[selectedIndex].click();
+        }
       }
     }
 
