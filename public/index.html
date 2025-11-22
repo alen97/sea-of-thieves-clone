@@ -483,10 +483,7 @@
             <div id="loginBox">
                 <h1>Endless Sea of Rooms</h1>
                 <div class="menu-container">
-                    <button id="endlessModeButton" class="menu-item selected">Modo Exploración</button>
-                    <button id="createRoomButton" class="menu-item">Crear sala</button>
-                    <button id="joinRoomButton" class="menu-item">Ingresar a sala</button>
-                    <input type="text" id="roomCodeInput" placeholder="______" maxlength="6" autocomplete="off">
+                    <button id="endlessModeButton" class="menu-item selected">Jugar</button>
                     <button id="helpButton" class="menu-item">Cómo jugar</button>
                 </div>
                 <p id="errorMessage"></p>
@@ -730,11 +727,9 @@
                     });
                 }
 
-                // Update menu navigation to include new button
+                // Update menu navigation
                 const menuItems = [
                     document.getElementById('endlessModeButton'),
-                    document.getElementById('createRoomButton'),
-                    document.getElementById('joinRoomButton'),
                     document.getElementById('helpButton')
                 ].filter(Boolean);
 
