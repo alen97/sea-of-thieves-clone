@@ -501,6 +501,7 @@ function create() {
   this.crowsNestSystem = new CrowsNestSystem(this);
   this.repairSystem = new RepairSystem(this);
   this.energySystem = new EnergySystem(this);
+  this.crateSystem = new CrateSystem(this);
 
   // DEV: Register number keys for instant modifier application
   this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
@@ -607,6 +608,9 @@ function create() {
 
       // Create health bar
       createShipHealthBar(self, self.ship);
+
+      // Create storage crates
+      self.crateSystem.createCrates(self.ship);
 
       // Initialize steering variable from server state
       self.steeringDirection = shipData.steeringDirection || 0;
@@ -1905,6 +1909,9 @@ function update(time, delta) {
 
     // ===== SISTEMA DE ENERGÍA (usando EnergySystem) =====
     this.energySystem.update(this.player, time);
+
+    // ===== SISTEMA DE CAJAS (usando CrateSystem) =====
+    this.crateSystem.update(this.player, this.ship, inputState.interact && inputEnabled);
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled, this.energySystem);
