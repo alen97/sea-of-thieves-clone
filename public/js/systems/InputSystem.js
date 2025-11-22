@@ -30,7 +30,9 @@ class InputSystem {
             DOWN: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
             M: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M),
             ESC: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
-            SPACE: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+            SPACE: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+            Q: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+            R: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R)
         };
     }
 

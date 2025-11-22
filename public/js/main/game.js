@@ -503,6 +503,7 @@ function create() {
   this.energySystem = new EnergySystem(this);
   this.crateSystem = new CrateSystem(this);
   this.fishingSystem = new FishingSystem(this);
+  this.holdItemSystem = new HoldItemSystem(this);
 
   // DEV: Register number keys for instant modifier application
   this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
@@ -992,6 +993,8 @@ function create() {
             self.player = addPlayer(self, players[id].player, self.ship, players[id].playerColor);
             // Initialize energy system for player
             self.energySystem.initializePlayerEnergy(self.player);
+            // Initialize hold item system for player
+            self.holdItemSystem.initialize(self.player);
           }
         } else if (self.ship) {
           // Update player position (for room transition)
@@ -1920,9 +1923,12 @@ function update(time, delta) {
     // ===== SISTEMA DE PESCA (usando FishingSystem) =====
     const caughtFish = this.fishingSystem.update(this.player, this.ship, inputState.interact && inputEnabled, time);
     if (caughtFish) {
-      // Fish was caught - will be handled by HoldItemSystem
-      console.log(`Caught: ${caughtFish.type}`);
+      // Fish was caught - pick it up
+      this.holdItemSystem.pickUpItem(this.player, caughtFish);
     }
+
+    // ===== SISTEMA DE SOSTENER OBJETOS (usando HoldItemSystem) =====
+    this.holdItemSystem.update(this.player, input, this.energySystem, this.crateSystem);
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled, this.energySystem);
