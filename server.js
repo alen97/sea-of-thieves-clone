@@ -1332,8 +1332,9 @@ setInterval(function() {
 
       // Clear processed inputs
       room.ship.pendingInputs = [];
-    } else {
-      // No controlling player - still update physics with no input (with modifiers)
+    } else if (room.ship.controllingPlayer) {
+      // Has controlling player but no pending inputs (network latency)
+      // Keep current steering direction to prevent unwanted centering
       const newState = shipPhysics.updateShipPhysics(
         {
           x: room.ship.x,
@@ -1345,7 +1346,32 @@ setInterval(function() {
         },
         shipInput,
         DELTA_TIME,
-        room.ship.modifiers // Pass modifiers to physics calculation
+        room.ship.modifiers
+      );
+
+      // Apply new state but preserve steering direction
+      room.ship.x = newState.x;
+      room.ship.y = newState.y;
+      room.ship.rotation = newState.rotation;
+      // Don't update steeringDirection - keep current value to prevent centering
+      room.ship.currentSpeed = newState.currentSpeed;
+      room.ship.velocityX = newState.velocityX;
+      room.ship.velocityY = newState.velocityY;
+      room.ship.angularVelocity = newState.angularVelocity;
+    } else {
+      // No controlling player - update physics with no input (can center)
+      const newState = shipPhysics.updateShipPhysics(
+        {
+          x: room.ship.x,
+          y: room.ship.y,
+          rotation: room.ship.rotation,
+          steeringDirection: room.ship.steeringDirection,
+          currentSpeed: room.ship.currentSpeed,
+          isAnchored: room.ship.isAnchored
+        },
+        shipInput,
+        DELTA_TIME,
+        room.ship.modifiers
       );
 
       // Apply new state
