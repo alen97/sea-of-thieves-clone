@@ -12,6 +12,12 @@ class FishingSystem {
         this.rodOffset = 75;
         this.interactionDistance = 30;
         this.indicator = null;
+
+        // Fishing timer
+        this.fishingStartTime = 0;
+        this.fishingDuration = 0; // Random duration for current fishing session
+        this.minFishingTime = 15000; // 15 seconds
+        this.maxFishingTime = 120000; // 120 seconds
     }
 
     /**
@@ -110,6 +116,10 @@ class FishingSystem {
         player.fishingSide = rod.side;
         player.canMove = false;
 
+        // Set random fishing duration
+        this.fishingStartTime = Date.now();
+        this.fishingDuration = Phaser.Math.Between(this.minFishingTime, this.maxFishingTime);
+
         // Emit fishing state to server
         if (this.scene.socket) {
             this.scene.socket.emit('fishingToggle', {
@@ -123,10 +133,20 @@ class FishingSystem {
      * Dismount player from fishing rod
      * @param {Object} player - Player sprite
      */
-    dismountRod(player) {
+    dismountRod(player, caughtFish = false) {
         player.isFishing = false;
         player.fishingSide = null;
         player.canMove = true;
+
+        // Reset fishing timer
+        this.fishingStartTime = 0;
+        this.fishingDuration = 0;
+
+        // Give fish to player if caught
+        if (caughtFish) {
+            player.heldItem = 'fish';
+            console.log('Player caught a fish!');
+        }
 
         // Emit fishing state to server
         if (this.scene.socket) {
@@ -134,6 +154,20 @@ class FishingSystem {
                 isFishing: false,
                 fishingSide: null
             });
+        }
+    }
+
+    /**
+     * Check if fishing timer has completed
+     * @param {Object} player - Player sprite
+     */
+    checkFishingComplete(player) {
+        if (!player.isFishing || this.fishingStartTime === 0) return;
+
+        const elapsed = Date.now() - this.fishingStartTime;
+        if (elapsed >= this.fishingDuration) {
+            // Caught a fish!
+            this.dismountRod(player, true);
         }
     }
 
@@ -236,5 +270,8 @@ class FishingSystem {
 
         // Handle mount/dismount
         this.handleInteraction(player, fishingRods, input.interact, nearHelm, nearAnchor, otherPlayers);
+
+        // Check if fishing is complete
+        this.checkFishingComplete(player);
     }
 }

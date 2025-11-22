@@ -22,6 +22,8 @@ function addPlayer(self, playerInfo, ship, playerColor = 'default') {
     player.isInCrowsNest = false; // Para sistema de cofa
     player.isRepairing = false; // Para sistema de reparación
     player.canMove = true; // Control de movimiento
+    player.heldItem = null; // Item en mano ('fish', etc.)
+    player.heldItemSprite = null; // Sprite del item en mano
     player.ship = ship; // Referencia al barco
     player.playerColor = playerColor; // Store color for animation
     player.animKey = animKey; // Store animation key
@@ -371,6 +373,33 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
 
         // El jugador mira en la dirección del barco (hacia adelante)
         player.setRotation(ship.rotation + Math.PI);
+    }
+
+    // Update held item sprite position
+    if (player.heldItem) {
+        // Create sprite if it doesn't exist
+        if (!player.heldItemSprite) {
+            // Create a brown square for fish (6x6)
+            const graphics = self.add.graphics();
+            graphics.fillStyle(0x8B4513, 1); // Brown color
+            graphics.fillRect(0, 0, 6, 6);
+            graphics.generateTexture('fish_item', 6, 6);
+            graphics.destroy();
+
+            player.heldItemSprite = self.add.sprite(0, 0, 'fish_item')
+                .setOrigin(0.5, 0.5)
+                .setDepth(player.depth + 1);
+        }
+
+        // Position item in front of player (in their "hand")
+        const handOffset = 12;
+        const itemX = player.x + Math.cos(player.rotation - Math.PI / 2) * handOffset;
+        const itemY = player.y + Math.sin(player.rotation - Math.PI / 2) * handOffset;
+        player.heldItemSprite.setPosition(itemX, itemY);
+        player.heldItemSprite.setVisible(true);
+    } else if (player.heldItemSprite) {
+        // Hide item if not holding anything
+        player.heldItemSprite.setVisible(false);
     }
 
     // WRAP DESHABILITADO - Ahora usamos sistema de rooms en lugar de wrap
