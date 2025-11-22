@@ -62,8 +62,11 @@ function addOtherPlayer(self, playerInfo, ship, playerColor = 'default') {
     return player;
 }
 
-function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
-    const playerSpeed = 100;
+function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true, energySystem = null) {
+    // Apply energy-based speed modifier
+    const baseSpeed = 100;
+    const speedMultiplier = energySystem ? energySystem.getSpeedMultiplier(player) : 1.0;
+    const playerSpeed = baseSpeed * speedMultiplier;
 
     if (!player.isControllingShip && !player.isInCrowsNest) {
         // El jugador NO está en el timón ni en la cofa - puede caminar

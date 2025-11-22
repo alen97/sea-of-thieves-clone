@@ -500,6 +500,7 @@ function create() {
   this.anchorSystem = new AnchorSystem(this);
   this.crowsNestSystem = new CrowsNestSystem(this);
   this.repairSystem = new RepairSystem(this);
+  this.energySystem = new EnergySystem(this);
 
   // DEV: Register number keys for instant modifier application
   this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
@@ -981,6 +982,8 @@ function create() {
           // Create player avatar if doesn't exist
           if (self.ship) {
             self.player = addPlayer(self, players[id].player, self.ship, players[id].playerColor);
+            // Initialize energy system for player
+            self.energySystem.initializePlayerEnergy(self.player);
           }
         } else if (self.ship) {
           // Update player position (for room transition)
@@ -1900,8 +1903,11 @@ function update(time, delta) {
     const nearCrowsNest = this.player.isInCrowsNest || false;
     this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, false, nearCrowsNest, this.otherPlayers);
 
+    // ===== SISTEMA DE ENERGÍA (usando EnergySystem) =====
+    this.energySystem.update(this.player, time);
+
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
-    updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled);
+    updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled, this.energySystem);
 
     // ===== ACTUALIZAR SHIP (client-side prediction with shared physics) =====
     if (this.player.isControllingShip && inputEnabled) {
