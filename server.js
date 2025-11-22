@@ -375,9 +375,9 @@ function checkModifierCollisions(ship, room) {
       // Check if the modifier is in the correct dimension
       const isAbyssalItem = modifier.isAbyssal || false;
 
-      // Can only pick up abyssal items if in abyssal world
-      // Can only pick up normal items if NOT in abyssal world
-      if (isAbyssalItem === inAbyssalWorld) {
+      // Normal items can always be picked up
+      // Abyssal items can only be picked up when in abyssal world
+      if (!isAbyssalItem || inAbyssalWorld) {
         // Collision detected and dimension matches!
         return { modifier, index: i };
       }
