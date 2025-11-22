@@ -180,6 +180,8 @@ class HoldItemSystem {
      * Update action indicator
      */
     updateIndicator(player, crateSystem) {
+        if (!this.actionIndicator) return;
+
         if (!player.heldItem) {
             this.actionIndicator.setVisible(false);
             return;
@@ -232,7 +234,7 @@ class HoldItemSystem {
      * Main update loop
      */
     update(player, input, energySystem, crateSystem) {
-        if (!player) return;
+        if (!player || !this.actionIndicator) return;
 
         // Update item position
         this.updateItemPosition(player);
