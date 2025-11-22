@@ -253,7 +253,7 @@ function preload() {
   this.load.image('abyssalJelly', 'assets/abyssal-jelly.png');
 
   this.load.image('bullet', 'assets/bullet.png');
-  this.load.image('cannon', 'assets/cannon.png');
+  this.load.image('fishing_rod', 'assets/fishing_rod.png');
 
   this.load.audio('shoot', 'sounds/bow5.mp3');
 
@@ -502,7 +502,7 @@ function create() {
   this.inputSystem = new InputSystem(this);
   this.helmSystem = new HelmSystem(this);
   this.anchorSystem = new AnchorSystem(this);
-  this.cannonSystem = new CannonSystem(this);
+  this.fishingSystem = new FishingSystem(this);
   this.crowsNestSystem = new CrowsNestSystem(this);
   this.repairSystem = new RepairSystem(this);
 
@@ -601,8 +601,8 @@ function create() {
       setupShipCollisions(self, self.ship);
       addShipWakeEmitters(self, self.ship);
 
-      // Create cannons for the ship
-      self.ship.cannons = self.cannonSystem.createCannons(self.ship)
+      // Create fishing rods for the ship
+      self.ship.fishingRods = self.fishingSystem.createFishingRods(self.ship)
 
       // Create lantern at ship center (use server state)
       self.lanternLit = shipData.lanternLit || false;
@@ -766,17 +766,7 @@ function create() {
         self.ship.targetSpeed = shipData.targetSpeed;
       }
 
-      // Client-side prediction: Only sync cannon angles if NOT mounted on that specific cannon
-      if (shipData.cannons) {
-        // Update left cannon only if player is not mounted on it
-        if (!self.player.isOnCannon || self.player.cannonSide !== 'left') {
-          self.ship.cannons.left.relativeAngle = shipData.cannons.leftAngle || 0;
-        }
-        // Update right cannon only if player is not mounted on it
-        if (!self.player.isOnCannon || self.player.cannonSide !== 'right') {
-          self.ship.cannons.right.relativeAngle = shipData.cannons.rightAngle || 0;
-        }
-      }
+      // Fishing rods don't need rotation sync (they have fixed orientation)
 
       // Sync modifier state from server
       if (shipData.modifiers) {
@@ -941,7 +931,7 @@ function create() {
           // Stop player actions
           if (self.player) {
             self.player.isControllingShip = false;
-            self.player.isOnCannon = false;
+            self.player.isFishing = false;
             self.player.isInCrowsNest = false;
             self.player.isRepairing = false;
           }
@@ -1029,7 +1019,7 @@ function create() {
           // Update depth based on crow's nest state
           if (players[id].player.isInCrowsNest) {
             otherPlayer.setDepth(4); // On top of crow's nest
-          } else if (players[id].player.isOnCannon || players[id].player.isControllingShip) {
+          } else if (players[id].player.isFishing || players[id].player.isControllingShip) {
             otherPlayer.setDepth(3); // Normal depth
           } else {
             otherPlayer.setDepth(3); // Walking - under crow's nest
@@ -1044,7 +1034,7 @@ function create() {
           // Initialize animation state from server-provided isMoving field
           const isMoving = players[id].player.isMoving || false;
 
-          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isOnCannon && !players[id].player.isInCrowsNest && !players[id].player.isRepairing) {
+          if (isMoving && !players[id].player.isControllingShip && !players[id].player.isFishing && !players[id].player.isInCrowsNest && !players[id].player.isRepairing) {
             otherPlayer.play(otherPlayer.animKey);
           } else {
             otherPlayer.setFrame(0); // First frame
@@ -1086,7 +1076,7 @@ function create() {
       // Initialize animation state from server-provided isMoving field
       const isMoving = playerInfo.player.isMoving || false;
 
-      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest && !playerInfo.player.isRepairing) {
+      if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isFishing && !playerInfo.player.isInCrowsNest && !playerInfo.player.isRepairing) {
         otherPlayer.play(otherPlayer.animKey);
       } else {
         otherPlayer.setFrame(0); // First frame
@@ -1124,13 +1114,13 @@ function create() {
     });
   });
 
-  // Handle cannon state changes for other players
-  this.socket.on('playerCannonChanged', function (data) {
+  // Handle fishing state changes for other players
+  this.socket.on('playerFishingChanged', function (data) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (data.playerId === otherPlayer.playerId) {
-        otherPlayer.isOnCannon = data.isOnCannon;
-        otherPlayer.cannonSide = data.cannonSide;
-        console.log(`Player ${data.playerId} cannon state: ${data.isOnCannon ? `MOUNTED ${data.cannonSide}` : 'DISMOUNTED'}`);
+        otherPlayer.isFishing = data.isFishing;
+        otherPlayer.fishingSide = data.fishingSide;
+        console.log(`Player ${data.playerId} fishing state: ${data.isFishing ? `FISHING ${data.fishingSide}` : 'STOPPED'}`);
       }
     });
   });
@@ -1191,7 +1181,7 @@ function create() {
           // Synchronize animation based on received isMoving state
           const isMoving = playerInfo.player.isMoving || false;
 
-          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isOnCannon && !playerInfo.player.isInCrowsNest && !playerInfo.player.isRepairing) {
+          if (isMoving && !playerInfo.player.isControllingShip && !playerInfo.player.isFishing && !playerInfo.player.isInCrowsNest && !playerInfo.player.isRepairing) {
             // Player walking - play animation
             if (!otherPlayer.anims.isPlaying ||
                 otherPlayer.anims.currentAnim.key !== otherPlayer.animKey) {
@@ -1838,8 +1828,8 @@ function update(time, delta) {
     if (this.player.isInCrowsNest) {
       // In crow's nest - zoomed out for far visibility
       targetZoomByRole = 0.5;
-    } else if (this.player.isControllingShip || this.player.isOnCannon) {
-      // Controlling ship or on cannon - medium zoom
+    } else if (this.player.isControllingShip || this.player.isFishing) {
+      // Controlling ship or fishing - medium zoom
       targetZoomByRole = 1.0;
     } else {
       // On foot - close zoom
@@ -1950,24 +1940,20 @@ function update(time, delta) {
     this.crowsNestSystem.update(this.player, this.ship, inputState.interact && inputEnabled, canUseHelm, canUseAnchor, this.otherPlayers);
 
     // ===== SISTEMA DE REPARACIÓN (usando RepairSystem) =====
-    const nearCannon = this.player.isOnCannon || false;
+    const nearFishing = this.player.isFishing || false;
     const nearCrowsNest = this.player.isInCrowsNest || false;
-    this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, nearCannon, nearCrowsNest, this.otherPlayers);
+    this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, nearFishing, nearCrowsNest, this.otherPlayers);
 
-    // ===== SISTEMA DE CAÑONES (usando CannonSystem) =====
-    if (this.ship.cannons) {
-      this.cannonSystem.update(
+    // ===== SISTEMA DE PESCA (usando FishingSystem) =====
+    if (this.ship.fishingRods) {
+      this.fishingSystem.update(
         this.player,
         this.ship,
-        this.ship.cannons,
+        this.ship.fishingRods,
         inputState,
-        deltaTime,
-        time,
         canUseHelm,
         canUseAnchor,
-        this.shipModifiers, // Pass modifiers for fire rate
-        this.otherPlayers, // Pass other players for occupation check
-        this.collectedModifiers // Pass collected modifier types
+        this.otherPlayers
       );
     }
 
@@ -2031,20 +2017,8 @@ function update(time, delta) {
           right: shipInput.turnRight
         },
         anchor: this.ship.isAnchored,
-        cannons: {
-          leftAngle: this.ship.cannons ? this.ship.cannons.left.relativeAngle : 0,
-          rightAngle: this.ship.cannons ? this.ship.cannons.right.relativeAngle : 0
-        }
       });
     } else {
-
-    // Enviar rotación de cañones si el jugador está montado en uno
-    if (this.player.isOnCannon && this.ship.cannons) {
-      this.socket.emit('cannonRotation', {
-        leftAngle: this.ship.cannons.left.relativeAngle,
-        rightAngle: this.ship.cannons.right.relativeAngle
-      });
-    }
 
    this.ship.previousRotation = this.ship.rotation;
 
@@ -2171,7 +2145,7 @@ function update(time, delta) {
     // Calcular si el jugador está en movimiento (para sincronizar animaciones)
     const isPlayerMoving = inputEnabled &&
                           !this.player.isControllingShip &&
-                          !this.player.isOnCannon &&
+                          !this.player.isFishing &&
                           !this.player.isRepairing &&
                           (input.keyW.isDown || input.keyS.isDown ||
                            input.keyA.isDown || input.keyD.isDown);
@@ -2230,8 +2204,8 @@ function update(time, delta) {
           y: playerRelativeY,
           rotation: this.player.rotation,
           isControllingShip: this.player.isControllingShip,
-          isOnCannon: this.player.isOnCannon,
-          cannonSide: this.player.cannonSide,
+          isFishing: this.player.isFishing,
+          fishingSide: this.player.fishingSide,
           isInCrowsNest: this.player.isInCrowsNest,
           isRepairing: this.player.isRepairing || false,
           isMoving: isPlayerMoving,  // Animation sync
@@ -2406,7 +2380,7 @@ function update(time, delta) {
             // Stop any current player action and control
             if (this.player) {
               this.player.isControllingShip = false;
-              this.player.isOnCannon = false;
+              this.player.isFishing = false;
               this.player.isInCrowsNest = false;
               this.player.isRepairing = false;
             }

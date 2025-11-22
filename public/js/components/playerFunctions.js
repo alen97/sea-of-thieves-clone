@@ -17,8 +17,8 @@ function addPlayer(self, playerInfo, ship, playerColor = 'default') {
 
     player.setDepth(3);
     player.isControllingShip = false;
-    player.isOnCannon = false; // Para sistema de cañones
-    player.cannonSide = null; // 'left' o 'right'
+    player.isFishing = false; // Para sistema de pesca
+    player.fishingSide = null; // 'left' o 'right'
     player.isInCrowsNest = false; // Para sistema de cofa
     player.isRepairing = false; // Para sistema de reparación
     player.canMove = true; // Control de movimiento
@@ -67,8 +67,8 @@ function addOtherPlayer(self, playerInfo, ship, playerColor = 'default') {
 function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true) {
     const playerSpeed = 100;
 
-    if (!player.isControllingShip && !player.isOnCannon && !player.isInCrowsNest) {
-        // El jugador NO está en el timón, ni en el cañón, ni en la cofa - puede caminar
+    if (!player.isControllingShip && !player.isFishing && !player.isInCrowsNest) {
+        // El jugador NO está en el timón, ni pescando, ni en la cofa - puede caminar
 
         // Player below crow's nest when walking
         player.setDepth(3);
@@ -320,32 +320,32 @@ function updatePlayer(self, player, ship, input, deltaTime, inputEnabled = true)
             player.setFrame('tile000.png');
         }
 
-    } else if (player.isOnCannon) {
-        // El jugador ESTÁ en el cañón - no puede caminar
+    } else if (player.isFishing) {
+        // El jugador ESTÁ pescando - no puede caminar
         player.setVelocity(0, 0);
 
-        // Player normal depth when on cannon
+        // Player normal depth when fishing
         player.setDepth(3);
 
-        // Stop animation when on cannon
+        // Stop animation when fishing
         if (player.anims.isPlaying) {
             player.stop();
             player.setFrame('tile000.png');
         }
 
-        // Obtener el cañón actual desde el barco
-        const currentCannon = player.cannonSide === 'left' ? ship.cannons.left : ship.cannons.right;
+        // Obtener la caña actual desde el barco
+        const currentRod = player.fishingSide === 'left' ? ship.fishingRods.left : ship.fishingRods.right;
 
-        if (currentCannon) {
-            // Posicionar jugador detrás del cañón basado en su rotación
-            const offsetDistance = 35; // Distancia detrás del cañón
-            const playerX = currentCannon.x - Math.cos(currentCannon.rotation) * offsetDistance;
-            const playerY = currentCannon.y - Math.sin(currentCannon.rotation) * offsetDistance;
+        if (currentRod) {
+            // Posicionar jugador detrás de la caña basado en su rotación
+            const offsetDistance = 35; // Distancia detrás de la caña
+            const playerX = currentRod.x - Math.cos(currentRod.rotation) * offsetDistance;
+            const playerY = currentRod.y - Math.sin(currentRod.rotation) * offsetDistance;
 
             player.setPosition(playerX, playerY);
 
-            // El jugador mira en la misma dirección que el cañón
-            player.setRotation(currentCannon.rotation - Math.PI / 2);        
+            // El jugador mira en la misma dirección que la caña
+            player.setRotation(currentRod.rotation - Math.PI / 2);
         }
 
     } else {

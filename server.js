@@ -750,8 +750,8 @@ io.on('connection', function (socket) {
       y: 0, // Relative to ship
       rotation: Math.PI,
       isControllingShip: false,
-      isOnCannon: false,
-      cannonSide: null,
+      isFishing: false,
+      fishingSide: null,
       isInCrowsNest: false,
       velocityX: 0, // Initialize velocity for animation sync
       velocityY: 0,
@@ -934,21 +934,21 @@ io.on('connection', function (socket) {
     }
   });
 
-  // Handle cannon mount/dismount
-  socket.on('cannonToggle', function (data) {
+  // Handle fishing mount/dismount
+  socket.on('fishingToggle', function (data) {
     const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
 
     if (room && room.players[socket.id] && data !== undefined) {
-      room.players[socket.id].player.isOnCannon = data.isOnCannon;
-      room.players[socket.id].player.cannonSide = data.cannonSide || null;
-      console.log(`Player ${socket.id} toggled cannon: ${data.isOnCannon ? `MOUNTED ${data.cannonSide}` : 'DISMOUNTED'}`);
+      room.players[socket.id].player.isFishing = data.isFishing;
+      room.players[socket.id].player.fishingSide = data.fishingSide || null;
+      console.log(`Player ${socket.id} toggled fishing: ${data.isFishing ? `FISHING ${data.fishingSide}` : 'STOPPED'}`);
 
-      // Broadcast cannon state change to all other players in the room
-      socket.to(roomId).emit('playerCannonChanged', {
+      // Broadcast fishing state change to all other players in the room
+      socket.to(roomId).emit('playerFishingChanged', {
         playerId: socket.id,
-        isOnCannon: data.isOnCannon,
-        cannonSide: data.cannonSide
+        isFishing: data.isFishing,
+        fishingSide: data.fishingSide
       });
     }
   });
@@ -1026,17 +1026,17 @@ io.on('connection', function (socket) {
         room.players[socket.id].player.velocityX = movementData.player.velocityX || 0;
         room.players[socket.id].player.velocityY = movementData.player.velocityY || 0;
 
-        // Sincronizar estado del cañón
-        if (movementData.player.isOnCannon !== undefined) {
-          room.players[socket.id].player.isOnCannon = movementData.player.isOnCannon;
+        // Sincronizar estado de pesca
+        if (movementData.player.isFishing !== undefined) {
+          room.players[socket.id].player.isFishing = movementData.player.isFishing;
         }
 
         // Sincronizar estado de la cofa
         if (movementData.player.isInCrowsNest !== undefined) {
           room.players[socket.id].player.isInCrowsNest = movementData.player.isInCrowsNest;
         }
-        if (movementData.player.cannonSide !== undefined) {
-          room.players[socket.id].player.cannonSide = movementData.player.cannonSide;
+        if (movementData.player.fishingSide !== undefined) {
+          room.players[socket.id].player.fishingSide = movementData.player.fishingSide;
         }
 
         // Sincronizar estado de reparación
@@ -1222,17 +1222,6 @@ io.on('connection', function (socket) {
     } catch (error) {
       console.error(`Error changing room for ship:`, error);
       socket.emit('roomChangeError', { message: 'Failed to change room' });
-    }
-  });
-
-  socket.on('cannonRotation', function(data) {
-    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
-    const room = rooms[roomId];
-    if (room && room.ship && data) {
-      room.ship.cannons = {
-        leftAngle: data.leftAngle || 0,
-        rightAngle: data.rightAngle || 0
-      };
     }
   });
 
