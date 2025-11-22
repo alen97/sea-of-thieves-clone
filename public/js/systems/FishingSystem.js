@@ -65,16 +65,20 @@ class FishingSystem {
      * Create a single fishing spot visual
      */
     createSpot(ship, offsetX, offsetY, index) {
-        // Visual indicator for fishing spot (rope/fishing rod icon)
+        // Visual indicator for fishing spot using container
+        const container = this.scene.add.container(0, 0);
+
         const graphics = this.scene.add.graphics();
         graphics.fillStyle(0x8B4513, 1);
         graphics.fillCircle(0, 0, 8);
         graphics.lineStyle(2, 0x000000);
         graphics.strokeCircle(0, 0, 8);
-        graphics.setDepth(2.6);
+
+        container.add(graphics);
+        container.setDepth(2.6);
 
         const spot = {
-            graphics: graphics,
+            container: container,
             offsetX: offsetX,
             offsetY: offsetY,
             index: index
@@ -93,7 +97,7 @@ class FishingSystem {
             const worldX = ship.x + (spot.offsetX * cos - spot.offsetY * sin);
             const worldY = ship.y + (spot.offsetX * sin + spot.offsetY * cos);
 
-            spot.graphics.setPosition(worldX, worldY);
+            spot.container.setPosition(worldX, worldY);
         });
     }
 
@@ -105,8 +109,8 @@ class FishingSystem {
         let nearestDistance = this.interactionRadius;
 
         this.fishingSpots.forEach(spot => {
-            const dx = player.x - spot.graphics.x;
-            const dy = player.y - spot.graphics.y;
+            const dx = player.x - spot.container.x;
+            const dy = player.y - spot.container.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < nearestDistance) {
@@ -202,8 +206,8 @@ class FishingSystem {
 
         const barWidth = 40;
         const barHeight = 6;
-        const x = spot.graphics.x;
-        const y = spot.graphics.y - 25;
+        const x = spot.container.x;
+        const y = spot.container.y - 25;
 
         // Background
         this.progressBarBg.clear();
@@ -225,7 +229,7 @@ class FishingSystem {
     updateIndicator(player) {
         if (this.isFishing) {
             this.indicator.setText('Pescando...\nManten E presionado');
-            this.indicator.setPosition(this.currentSpot.graphics.x, this.currentSpot.graphics.y - 40);
+            this.indicator.setPosition(this.currentSpot.container.x, this.currentSpot.container.y - 40);
             this.indicator.setVisible(true);
             return;
         }
@@ -234,7 +238,7 @@ class FishingSystem {
 
         if (nearestSpot && !player.isControllingShip && !player.isInCrowsNest && !player.isRepairing) {
             this.indicator.setText('Presiona E para pescar');
-            this.indicator.setPosition(nearestSpot.graphics.x, nearestSpot.graphics.y - 25);
+            this.indicator.setPosition(nearestSpot.container.x, nearestSpot.container.y - 25);
             this.indicator.setVisible(true);
         } else {
             this.indicator.setVisible(false);

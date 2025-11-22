@@ -45,7 +45,9 @@ class CrateSystem {
      * Create a single crate
      */
     createCrate(ship, offsetX, offsetY, index) {
-        // Create crate visual (simple rectangle)
+        // Create crate visual using a container with graphics
+        const container = this.scene.add.container(0, 0);
+
         const graphics = this.scene.add.graphics();
         graphics.fillStyle(0x8B4513, 1); // Brown color
         graphics.fillRect(-12, -12, 24, 24);
@@ -57,11 +59,12 @@ class CrateSystem {
         graphics.lineBetween(-12, 0, 12, 0);
         graphics.lineBetween(0, -12, 0, 12);
 
-        graphics.setDepth(2.6);
+        container.add(graphics);
+        container.setDepth(2.6);
 
         // Store crate data
         const crate = {
-            graphics: graphics,
+            container: container,
             offsetX: offsetX,
             offsetY: offsetY,
             index: index,
@@ -83,8 +86,8 @@ class CrateSystem {
             const worldX = ship.x + (crate.offsetX * cos - crate.offsetY * sin);
             const worldY = ship.y + (crate.offsetX * sin + crate.offsetY * cos);
 
-            crate.graphics.setPosition(worldX, worldY);
-            crate.graphics.setRotation(ship.rotation);
+            crate.container.setPosition(worldX, worldY);
+            crate.container.setRotation(ship.rotation);
         });
     }
 
@@ -96,8 +99,8 @@ class CrateSystem {
         let nearestDistance = this.interactionRadius;
 
         this.crates.forEach(crate => {
-            const dx = player.x - crate.graphics.x;
-            const dy = player.y - crate.graphics.y;
+            const dx = player.x - crate.container.x;
+            const dy = player.y - crate.container.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < nearestDistance) {
@@ -161,7 +164,7 @@ class CrateSystem {
             const text = `Caja ${nearestCrate.index + 1} [${itemCount}/${nearestCrate.maxSlots}]\nPresiona E para interactuar`;
 
             this.indicator.setText(text);
-            this.indicator.setPosition(nearestCrate.graphics.x, nearestCrate.graphics.y - 30);
+            this.indicator.setPosition(nearestCrate.container.x, nearestCrate.container.y - 30);
             this.indicator.setVisible(true);
             this.selectedCrate = nearestCrate;
         } else {
