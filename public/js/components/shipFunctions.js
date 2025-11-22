@@ -164,11 +164,6 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
         // Ship fully sunk - hide completely
         if (ship.visible !== false) {
             ship.setVisible(false);
-            // Hide cannons
-            if (ship.cannons) {
-                if (ship.cannons.left) ship.cannons.left.setVisible(false);
-                if (ship.cannons.right) ship.cannons.right.setVisible(false);
-            }
             // Hide hatch
             if (ship.hatchVisual) ship.hatchVisual.setVisible(false);
             console.log('[SHIP SUNK] Ship hidden (health = 0)');
@@ -177,11 +172,6 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
         // Ship sinking (health < 10) - sink below ocean
         if (ship.depth !== -1) {
             ship.setDepth(-1);
-            // Sink cannons
-            if (ship.cannons) {
-                if (ship.cannons.left) ship.cannons.left.setDepth(-1);
-                if (ship.cannons.right) ship.cannons.right.setDepth(-1);
-            }
             // Sink hatch
             if (ship.hatchVisual) ship.hatchVisual.setDepth(-1);
             console.log('[SHIP SINKING] Ship depth set to -1 (below ocean)');
@@ -190,21 +180,11 @@ function updateShipHealthBar(ship, currentHealth, maxHealth) {
         // Ship is above water
         if (ship.depth !== 2) {
             ship.setDepth(2);
-            // Restore cannons depth
-            if (ship.cannons) {
-                if (ship.cannons.left) ship.cannons.left.setDepth(2.5);
-                if (ship.cannons.right) ship.cannons.right.setDepth(2.5);
-            }
             // Restore hatch depth
             if (ship.hatchVisual) ship.hatchVisual.setDepth(2.5);
         }
         if (ship.visible !== true) {
             ship.setVisible(true);
-            // Show cannons
-            if (ship.cannons) {
-                if (ship.cannons.left) ship.cannons.left.setVisible(true);
-                if (ship.cannons.right) ship.cannons.right.setVisible(true);
-            }
             // Show hatch
             if (ship.hatchVisual) ship.hatchVisual.setVisible(true);
         }

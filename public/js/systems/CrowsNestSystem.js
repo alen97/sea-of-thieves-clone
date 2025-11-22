@@ -123,7 +123,7 @@ class CrowsNestSystem {
         const canUseCrowsNest = this.isNearCrowsNest(player, ship);
         const occupiedByOther = this.isOccupiedByOther(otherPlayers);
 
-        if (canUseCrowsNest && !player.isControllingShip && !player.isOnCannon && !occupiedByOther) {
+        if (canUseCrowsNest && !player.isControllingShip && !occupiedByOther) {
             const crowsNestPos = this.getCrowsNestPosition(ship);
             const text = 'Presiona E para subir a la cofa';
 
@@ -190,13 +190,12 @@ class CrowsNestSystem {
         // Update indicator
         this.updateIndicator(player, ship, otherPlayers);
 
-        // Only toggle if near crow's nest, not controlling/on cannon, not near other interactions
+        // Only toggle if near crow's nest, not controlling, not near other interactions
         if (interactPressed &&
             this.isNearCrowsNest(player, ship) &&
             !nearHelm &&
             !nearAnchor &&
-            !player.isControllingShip &&
-            !player.isOnCannon) {
+            !player.isControllingShip) {
             this.toggleCrowsNest(player, otherPlayers);
         }
     }

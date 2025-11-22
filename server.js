@@ -197,7 +197,6 @@ function getOrCreateRoom(privateCode, roomX, roomY) {
     rooms[roomId] = {
       ship: null, // Shared ship for all players in room (created with first player)
       players: {}, // Player avatars only
-      bullets: [],
       modifiers: [], // Power-ups that spawn in the room
       jellies: [] // Abyssal jellies (only visible in abyssal world)
     };
@@ -550,16 +549,11 @@ function createShip(x, y) {
     // Visual/gameplay state
     lanternLit: false,
     targetSpeed: 0,
-    cannons: {
-      leftAngle: 0,
-      rightAngle: 0
-    },
 
     // Modifier state
     modifiers: {
       speed: false,
       turning: false,
-      fireRate: false,
       abyssVision: false,
       compass: false,
       greed: false
@@ -750,8 +744,6 @@ io.on('connection', function (socket) {
       y: 0, // Relative to ship
       rotation: Math.PI,
       isControllingShip: false,
-      isOnCannon: false,
-      cannonSide: null,
       isInCrowsNest: false,
       velocityX: 0, // Initialize velocity for animation sync
       velocityY: 0,
@@ -891,12 +883,9 @@ io.on('connection', function (socket) {
         });
       }
 
-      // Update non-physics state (anchor, cannons, etc.)
+      // Update non-physics state (anchor, etc.)
       if (inputData.anchor !== undefined) {
         room.ship.isAnchored = inputData.anchor;
-      }
-      if (inputData.cannons) {
-        room.ship.cannons = inputData.cannons;
       }
     }
   });
@@ -930,25 +919,6 @@ io.on('connection', function (socket) {
       socket.to(roomId).emit('playerHelmChanged', {
         playerId: socket.id,
         isControllingShip: data.isControllingShip
-      });
-    }
-  });
-
-  // Handle cannon mount/dismount
-  socket.on('cannonToggle', function (data) {
-    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
-    const room = rooms[roomId];
-
-    if (room && room.players[socket.id] && data !== undefined) {
-      room.players[socket.id].player.isOnCannon = data.isOnCannon;
-      room.players[socket.id].player.cannonSide = data.cannonSide || null;
-      console.log(`Player ${socket.id} toggled cannon: ${data.isOnCannon ? `MOUNTED ${data.cannonSide}` : 'DISMOUNTED'}`);
-
-      // Broadcast cannon state change to all other players in the room
-      socket.to(roomId).emit('playerCannonChanged', {
-        playerId: socket.id,
-        isOnCannon: data.isOnCannon,
-        cannonSide: data.cannonSide
       });
     }
   });
@@ -1026,17 +996,9 @@ io.on('connection', function (socket) {
         room.players[socket.id].player.velocityX = movementData.player.velocityX || 0;
         room.players[socket.id].player.velocityY = movementData.player.velocityY || 0;
 
-        // Sincronizar estado del cañón
-        if (movementData.player.isOnCannon !== undefined) {
-          room.players[socket.id].player.isOnCannon = movementData.player.isOnCannon;
-        }
-
         // Sincronizar estado de la cofa
         if (movementData.player.isInCrowsNest !== undefined) {
           room.players[socket.id].player.isInCrowsNest = movementData.player.isInCrowsNest;
-        }
-        if (movementData.player.cannonSide !== undefined) {
-          room.players[socket.id].player.cannonSide = movementData.player.cannonSide;
         }
 
         // Sincronizar estado de reparación
@@ -1050,29 +1012,7 @@ io.on('connection', function (socket) {
     }
   });
 
-  // CREATE BULLET
-  socket.on('createBullet', function (creationData) {
-    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
-    const room = rooms[roomId];
-
-    if (room) {
-      console.log("creationData (server): ", creationData);
-      console.log("Broadcasting bullet to room", roomId, "from shooter", creationData.shooterId);
-      console.log("Players in room:", Object.keys(room.players));
-      console.log("Socket rooms:", socket.rooms); // Debug: show which rooms this socket is in
-
-      room.bullets.push({ id: room.bullets.length });
-
-      // Emit to all players in the same room (INCLUDING the shooter)
-      io.to(roomId).emit('newBullet', creationData);
-
-      console.log(`[BULLET BROADCAST] Sent newBullet to room ${roomId} with ${Object.keys(room.players).length} players`);
-    } else {
-      console.error(`[BULLET ERROR] Room ${roomId} not found for socket ${socket.id}`);
-    }
-  });
-
-  // JELLY DESTROYED (by cannon bullet)
+  // JELLY DESTROYED
   socket.on('jellyDestroyed', function (data) {
     const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
     const room = rooms[roomId];
@@ -1081,7 +1021,7 @@ io.on('connection', function (socket) {
       const jellyIndex = room.jellies.findIndex(jelly => jelly.id === data.jellyId);
 
       if (jellyIndex !== -1) {
-        console.log(`[JELLY DESTROYED] Jelly ${data.jellyId} destroyed by bullet in room ${roomId}`);
+        console.log(`[JELLY DESTROYED] Jelly ${data.jellyId} destroyed in room ${roomId}`);
 
         // Remove jelly from server array
         room.jellies.splice(jellyIndex, 1);
@@ -1222,17 +1162,6 @@ io.on('connection', function (socket) {
     } catch (error) {
       console.error(`Error changing room for ship:`, error);
       socket.emit('roomChangeError', { message: 'Failed to change room' });
-    }
-  });
-
-  socket.on('cannonRotation', function(data) {
-    const roomId = getRoomId(socket.privateCode, socket.currentRoomX, socket.currentRoomY);
-    const room = rooms[roomId];
-    if (room && room.ship && data) {
-      room.ship.cannons = {
-        leftAngle: data.leftAngle || 0,
-        rightAngle: data.rightAngle || 0
-      };
     }
   });
 
@@ -1537,7 +1466,6 @@ setInterval(function() {
       isAnchored: room.ship.isAnchored,
       targetSpeed: room.ship.targetSpeed,
       lastProcessedInput: room.ship.lastProcessedInput, // For client reconciliation
-      cannons: room.ship.cannons,
       modifiers: room.ship.modifiers // Include active modifiers
     });
   });

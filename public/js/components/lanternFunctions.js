@@ -67,7 +67,7 @@ function createLantern(self, ship, isLit = false, hasAbyssLantern = false) {
   drawLanternGraphics(graphics, isLit, hasAbyssLantern);
 
   lanternContainer.add(graphics);
-  lanternContainer.setDepth(2.3); // Above ship, below cannons
+  lanternContainer.setDepth(2.3); // Above ship
 
   // Add breathing animation only if lit
   if (isLit) {
