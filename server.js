@@ -181,6 +181,10 @@ gameWorld.currentTime = gameWorld.cycleLength * 0.5;
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 3200;
 
+// Ship collision dimensions (rectangular hitbox)
+const SHIP_HALF_LENGTH = 230; // Half length from center to bow/stern (ship is 463px tall)
+const SHIP_HALF_WIDTH = 85;   // Half width from center to sides (ship is 178px wide)
+
 // Helper functions
 function getRoomId(privateCode, roomX, roomY) {
   return `${privateCode}_${roomX},${roomY}`;
@@ -355,11 +359,25 @@ function updateJellyMovement(jelly, ship, deltaTime) {
   jelly.y = Math.max(50, Math.min(WORLD_HEIGHT - 50, jelly.y));
 }
 
+// Check if a point is inside a rotated rectangle (OBB collision)
+function pointInRotatedRect(pointX, pointY, rectX, rectY, rectRotation, halfWidth, halfLength) {
+  // Translate point to rectangle's local space
+  const dx = pointX - rectX;
+  const dy = pointY - rectY;
+
+  // Rotate point by negative rectangle rotation to align with rectangle axes
+  const cos = Math.cos(-rectRotation);
+  const sin = Math.sin(-rectRotation);
+  const localX = dx * cos - dy * sin;
+  const localY = dx * sin + dy * cos;
+
+  // Check if point is within rectangle bounds
+  return Math.abs(localX) <= halfWidth && Math.abs(localY) <= halfLength;
+}
+
 // Check if ship collides with a modifier
 function checkModifierCollisions(ship, room) {
   if (!ship || !room.modifiers) return null;
-
-  const shipRadius = 50; // Approximate ship collision radius
 
   // Determine if player is in the abyssal world
   const hasAbyssVision = ship.modifiers && ship.modifiers.abyssVision;
@@ -367,11 +385,12 @@ function checkModifierCollisions(ship, room) {
 
   for (let i = 0; i < room.modifiers.length; i++) {
     const modifier = room.modifiers[i];
-    const dx = ship.x - modifier.x;
-    const dy = ship.y - modifier.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
 
-    if (distance < shipRadius + modifier.size) {
+    // Use rectangular hitbox with margin for modifier size
+    const hitboxHalfWidth = SHIP_HALF_WIDTH + modifier.size;
+    const hitboxHalfLength = SHIP_HALF_LENGTH + modifier.size;
+
+    if (pointInRotatedRect(modifier.x, modifier.y, ship.x, ship.y, ship.rotation, hitboxHalfWidth, hitboxHalfLength)) {
       // Check if the modifier is in the correct dimension
       const isAbyssalItem = modifier.isAbyssal || false;
 
