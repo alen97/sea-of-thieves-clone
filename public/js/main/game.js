@@ -502,6 +502,7 @@ function create() {
   this.repairSystem = new RepairSystem(this);
   this.energySystem = new EnergySystem(this);
   this.crateSystem = new CrateSystem(this);
+  this.fishingSystem = new FishingSystem(this);
 
   // DEV: Register number keys for instant modifier application
   this.devKey1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
@@ -611,6 +612,9 @@ function create() {
 
       // Create storage crates
       self.crateSystem.createCrates(self.ship);
+
+      // Create fishing spots
+      self.fishingSystem.createFishingSpots(self.ship);
 
       // Initialize steering variable from server state
       self.steeringDirection = shipData.steeringDirection || 0;
@@ -1912,6 +1916,13 @@ function update(time, delta) {
 
     // ===== SISTEMA DE CAJAS (usando CrateSystem) =====
     this.crateSystem.update(this.player, this.ship, inputState.interact && inputEnabled);
+
+    // ===== SISTEMA DE PESCA (usando FishingSystem) =====
+    const caughtFish = this.fishingSystem.update(this.player, this.ship, inputState.interact && inputEnabled, time);
+    if (caughtFish) {
+      // Fish was caught - will be handled by HoldItemSystem
+      console.log(`Caught: ${caughtFish.type}`);
+    }
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled, this.energySystem);
