@@ -1315,8 +1315,8 @@ function create() {
       const inAbyssalWorld = hasAbyssVision && self.lanternLit;
 
       // Abyssal items: visible only in abyssal world
-      // Normal items: visible only in normal world
-      const shouldBeVisible = modifier.isAbyssal ? inAbyssalWorld : !inAbyssalWorld;
+      // Normal items: always visible
+      const shouldBeVisible = modifier.isAbyssal ? inAbyssalWorld : true;
       modifier.setVisible(shouldBeVisible);
       modifier.aura.setVisible(shouldBeVisible);
 
@@ -2123,8 +2123,8 @@ function update(time, delta) {
     this.modifiers.getChildren().forEach(function (modifier) {
       if (modifier.isAbyssal !== undefined) {
         // Abyssal items: only visible in abyssal world (lantern + abyss vision)
-        // Normal items: only visible in normal world (no abyss vision OR lantern off)
-        const shouldBeVisible = modifier.isAbyssal ? inAbyssalWorld : !inAbyssalWorld;
+        // Normal items: always visible
+        const shouldBeVisible = modifier.isAbyssal ? inAbyssalWorld : true;
 
         modifier.setVisible(shouldBeVisible);
         if (modifier.aura) {
