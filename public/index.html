@@ -483,7 +483,9 @@
             <div id="loginBox">
                 <h1>Endless Sea of Rooms</h1>
                 <div class="menu-container">
-                    <button id="endlessModeButton" class="menu-item selected">Jugar</button>
+                    <button id="createRoomButton" class="menu-item selected">Crear sala</button>
+                    <button id="joinRoomButton" class="menu-item">Ingresar a sala</button>
+                    <input type="text" id="roomCodeInput" placeholder="______" maxlength="6" autocomplete="off">
                     <button id="helpButton" class="menu-item">Cómo jugar</button>
                 </div>
                 <p id="errorMessage"></p>
@@ -679,89 +681,51 @@
 
         <!-- Endless Mode Initialization -->
         <script>
-            // Endless Mode button handler
-            document.addEventListener('DOMContentLoaded', function() {
-                const endlessModeButton = document.getElementById('endlessModeButton');
+            // Override startGame to use Endless Mode
+            window.startEndlessGame = function() {
+                if (window.isStartingGame) return;
+                window.isStartingGame = true;
 
-                if (endlessModeButton) {
-                    endlessModeButton.addEventListener('click', function() {
-                        if (window.isStartingGame) return;
-                        window.isStartingGame = true;
+                // Stop menu ambient
+                if (window.stopMenuAmbient) window.stopMenuAmbient();
 
-                        // Stop menu ambient
-                        if (window.stopMenuAmbient) window.stopMenuAmbient();
+                // Hide login screen
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('gameContainer').style.display = 'block';
 
-                        // Hide login screen
-                        document.getElementById('loginScreen').style.display = 'none';
-                        document.getElementById('gameContainer').style.display = 'block';
-
-                        // Create Endless Mode game config
-                        const config = {
-                            type: Phaser.AUTO,
-                            parent: 'gameContainer',
-                            width: 1600,
-                            height: 900,
-                            backgroundColor: '#1a1a2e',
-                            physics: {
-                                default: 'arcade',
-                                arcade: {
-                                    gravity: { y: 0 },
-                                    debug: false
-                                }
-                            },
-                            scene: [EndlessScene, EndlessUIScene]
-                        };
-
-                        // Start game
-                        window.endlessGame = new Phaser.Game(config);
-
-                        // Handle restart
-                        const deathRestartButton = document.getElementById('deathRestartButton');
-                        deathRestartButton.addEventListener('click', function() {
-                            document.getElementById('deathScreen').style.display = 'none';
-                            const endlessScene = window.endlessGame.scene.getScene('EndlessScene');
-                            if (endlessScene) {
-                                endlessScene.restart();
-                            }
-                        });
-                    });
-                }
-
-                // Update menu navigation
-                const menuItems = [
-                    document.getElementById('endlessModeButton'),
-                    document.getElementById('helpButton')
-                ].filter(Boolean);
-
-                let selectedIndex = 0;
-
-                function updateMenuSelection() {
-                    menuItems.forEach((item, i) => {
-                        if (i === selectedIndex) {
-                            item.classList.add('selected');
-                        } else {
-                            item.classList.remove('selected');
+                // Create Endless Mode game config
+                const config = {
+                    type: Phaser.AUTO,
+                    parent: 'gameContainer',
+                    width: 1600,
+                    height: 900,
+                    backgroundColor: '#1a1a2e',
+                    physics: {
+                        default: 'arcade',
+                        arcade: {
+                            gravity: { y: 0 },
+                            debug: false
                         }
-                    });
-                }
+                    },
+                    scene: [EndlessScene, EndlessUIScene]
+                };
 
-                // Override existing keyboard navigation
-                document.addEventListener('keydown', function(e) {
-                    const loginScreen = document.getElementById('loginScreen');
-                    if (loginScreen.style.display === 'none') return;
+                // Start game
+                window.endlessGame = new Phaser.Game(config);
 
-                    const helpModal = document.getElementById('helpModal');
-                    if (helpModal.style.display === 'flex') return;
-
-                    if (e.key === 'ArrowUp') {
-                        selectedIndex = (selectedIndex - 1 + menuItems.length) % menuItems.length;
-                        updateMenuSelection();
-                    } else if (e.key === 'ArrowDown') {
-                        selectedIndex = (selectedIndex + 1) % menuItems.length;
-                        updateMenuSelection();
+                // Handle restart
+                const deathRestartButton = document.getElementById('deathRestartButton');
+                deathRestartButton.addEventListener('click', function() {
+                    document.getElementById('deathScreen').style.display = 'none';
+                    const endlessScene = window.endlessGame.scene.getScene('EndlessScene');
+                    if (endlessScene) {
+                        endlessScene.restart();
                     }
                 });
-            });
+            };
+
+            // Override the original startGame function
+            window.startGame = window.startEndlessGame;
         </script>
 
     </body>
