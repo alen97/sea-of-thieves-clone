@@ -20,16 +20,13 @@ class EnergySystem {
         player.energy = this.maxEnergy;
         player.maxEnergy = this.maxEnergy;
 
-        // Create energy bar background
+        // Create energy bar graphics (will be drawn in updateEnergyBar)
         const barWidth = 30;
         const barHeight = 4;
 
         player.energyBarBg = this.scene.add.graphics();
-        player.energyBarBg.fillStyle(0x000000, 0.7);
-        player.energyBarBg.fillRect(-barWidth / 2, -barHeight / 2, barWidth, barHeight);
         player.energyBarBg.setDepth(11);
 
-        // Create energy bar fill
         player.energyBar = this.scene.add.graphics();
         player.energyBar.setDepth(11);
 
@@ -46,9 +43,8 @@ class EnergySystem {
         if (!player.energyBarBg || !player.energyBar) return;
 
         // Position bar above player
+        const barX = player.x;
         const barY = player.y - 25;
-        player.energyBarBg.setPosition(player.x, barY);
-        player.energyBar.setPosition(player.x, barY);
 
         // Calculate fill percentage
         const fillPercent = player.energy / player.maxEnergy;
@@ -64,12 +60,22 @@ class EnergySystem {
             color = 0xFF4500; // Red-orange - critical
         }
 
-        // Redraw fill bar
+        // Redraw background bar at new position
+        player.energyBarBg.clear();
+        player.energyBarBg.fillStyle(0x000000, 0.7);
+        player.energyBarBg.fillRect(
+            barX - player.energyBarWidth / 2,
+            barY - player.energyBarHeight / 2,
+            player.energyBarWidth,
+            player.energyBarHeight
+        );
+
+        // Redraw fill bar at new position
         player.energyBar.clear();
         player.energyBar.fillStyle(color, 1);
         player.energyBar.fillRect(
-            -player.energyBarWidth / 2,
-            -player.energyBarHeight / 2,
+            barX - player.energyBarWidth / 2,
+            barY - player.energyBarHeight / 2,
             fillWidth,
             player.energyBarHeight
         );

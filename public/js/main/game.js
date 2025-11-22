@@ -1914,21 +1914,24 @@ function update(time, delta) {
     const nearCrowsNest = this.player.isInCrowsNest || false;
     this.repairSystem.update(this.player, this.ship, inputState, canUseHelm, false, nearCrowsNest, this.otherPlayers);
 
-    // ===== SISTEMA DE ENERGÍA (usando EnergySystem) =====
-    this.energySystem.update(this.player, time);
+    // ===== SISTEMAS DE SURVIVAL (solo si player y ship existen) =====
+    if (this.player && this.ship && this.player.energy !== undefined) {
+      // ===== SISTEMA DE ENERGÍA (usando EnergySystem) =====
+      this.energySystem.update(this.player, time);
 
-    // ===== SISTEMA DE CAJAS (usando CrateSystem) =====
-    this.crateSystem.update(this.player, this.ship, inputState.interact && inputEnabled);
+      // ===== SISTEMA DE CAJAS (usando CrateSystem) =====
+      this.crateSystem.update(this.player, this.ship, inputState.interact && inputEnabled);
 
-    // ===== SISTEMA DE PESCA (usando FishingSystem) =====
-    const caughtFish = this.fishingSystem.update(this.player, this.ship, inputState.interact && inputEnabled, time);
-    if (caughtFish) {
-      // Fish was caught - pick it up
-      this.holdItemSystem.pickUpItem(this.player, caughtFish);
+      // ===== SISTEMA DE PESCA (usando FishingSystem) =====
+      const caughtFish = this.fishingSystem.update(this.player, this.ship, inputState.interact && inputEnabled, time);
+      if (caughtFish) {
+        // Fish was caught - pick it up
+        this.holdItemSystem.pickUpItem(this.player, caughtFish);
+      }
+
+      // ===== SISTEMA DE SOSTENER OBJETOS (usando HoldItemSystem) =====
+      this.holdItemSystem.update(this.player, input, this.energySystem, this.crateSystem);
     }
-
-    // ===== SISTEMA DE SOSTENER OBJETOS (usando HoldItemSystem) =====
-    this.holdItemSystem.update(this.player, input, this.energySystem, this.crateSystem);
 
     // ===== ACTUALIZAR PLAYER (usa shipFunctions y playerFunctions) =====
     updatePlayer(this, this.player, this.ship, input, deltaTime, inputEnabled, this.energySystem);
