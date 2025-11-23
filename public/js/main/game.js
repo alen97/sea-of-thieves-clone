@@ -276,6 +276,9 @@ function preload() {
   // Water explosion sound (for bullet impacts on jellies)
   this.load.audio('waterExplosion', 'sounds/water-explosion.wav');
 
+  // Repairing sound
+  this.load.audio('repairing', 'sounds/repairing.wav');
+
   // Load player sprite sheets (one per player color)
   this.load.spritesheet('playerDefault', 'assets/Prota-Spritesheet.png', { frameWidth: 28, frameHeight: 28 });
   this.load.spritesheet('playerBlue', 'assets/Prota-Spritesheet-blue.png', { frameWidth: 28, frameHeight: 28 });

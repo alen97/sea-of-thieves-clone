@@ -15,6 +15,40 @@ class RepairSystem {
         this.indicator = null;
         this.repairRate = 10; // HP per repair tick
         this.repairInterval = 3000; // 3 seconds per repair tick
+        this.repairSound = null; // Repairing sound instance
+    }
+
+    /**
+     * Start playing the repairing sound in loop
+     */
+    startRepairSound() {
+        if (!this.repairSound) {
+            this.repairSound = this.scene.sound.add('repairing', {
+                loop: true,
+                volume: 0.5
+            });
+            // Add marker to play only first 10 seconds
+            this.repairSound.addMarker({
+                name: 'loop10s',
+                start: 0,
+                duration: 10,
+                config: { loop: true }
+            });
+        }
+        if (!this.repairSound.isPlaying) {
+            this.repairSound.play('loop10s');
+            console.log('[REPAIR] Started repair sound');
+        }
+    }
+
+    /**
+     * Stop playing the repairing sound
+     */
+    stopRepairSound() {
+        if (this.repairSound && this.repairSound.isPlaying) {
+            this.repairSound.stop();
+            console.log('[REPAIR] Stopped repair sound');
+        }
     }
 
     /**
@@ -185,6 +219,7 @@ class RepairSystem {
             if (player.isRepairing) {
                 player.isRepairing = false;
                 socket.emit('stopRepair');
+                this.stopRepairSound();
             }
             return;
         }
@@ -217,11 +252,13 @@ class RepairSystem {
                 // Start repairing
                 player.isRepairing = true;
                 socket.emit('startRepair');
+                this.startRepairSound();
                 console.log('[REPAIR] Started repairing ship');
             } else {
                 // Stop repairing (toggle off)
                 player.isRepairing = false;
                 socket.emit('stopRepair');
+                this.stopRepairSound();
                 console.log('[REPAIR] Stopped repairing ship - toggled off');
             }
         }
@@ -264,6 +301,7 @@ class RepairSystem {
             if (health >= maxHealth) {
                 player.isRepairing = false;
                 this.scene.socket.emit('stopRepair');
+                this.stopRepairSound();
                 console.log('[REPAIR] Auto-stopped repair - ship at full health');
             }
         }
