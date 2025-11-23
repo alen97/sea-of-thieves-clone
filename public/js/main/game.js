@@ -1232,16 +1232,20 @@ function create() {
     });
   });
 
-  // Handle room changes
+  // Handle room changes (server confirmation)
   this.socket.on('roomChanged', function (roomData) {
-    self.currentRoomX = roomData.roomX;
-    self.currentRoomY = roomData.roomY;
+    // Only update if different from local state (handles server corrections)
+    if (self.currentRoomX !== roomData.roomX || self.currentRoomY !== roomData.roomY) {
+      self.currentRoomX = roomData.roomX;
+      self.currentRoomY = roomData.roomY;
+      console.log(`[SERVER] Corrected room to (${roomData.roomX}, ${roomData.roomY})`);
+    }
 
-    // Add to visited rooms
+    // Ensure visited rooms is in sync
     const roomKey = `${roomData.roomX},${roomData.roomY}`;
     self.visitedRooms.add(roomKey);
 
-    console.log(`Changed to room (${roomData.roomX}, ${roomData.roomY})`);
+    console.log(`Room confirmed: (${roomData.roomX}, ${roomData.roomY})`);
     console.log(`Visited rooms: ${self.visitedRooms.size}`);
   });
 
@@ -2317,6 +2321,14 @@ function update(time, delta) {
         newShipY + playerRelativeY
       );
 
+      // Update room coordinates IMMEDIATELY to fix portal visibility race condition
+      this.currentRoomX = newRoomX;
+      this.currentRoomY = newRoomY;
+
+      // Add to visited rooms immediately
+      const roomKey = `${newRoomX},${newRoomY}`;
+      this.visitedRooms.add(roomKey);
+
       // Notify server about room change
       this.socket.emit('changeRoom', {
         roomX: newRoomX,
@@ -2324,8 +2336,6 @@ function update(time, delta) {
         shipX: newShipX,
         shipY: newShipY
       });
-
-      // Note: currentRoomX/Y will be updated by the 'roomChanged' event from server
     }
 
     // ===== UPDATE PORTAL VISIBILITY AND POSITION =====
