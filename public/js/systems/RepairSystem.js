@@ -219,7 +219,6 @@ class RepairSystem {
             if (player.isRepairing) {
                 player.isRepairing = false;
                 socket.emit('stopRepair');
-                this.stopRepairSound();
             }
             return;
         }
@@ -252,13 +251,11 @@ class RepairSystem {
                 // Start repairing
                 player.isRepairing = true;
                 socket.emit('startRepair');
-                this.startRepairSound();
                 console.log('[REPAIR] Started repairing ship');
             } else {
                 // Stop repairing (toggle off)
                 player.isRepairing = false;
                 socket.emit('stopRepair');
-                this.stopRepairSound();
                 console.log('[REPAIR] Stopped repairing ship - toggled off');
             }
         }
@@ -301,7 +298,6 @@ class RepairSystem {
             if (health >= maxHealth) {
                 player.isRepairing = false;
                 this.scene.socket.emit('stopRepair');
-                this.stopRepairSound();
                 console.log('[REPAIR] Auto-stopped repair - ship at full health');
             }
         }

@@ -1173,6 +1173,25 @@ function create() {
         console.log(`[REPAIR] ${data.isRepairing ? 'Hidden' : 'Shown'} player ${data.playerId}`);
       }
     });
+
+    // Play/stop repair sound for all players on the ship
+    if (self.repairSystem) {
+      // Check if any player is repairing (local or other)
+      let anyoneRepairing = self.player && self.player.isRepairing;
+      if (!anyoneRepairing) {
+        self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+          if (otherPlayer.isRepairing) {
+            anyoneRepairing = true;
+          }
+        });
+      }
+
+      if (anyoneRepairing) {
+        self.repairSystem.startRepairSound();
+      } else {
+        self.repairSystem.stopRepairSound();
+      }
+    }
   });
 
   // Handle anchor state changes from server
