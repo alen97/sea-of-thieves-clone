@@ -1415,6 +1415,14 @@ function create() {
     const portalX = portal.roomX * WORLD_WIDTH + WORLD_WIDTH / 2;
     const portalY = portal.roomY * WORLD_HEIGHT + WORLD_HEIGHT / 2;
 
+    // Destroy existing portal graphics to prevent orphaned sprites
+    if (self.portal) {
+      self.portal.destroy();
+    }
+    if (self.portalInner) {
+      self.portalInner.destroy();
+    }
+
     // Create portal graphic (purple swirling circle)
     self.portal = self.add.circle(portalX, portalY, 60, 0x8800ff, 0.6);
     self.portal.setDepth(1); // Below ship
