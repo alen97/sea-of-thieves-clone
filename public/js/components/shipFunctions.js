@@ -223,6 +223,9 @@ function setupShipCollisions(self, ship) {
         if (jelly.jellyId && jelly.texture && jelly.texture.key === 'abyssalJelly') {
             console.log(`[BULLET-JELLY] Bullet hit jelly ${jelly.jellyId}`);
 
+            // Play water explosion sound
+            self.sound.play('waterExplosion', { volume: 0.5 });
+
             // Destroy bullet immediately
             bullet.destroy();
 
